@@ -16,11 +16,12 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Linq;
- using System.Text;
- using System.Windows.Forms;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
 
 namespace Chummer
 {
@@ -32,100 +33,67 @@ namespace Chummer
         private readonly bool _blnForExistingCharacter;
 
         #region Control Events
+
         public frmSelectBuildMethod(Character objCharacter, bool blnUseCurrentValues = false)
         {
             _objCharacter = objCharacter ?? throw new ArgumentNullException(nameof(objCharacter));
-            _eStartingBuildMethod = _objCharacter.Options.BuildMethod;
+            _eStartingBuildMethod = _objCharacter.Settings.BuildMethod;
             _blnForExistingCharacter = blnUseCurrentValues;
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
 
-            // Populate the Gameplay Options list.
-            List<ListItem> lstGameplayOptions = new List<ListItem>(OptionsManager.LoadedCharacterOptions.Count);
-            foreach (KeyValuePair<string, CharacterOptions> objLoopOptions in OptionsManager.LoadedCharacterOptions)
+            // Populate the Character Settings list.
+            List<ListItem> lstCharacterSettings = new List<ListItem>(SettingsManager.LoadedCharacterSettings.Count);
+            foreach (KeyValuePair<string, CharacterSettings> objLoopOptions in SettingsManager.LoadedCharacterSettings)
             {
-                lstGameplayOptions.Add(new ListItem(objLoopOptions.Value, objLoopOptions.Value.DisplayName));
+                lstCharacterSettings.Add(new ListItem(objLoopOptions.Value, objLoopOptions.Value.DisplayName));
             }
-            lstGameplayOptions.Sort(CompareListItems.CompareNames);
-            cboCharacterOption.BeginUpdate();
-            cboCharacterOption.PopulateWithListItems(lstGameplayOptions);
+            lstCharacterSettings.Sort(CompareListItems.CompareNames);
+            cboCharacterSetting.BeginUpdate();
+            cboCharacterSetting.PopulateWithListItems(lstCharacterSettings);
             if (blnUseCurrentValues)
             {
-                cboCharacterOption.SelectedValue = OptionsManager.LoadedCharacterOptions[_objCharacter.CharacterOptionsKey];
-                if (cboCharacterOption.SelectedIndex == -1)
-                    cboCharacterOption.SelectedValue = OptionsManager.LoadedCharacterOptions[GlobalOptions.DefaultCharacterOption];
+                cboCharacterSetting.SelectedValue = SettingsManager.LoadedCharacterSettings[_objCharacter.SettingsKey];
+                if (cboCharacterSetting.SelectedIndex == -1)
+                    cboCharacterSetting.SelectedValue = SettingsManager.LoadedCharacterSettings[GlobalSettings.DefaultCharacterSetting];
                 chkIgnoreRules.Checked = _objCharacter.IgnoreRules;
             }
             else
-                cboCharacterOption.SelectedValue = OptionsManager.LoadedCharacterOptions[GlobalOptions.DefaultCharacterOption];
-            if (cboCharacterOption.SelectedIndex == -1 && lstGameplayOptions.Count > 0)
-                cboCharacterOption.SelectedIndex = 0;
-            cboCharacterOption.EndUpdate();
+                cboCharacterSetting.SelectedValue = SettingsManager.LoadedCharacterSettings[GlobalSettings.DefaultCharacterSetting];
+            if (cboCharacterSetting.SelectedIndex == -1 && lstCharacterSettings.Count > 0)
+                cboCharacterSetting.SelectedIndex = 0;
+            cboCharacterSetting.EndUpdate();
 
             chkIgnoreRules.SetToolTip(LanguageManager.GetString("Tip_SelectKarma_IgnoreRules"));
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
         {
-            if (!(cboCharacterOption.SelectedValue is CharacterOptions objSelectedGameplayOption))
+            if (!(cboCharacterSetting.SelectedValue is CharacterSettings objSelectedGameplayOption))
                 return;
             CharacterBuildMethod eSelectedBuildMethod = objSelectedGameplayOption.BuildMethod;
-            if (_blnForExistingCharacter && !_objCharacter.Created && _objCharacter.Options.BuildMethod == _objCharacter.EffectiveBuildMethod && eSelectedBuildMethod != _eStartingBuildMethod)
+            if (_blnForExistingCharacter && !_objCharacter.Created && _objCharacter.Settings.BuildMethod == _objCharacter.EffectiveBuildMethod && eSelectedBuildMethod != _eStartingBuildMethod)
             {
                 if (Program.MainForm.ShowMessageBox(this,
-                    string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_SelectBP_SwitchBuildMethods"),
+                    string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_SelectBP_SwitchBuildMethods"),
                         LanguageManager.GetString("String_" + eSelectedBuildMethod), LanguageManager.GetString("String_" + _eStartingBuildMethod)).WordWrap(),
                     LanguageManager.GetString("MessageTitle_SelectBP_SwitchBuildMethods"), MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning) != DialogResult.Yes)
                     return;
-                string strOldCharacterOptionsKey = _objCharacter.CharacterOptionsKey;
-                _objCharacter.CharacterOptionsKey = OptionsManager.LoadedCharacterOptions
-                    .First(x => x.Value == objSelectedGameplayOption).Key;
+                string strOldCharacterSettingsKey = _objCharacter.SettingsKey;
+                _objCharacter.SettingsKey = SettingsManager.LoadedCharacterSettings
+                    .First(x => ReferenceEquals(x.Value, objSelectedGameplayOption)).Key;
                 // If the character is loading, make sure we only switch build methods after we've loaded, otherwise we might cause all sorts of nastiness
                 if (_objCharacter.IsLoading)
-                    _objCharacter.PostLoadMethods.Enqueue(SwitchBuildMethods);
-                else if (!SwitchBuildMethods())
+                    _objCharacter.PostLoadMethods.Enqueue(() => _objCharacter.SwitchBuildMethods(_eStartingBuildMethod, eSelectedBuildMethod, strOldCharacterSettingsKey));
+                else if (!_objCharacter.SwitchBuildMethods(_eStartingBuildMethod, eSelectedBuildMethod, strOldCharacterSettingsKey))
                     return;
-
-                bool SwitchBuildMethods()
-                {
-                    if (eSelectedBuildMethod.UsesPriorityTables())
-                    {
-                        using (frmPriorityMetatype frmSelectMetatype = new frmPriorityMetatype(_objCharacter))
-                        {
-                            frmSelectMetatype.ShowDialog(this);
-                            if (frmSelectMetatype.DialogResult == DialogResult.Cancel)
-                            {
-                                _objCharacter.CharacterOptionsKey = strOldCharacterOptionsKey;
-                                return false;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        using (frmKarmaMetatype frmSelectMetatype = new frmKarmaMetatype(_objCharacter))
-                        {
-                            frmSelectMetatype.ShowDialog(this);
-                            if (frmSelectMetatype.DialogResult == DialogResult.Cancel)
-                            {
-                                _objCharacter.CharacterOptionsKey = strOldCharacterOptionsKey;
-                                return false;
-                            }
-                        }
-                    }
-
-                    if (_eStartingBuildMethod == CharacterBuildMethod.LifeModule)
-                    {
-                        _objCharacter.Qualities.RemoveAll(x => x.OriginSource == QualitySource.LifeModule);
-                    }
-                    return true;
-                }
             }
             else
             {
-                _objCharacter.CharacterOptionsKey = OptionsManager.LoadedCharacterOptions
-                    .First(x => x.Value == objSelectedGameplayOption).Key;
+                _objCharacter.SettingsKey = SettingsManager.LoadedCharacterSettings
+                    .First(x => ReferenceEquals(x.Value, objSelectedGameplayOption)).Key;
             }
             _objCharacter.IgnoreRules = chkIgnoreRules.Checked;
             DialogResult = DialogResult.OK;
@@ -141,29 +109,24 @@ namespace Chummer
         {
             using (new CursorWait(this))
             {
-                using (frmCharacterOptions frmOptions =
-                    new frmCharacterOptions(cboCharacterOption.SelectedValue as CharacterOptions))
+                using (frmCharacterSettings frmOptions =
+                    new frmCharacterSettings(cboCharacterSetting.SelectedValue as CharacterSettings))
                     frmOptions.ShowDialog(this);
 
                 SuspendLayout();
-                // Populate the Gameplay Options list.
-                object objOldSelected = cboCharacterOption.SelectedValue;
-                List<ListItem> lstGameplayOptions = new List<ListItem>();
-                foreach (KeyValuePair<string, CharacterOptions> objLoopOptions in OptionsManager.LoadedCharacterOptions)
-                {
-                    lstGameplayOptions.Add(new ListItem(objLoopOptions.Value, objLoopOptions.Value.DisplayName));
-                }
-
+                // Populate the Gameplay Settings list.
+                object objOldSelected = cboCharacterSetting.SelectedValue;
+                List<ListItem> lstGameplayOptions = SettingsManager.LoadedCharacterSettings.Values.Select(objLoopOptions => new ListItem(objLoopOptions, objLoopOptions.DisplayName)).ToList();
                 lstGameplayOptions.Sort(CompareListItems.CompareNames);
-                cboCharacterOption.BeginUpdate();
-                cboCharacterOption.PopulateWithListItems(lstGameplayOptions);
-                cboCharacterOption.SelectedValue = objOldSelected;
-                if (cboCharacterOption.SelectedIndex == -1 && lstGameplayOptions.Count > 0)
-                    cboCharacterOption.SelectedValue =
-                        OptionsManager.LoadedCharacterOptions[GlobalOptions.DefaultCharacterOption];
-                if (cboCharacterOption.SelectedIndex == -1 && lstGameplayOptions.Count > 0)
-                    cboCharacterOption.SelectedIndex = 0;
-                cboCharacterOption.EndUpdate();
+                cboCharacterSetting.BeginUpdate();
+                cboCharacterSetting.PopulateWithListItems(lstGameplayOptions);
+                cboCharacterSetting.SelectedValue = objOldSelected;
+                if (cboCharacterSetting.SelectedIndex == -1 && lstGameplayOptions.Count > 0)
+                    cboCharacterSetting.SelectedValue =
+                        SettingsManager.LoadedCharacterSettings[GlobalSettings.DefaultCharacterSetting];
+                if (cboCharacterSetting.SelectedIndex == -1 && lstGameplayOptions.Count > 0)
+                    cboCharacterSetting.SelectedIndex = 0;
+                cboCharacterSetting.EndUpdate();
                 ResumeLayout();
             }
         }
@@ -179,7 +142,7 @@ namespace Chummer
             if (!_blnLoading)
                 SuspendLayout();
             // Load the Priority information.
-            if (cboCharacterOption.SelectedValue is CharacterOptions objSelectedGameplayOption)
+            if (cboCharacterSetting.SelectedValue is CharacterSettings objSelectedGameplayOption)
             {
                 lblBuildMethod.Text = LanguageManager.GetString("String_" + objSelectedGameplayOption.BuildMethod);
                 switch (objSelectedGameplayOption.BuildMethod)
@@ -190,22 +153,24 @@ namespace Chummer
                         lblBuildMethodParamLabel.Visible = true;
                         lblBuildMethodParam.Visible = true;
                         break;
+
                     case CharacterBuildMethod.SumtoTen:
                         lblBuildMethodParamLabel.Text = LanguageManager.GetString("String_SumtoTen");
-                        lblBuildMethodParam.Text = objSelectedGameplayOption.SumtoTen.ToString(GlobalOptions.CultureInfo);
+                        lblBuildMethodParam.Text = objSelectedGameplayOption.SumtoTen.ToString(GlobalSettings.CultureInfo);
                         lblBuildMethodParamLabel.Visible = true;
                         lblBuildMethodParam.Visible = true;
                         break;
+
                     default:
                         lblBuildMethodParamLabel.Visible = false;
                         lblBuildMethodParam.Visible = false;
                         break;
                 }
 
-                lblMaxAvail.Text = objSelectedGameplayOption.MaximumAvailability.ToString(GlobalOptions.CultureInfo);
-                lblKarma.Text = objSelectedGameplayOption.BuildKarma.ToString(GlobalOptions.CultureInfo);
-                lblMaxNuyen.Text = objSelectedGameplayOption.NuyenMaximumBP.ToString(GlobalOptions.CultureInfo);
-                lblQualityKarma.Text = objSelectedGameplayOption.QualityKarmaLimit.ToString(GlobalOptions.CultureInfo);
+                lblMaxAvail.Text = objSelectedGameplayOption.MaximumAvailability.ToString(GlobalSettings.CultureInfo);
+                lblKarma.Text = objSelectedGameplayOption.BuildKarma.ToString(GlobalSettings.CultureInfo);
+                lblMaxNuyen.Text = objSelectedGameplayOption.NuyenMaximumBP.ToString(GlobalSettings.CultureInfo);
+                lblQualityKarma.Text = objSelectedGameplayOption.QualityKarmaLimit.ToString(GlobalSettings.CultureInfo);
 
                 lblBooks.Text = _objCharacter.TranslatedBookList(string.Join(";", objSelectedGameplayOption.Books));
                 if (string.IsNullOrEmpty(lblBooks.Text))
@@ -219,10 +184,11 @@ namespace Chummer
                 if (string.IsNullOrEmpty(lblBooks.Text))
                     lblCustomData.Text = LanguageManager.GetString("String_None");
             }
-            
+
             if (!_blnLoading)
                 ResumeLayout();
         }
-        #endregion
+
+        #endregion Control Events
     }
 }

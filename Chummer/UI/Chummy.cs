@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -28,7 +29,7 @@ namespace Chummer
 {
     public partial class Chummy : Form
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private const int EyeBallWidth = 20;
         private const int EyeBallHeight = 32;
         private const int DistanceBetweenEyes = 10;
@@ -40,7 +41,7 @@ namespace Chummer
         private Point _oldMousePos = new Point(-1, -1);
         private Character _characterObject;
 
-        readonly ToolTip _myToolTip = new ToolTip
+        private readonly ToolTip _myToolTip = new ToolTip
         {
             IsBalloon = true
         };
@@ -58,13 +59,13 @@ namespace Chummer
 
             Paint += panel1_Paint;
 
-            using (var tmrDraw = new Timer {Interval = 100})
+            using (var tmrDraw = new Timer { Interval = 100 })
             {
                 tmrDraw.Tick += tmr_DrawTick;
                 tmrDraw.Start();
             }
 
-            using (var tmrTip = new Timer {Interval = 300000})
+            using (var tmrTip = new Timer { Interval = 300000 })
             {
                 tmrTip.Tick += tmr_TipTick;
                 tmrTip.Start();
@@ -73,7 +74,9 @@ namespace Chummer
             _myToolTip.Show(LanguageManager.GetString("Chummy_Intro").WordWrap(), this, _mouthCenter);
             _objXmlDocument = (objCharacter?.LoadDataXPath("tips.xml") ?? XmlManager.LoadXPath("tips.xml")).SelectSingleNode("/chummer/tips");
         }
+
         #region Event Handlers
+
         private void tmr_DrawTick(object sender, EventArgs e)
         {
             // See if the cursor has moved.
@@ -104,15 +107,19 @@ namespace Chummer
                     // present on left mouse button
                     HideBalloonTip();
                     NativeMethods.ReleaseCapture();
-                    NativeMethods.SendMessage(Handle, 0xa1, 0x2, 0);
+                    NativeMethods.SendMessage(Handle, 0xa1, 0x2, IntPtr.Zero);
                     break;
+
                 case MouseButtons.Left:
                     ShowBalloonTip();
                     break;
             }
         }
-        #endregion
+
+        #endregion Event Handlers
+
         #region Draw Eyes
+
         private void DrawEyes(Graphics gr)
         {
             // Convert the cursor position into form units.
@@ -131,7 +138,7 @@ namespace Chummer
             DrawEye(gr, localPos, x2, _eyeballCenter.Y, (int)(EyeBallWidth * gr.DpiX / 96.0f), (int)(EyeBallHeight * gr.DpiY / 96.0f));
         }
 
-        private void DrawEye(Graphics gr, Point local_pos,
+        private void DrawEye(Graphics gr, Point localPos,
             int x1, int y1, int wid, int hgt)
         {
             // Draw the outside.
@@ -143,8 +150,8 @@ namespace Chummer
             int cy = y1 + hgt / 2;
 
             // Get the unit vector pointing towards the mouse position.
-            double dx = local_pos.X - cx;
-            double dy = local_pos.Y - cy;
+            double dx = localPos.X - cx;
+            double dy = localPos.Y - cy;
             double dist = Math.Sqrt(dx * dx + dy * dy);
             dx /= dist;
             dy /= dist;
@@ -166,12 +173,14 @@ namespace Chummer
             }
             catch (Exception e)
             {
-                string msg = string.Format(GlobalOptions.InvariantCultureInfo, "Got an " + e.GetType() + " with these variables in Chummy.cs-DrawEye(): x={0},y={1},width={2},height={3}",
+                string msg = string.Format(GlobalSettings.InvariantCultureInfo, "Got an " + e.GetType() + " with these variables in Chummy.cs-DrawEye(): x={0},y={1},width={2},height={3}",
                     x, y, width, height);
                 Log.Warn(e, msg);
             }
         }
-        #endregion
+
+        #endregion Draw Eyes
+
         #region Chat Bubble
 
         private string HelpfulAdvice()
@@ -190,6 +199,7 @@ namespace Chummer
             }
             return string.Empty;
         }
+
         private void ShowBalloonTip()
         {
             _myToolTip.Show(HelpfulAdvice().WordWrap(), this, _mouthCenter);
@@ -199,7 +209,9 @@ namespace Chummer
         {
             _myToolTip.Hide(this);
         }
-        #endregion
+
+        #endregion Chat Bubble
+
         #region Properties
 
         public Character CharacterObject
@@ -212,6 +224,6 @@ namespace Chummer
             }
         }
 
-        #endregion
+        #endregion Properties
     }
 }

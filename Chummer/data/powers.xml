@@ -1379,7 +1379,7 @@
       <source>SS</source>
       <page>191</page>
       <action>Complex</action>
-      <adeptway>0.5</adeptway>      
+      <adeptway>0.5</adeptway>
     </power>
     <!-- End Region -->
     <!-- Region Shadow Spells -->
@@ -1687,7 +1687,7 @@
       <levels>True</levels>
       <limit>1</limit>
       <source>HT</source>
-      <page>190</page>
+      <page>191</page>
       <bonus>
         <throwrangestr>Rating*2</throwrangestr>
       </bonus>

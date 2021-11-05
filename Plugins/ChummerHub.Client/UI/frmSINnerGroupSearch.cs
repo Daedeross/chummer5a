@@ -9,7 +9,7 @@ namespace ChummerHub.Client.UI
 {
     public partial class frmSINnerGroupSearch : Form
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private CharacterExtended MyCE { get; }
         public ucSINnersBasic MyParentForm { get; }
 
@@ -45,7 +45,7 @@ namespace ChummerHub.Client.UI
         {
             try
             {
-                await PluginHandler.MainForm.CharacterRoster.LoadCharacters(false, false, false);
+                await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodes(PluginHandler.MyPluginHandlerInstance);
             }
             catch (Exception exception)
             {

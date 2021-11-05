@@ -79,18 +79,6 @@ namespace Chummer.UI.Powers
             if (Utils.IsDesignerMode || Utils.IsRunningInVisualStudio)
                 return;
 
-            _objCharacter.Powers.ListChanged += (sender, e) => {
-                if (e.ListChangedType == ListChangedType.ItemChanged)
-                {
-                    string propertyName = e.PropertyDescriptor?.Name;
-                    if (propertyName == nameof(Power.FreeLevels) || propertyName == nameof(Power.TotalRating))
-                    {
-                        // recalculation of power points on rating/free levels change
-                        CalculatePowerPoints();
-                    }
-                }
-            };
-
             Stopwatch sw = Stopwatch.StartNew();  //Benchmark, should probably remove in release
             Stopwatch parts = Stopwatch.StartNew();
             //Keep everything visible until ready to display everything. This
@@ -128,8 +116,49 @@ namespace Chummer.UI.Powers
             //this.Update();
             ResumeLayout(true);
             //this.PerformLayout();
+
+            _objCharacter.Powers.ListChanged += OnPowersListChanged;
+            _objCharacter.PropertyChanged += OnCharacterPropertyChanged;
+
             sw.Stop();
             Debug.WriteLine("RealLoad() in {0} ms", sw.Elapsed.TotalMilliseconds);
+        }
+
+        private void UnbindPowersTabUserControl()
+        {
+            if (_objCharacter != null)
+            {
+                _objCharacter.Powers.ListChanged -= OnPowersListChanged;
+                _objCharacter.PropertyChanged -= OnCharacterPropertyChanged;
+            }
+        }
+
+        private void OnCharacterPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Character.PowerPointsTotal) || e.PropertyName == nameof(Character.PowerPointsUsed))
+                CalculatePowerPoints();
+        }
+
+        private void OnPowersListChanged(object sender, ListChangedEventArgs e)
+        {
+            switch (e.ListChangedType)
+            {
+                case ListChangedType.ItemChanged:
+                    {
+                        string propertyName = e.PropertyDescriptor?.Name;
+                        if (propertyName == nameof(Power.FreeLevels) || propertyName == nameof(Power.TotalRating))
+                        {
+                            // recalculation of power points on rating/free levels change
+                            CalculatePowerPoints();
+                        }
+                        break;
+                    }
+                case ListChangedType.Reset:
+                case ListChangedType.ItemAdded:
+                case ListChangedType.ItemDeleted:
+                    CalculatePowerPoints();
+                    break;
+            }
         }
 
         private static List<Tuple<string, Predicate<Power>>> GenerateDropdownFilter()
@@ -147,7 +176,7 @@ namespace Chummer.UI.Powers
             };
 
             /*
-            using (XmlNodeList xmlPowerCategoryList = XmlManager.Load("powers.xml", objCharacter.Options.CustomDataDictionary).SelectNodes("/chummer/categories/category"))
+            using (XmlNodeList xmlPowerCategoryList = XmlManager.Load("powers.xml", objCharacter.Settings.CustomDataDictionary).SelectNodes("/chummer/categories/category"))
                 if (xmlPowerCategoryList != null)
                     foreach (XmlNode xmlCategoryNode in xmlPowerCategoryList)
                     {
@@ -184,7 +213,7 @@ namespace Chummer.UI.Powers
         {
             if (_blnSearchMode)
             {
-                _table.Filter = (power => GlobalOptions.InvariantCultureInfo.CompareInfo.IndexOf(power.CurrentDisplayName, cboDisplayFilter.Text, CompareOptions.IgnoreCase) >= 0);
+                _table.Filter = (power => GlobalSettings.InvariantCultureInfo.CompareInfo.IndexOf(power.CurrentDisplayName, cboDisplayFilter.Text, CompareOptions.IgnoreCase) >= 0);
             }
         }
 
@@ -227,7 +256,7 @@ namespace Chummer.UI.Powers
         {
             decimal decPowerPointsTotal = _objCharacter.PowerPointsTotal;
             decimal decPowerPointsRemaining = decPowerPointsTotal - _objCharacter.PowerPointsUsed;
-            lblPowerPoints.Text = string.Format(GlobalOptions.CultureInfo, "{1}{0}({2}{0}{3})",
+            lblPowerPoints.Text = string.Format(GlobalSettings.CultureInfo, "{1}{0}({2}{0}{3})",
                 LanguageManager.GetString("String_Space"), decPowerPointsTotal, decPowerPointsRemaining, LanguageManager.GetString("String_Remaining"));
         }
 
@@ -244,7 +273,7 @@ namespace Chummer.UI.Powers
                 Text = "Power",
                 Extractor = (power => power.CurrentDisplayName),
                 Tag = "String_Power",
-                Sorter = (name1, name2) => string.Compare((string)name1, (string)name2, GlobalOptions.CultureInfo, CompareOptions.Ordinal)
+                Sorter = (name1, name2) => string.Compare((string)name1, (string)name2, GlobalSettings.CultureInfo, CompareOptions.Ordinal)
             };
             nameColumn.AddDependency(nameof(Power.CurrentDisplayName));
 
@@ -253,7 +282,7 @@ namespace Chummer.UI.Powers
                 Text = "Action",
                 Extractor = (power => power.DisplayAction),
                 Tag = "ColumnHeader_Action",
-                Sorter = (action1, action2) => string.Compare((string)action1, (string)action2, GlobalOptions.CultureInfo, CompareOptions.Ordinal)
+                Sorter = (action1, action2) => string.Compare((string)action1, (string)action2, GlobalSettings.CultureInfo, CompareOptions.Ordinal)
             };
             actionColumn.AddDependency(nameof(Power.DisplayAction));
 
@@ -263,7 +292,7 @@ namespace Chummer.UI.Powers
                 MaxExtractor = (p => Math.Max(p.TotalMaximumLevels - p.FreeLevels, 0)),
                 ValueUpdater = (p, newRating) =>
                 {
-                    int delta = ((int) newRating) - p.Rating;
+                    int delta = ((int)newRating) - p.Rating;
                     if (delta != 0)
                     {
                         p.Rating += delta;
@@ -366,7 +395,8 @@ namespace Chummer.UI.Powers
                 Size = GetImageSize(Resources.note_edit),
             })
             {
-                ClickHandler = p => {
+                ClickHandler = p =>
+                {
                     using (frmNotes frmPowerNotes = new frmNotes(p.Notes, p.NotesColor))
                     {
                         frmPowerNotes.ShowDialog(this);
@@ -379,7 +409,8 @@ namespace Chummer.UI.Powers
             {
                 Text = "Notes",
                 Tag = "ColumnHeader_Notes",
-                ToolTipExtractor = (p => {
+                ToolTipExtractor = (p =>
+                {
                     string strTooltip = LanguageManager.GetString("Tip_Power_EditNotes");
                     if (!string.IsNullOrEmpty(p.Notes))
                         strTooltip += Environment.NewLine + Environment.NewLine + p.Notes.RtfToPlainText();

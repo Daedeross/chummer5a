@@ -38,6 +38,7 @@ namespace Chummer
         private readonly Character _objCharacter;
 
         #region Control Events
+
         public frmSelectMartialArt(Character objCharacter)
         {
             InitializeComponent();
@@ -89,7 +90,7 @@ namespace Chummer
         {
             if (_blnLoading)
                 return;
-            
+
             string strSelectedId = lstMartialArts.SelectedValue?.ToString();
             if (!string.IsNullOrEmpty(strSelectedId))
             {
@@ -98,7 +99,7 @@ namespace Chummer
 
                 if (objXmlArt != null)
                 {
-                    lblKarmaCost.Text = objXmlArt.SelectSingleNode("cost")?.Value ?? 7.ToString(GlobalOptions.CultureInfo);
+                    lblKarmaCost.Text = objXmlArt.SelectSingleNode("cost")?.Value ?? 7.ToString(GlobalSettings.CultureInfo);
                     lblKarmaCostLabel.Visible = !string.IsNullOrEmpty(lblKarmaCost.Text);
 
                     StringBuilder objTechniqueStringBuilder = new StringBuilder();
@@ -107,14 +108,14 @@ namespace Chummer
                         string strLoopTechniqueName = xmlMartialArtsTechnique.SelectSingleNode("name")?.Value ?? string.Empty;
                         if (!string.IsNullOrEmpty(strLoopTechniqueName))
                         {
-                            XPathNavigator xmlTechniqueNode = _xmlBaseMartialArtsTechniquesNode.SelectSingleNode(string.Format(GlobalOptions.InvariantCultureInfo, "technique[name = {0} and ({1})]",
-                                strLoopTechniqueName.CleanXPath(), _objCharacter.Options.BookXPath()));
+                            XPathNavigator xmlTechniqueNode = _xmlBaseMartialArtsTechniquesNode.SelectSingleNode(string.Format(GlobalSettings.InvariantCultureInfo, "technique[name = {0} and ({1})]",
+                                strLoopTechniqueName.CleanXPath(), _objCharacter.Settings.BookXPath()));
                             if (xmlTechniqueNode != null)
                             {
                                 if (objTechniqueStringBuilder.Length > 0)
                                     objTechniqueStringBuilder.AppendLine(",");
 
-                                objTechniqueStringBuilder.Append(!GlobalOptions.Language.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase) ? xmlTechniqueNode.SelectSingleNode("translate")?.Value ?? strLoopTechniqueName: strLoopTechniqueName);
+                                objTechniqueStringBuilder.Append(!GlobalSettings.Language.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase) ? xmlTechniqueNode.SelectSingleNode("translate")?.Value ?? strLoopTechniqueName : strLoopTechniqueName);
                             }
                         }
                     }
@@ -123,7 +124,7 @@ namespace Chummer
 
                     string strSource = objXmlArt.SelectSingleNode("source")?.Value ?? LanguageManager.GetString("String_Unknown");
                     string strPage = objXmlArt.SelectSingleNode("altpage")?.Value ?? objXmlArt.SelectSingleNode("page")?.Value ?? LanguageManager.GetString("String_Unknown");
-                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalOptions.Language, GlobalOptions.CultureInfo, _objCharacter);
+                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalSettings.Language, GlobalSettings.CultureInfo, _objCharacter);
                     objSourceString.SetControl(lblSource);
                     lblSourceLabel.Visible = !string.IsNullOrEmpty(lblSource.Text);
                     tlpRight.Visible = true;
@@ -151,9 +152,11 @@ namespace Chummer
         {
             RefreshArtList();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Whether or not the user wants to add another item after this one.
         /// </summary>
@@ -176,9 +179,11 @@ namespace Chummer
         {
             set => _strForcedValue = value;
         }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Accept the selected item and close the form.
         /// </summary>
@@ -202,7 +207,7 @@ namespace Chummer
         /// </summary>
         private void RefreshArtList()
         {
-            string strFilter = '(' + _objCharacter.Options.BookXPath() + ')';
+            string strFilter = '(' + _objCharacter.Settings.BookXPath() + ')';
             if (ShowQualities)
                 strFilter += " and isquality = " + bool.TrueString.CleanXPath();
             else
@@ -233,6 +238,7 @@ namespace Chummer
                 lstMartialArts.SelectedIndex = -1;
             lstMartialArts.EndUpdate();
         }
-        #endregion
+
+        #endregion Methods
     }
 }

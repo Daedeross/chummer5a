@@ -58,33 +58,36 @@ namespace Chummer
                     _objXmlDocument = objCharacter.LoadDataXPath("metamagic.xml").SelectSingleNode("/chummer/arts");
                     _strLocalName = LanguageManager.GetString("String_Art");
                     _strBaseXPath = "art";
-                    _strXPathFilter = _objCharacter.Options.BookXPath();
+                    _strXPathFilter = _objCharacter.Settings.BookXPath();
                     break;
+
                 case Mode.Enhancement:
                     _objXmlDocument = objCharacter.LoadDataXPath("powers.xml").SelectSingleNode("/chummer/enhancements");
                     _strLocalName = LanguageManager.GetString("String_Enhancement");
                     _strBaseXPath = "enhancement";
-                    _strXPathFilter = _objCharacter.Options.BookXPath();
+                    _strXPathFilter = _objCharacter.Settings.BookXPath();
                     break;
+
                 case Mode.Enchantment:
                     _strLocalName = LanguageManager.GetString("String_Enchantment");
                     _objXmlDocument = objCharacter.LoadDataXPath("spells.xml").SelectSingleNode("/chummer/spells");
                     _strBaseXPath = "spell";
-                    _strXPathFilter = "category = 'Enchantments' and (" + _objCharacter.Options.BookXPath() + ")";
+                    _strXPathFilter = "category = 'Enchantments' and (" + _objCharacter.Settings.BookXPath() + ")";
                     break;
+
                 case Mode.Ritual:
                     _strLocalName = LanguageManager.GetString("String_Ritual");
                     _objXmlDocument = objCharacter.LoadDataXPath("spells.xml").SelectSingleNode("/chummer/spells");
                     _strBaseXPath = "spell";
-                    _strXPathFilter = "category = 'Rituals' and (" + _objCharacter.Options.BookXPath() + ")";
+                    _strXPathFilter = "category = 'Rituals' and (" + _objCharacter.Settings.BookXPath() + ")";
                     break;
             }
         }
 
         private void frmSelectArt_Load(object sender, EventArgs e)
         {
-            Text = string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Title_SelectGeneric"), _strLocalName);
-            chkLimitList.Text = string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Checkbox_SelectGeneric_LimitList"), _strLocalName);
+            Text = string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Title_SelectGeneric"), _strLocalName);
+            chkLimitList.Text = string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Checkbox_SelectGeneric_LimitList"), _strLocalName);
 
             _blnLoading = false;
 
@@ -114,8 +117,8 @@ namespace Chummer
 
             string strSource = objXmlMetamagic.SelectSingleNode("source")?.Value ?? LanguageManager.GetString("String_Unknown");
             string strPage = objXmlMetamagic.SelectSingleNode("altpage")?.Value ?? objXmlMetamagic.SelectSingleNode("page")?.Value ?? LanguageManager.GetString("String_Unknown");
-            SourceString objSource = new SourceString(strSource, strPage, GlobalOptions.Language,
-                GlobalOptions.CultureInfo, _objCharacter);
+            SourceString objSource = new SourceString(strSource, strPage, GlobalSettings.Language,
+                GlobalSettings.CultureInfo, _objCharacter);
             lblSource.Text = objSource.ToString();
             lblSource.SetToolTip(objSource.LanguageBookTooltip);
             tlpRight.Visible = true;
@@ -147,14 +150,16 @@ namespace Chummer
         }
 
         #region Properties
+
         /// <summary>
         /// Id of the Art that was selected in the dialogue.
         /// </summary>
         public string SelectedItem => _strSelectedItem;
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Build the list of Arts.
         /// </summary>
@@ -170,12 +175,9 @@ namespace Chummer
             foreach (XPathNavigator objXmlMetamagic in _objXmlDocument.Select(_strBaseXPath + '[' + strFilter + ']'))
             {
                 string strId = objXmlMetamagic.SelectSingleNode("id")?.Value;
-                if (!string.IsNullOrEmpty(strId))
+                if (!string.IsNullOrEmpty(strId) && (!chkLimitList.Checked || objXmlMetamagic.RequirementsMet(_objCharacter)))
                 {
-                    if (!chkLimitList.Checked || objXmlMetamagic.RequirementsMet(_objCharacter))
-                    {
-                        lstArts.Add(new ListItem(objXmlMetamagic.SelectSingleNode("id")?.Value, objXmlMetamagic.SelectSingleNode("translate")?.Value ?? objXmlMetamagic.SelectSingleNode("name")?.Value ?? LanguageManager.GetString("String_Unknown")));
-                    }
+                    lstArts.Add(new ListItem(objXmlMetamagic.SelectSingleNode("id")?.Value, objXmlMetamagic.SelectSingleNode("translate")?.Value ?? objXmlMetamagic.SelectSingleNode("name")?.Value ?? LanguageManager.GetString("String_Unknown")));
                 }
             }
             lstArts.Sort(CompareListItems.CompareNames);
@@ -218,6 +220,7 @@ namespace Chummer
         {
             CommonFunctions.OpenPdfFromControl(sender, e);
         }
-        #endregion
+
+        #endregion Methods
     }
 }

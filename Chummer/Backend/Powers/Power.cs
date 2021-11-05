@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -31,6 +32,7 @@ using System.Xml.XPath;
 using Chummer.Annotations;
 using Chummer.Backend.Attributes;
 using Chummer.Backend.Skills;
+
 // ReSharper disable SpecifyACultureInStringConversionExplicitly
 
 // ReSharper disable once CheckNamespace
@@ -40,7 +42,7 @@ namespace Chummer
     /// An Adept Power.
     /// </summary>
     [HubClassTag("SourceID", true, "Name", "Extra")]
-    [DebuggerDisplay("{DisplayName(GlobalOptions.DefaultLanguage)}")]
+    [DebuggerDisplay("{DisplayName(GlobalSettings.DefaultLanguage)}")]
     public class Power : INotifyMultiplePropertyChanged, IHasInternalId, IHasName, IHasXmlNode, IHasNotes, IHasSource
     {
         private Guid _guiID;
@@ -67,6 +69,7 @@ namespace Chummer
         private int _cachedLearnedRating;
 
         #region Constructor, Create, Save, Load, and Print Methods
+
         public Power(Character objCharacter)
         {
             // Create the GUID for the new Power.
@@ -75,8 +78,8 @@ namespace Chummer
             if (CharacterObject != null)
             {
                 CharacterObject.PropertyChanged += OnCharacterChanged;
-                CharacterObject.Options.PropertyChanged += OnCharacterOptionsChanged;
-                if (CharacterObject.Options.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept)
+                CharacterObject.Settings.PropertyChanged += OnCharacterSettingsChanged;
+                if (CharacterObject.Settings.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept)
                 {
                     MAGAttributeObject = CharacterObject.MAGAdept;
                 }
@@ -92,7 +95,7 @@ namespace Chummer
             if (CharacterObject != null)
             {
                 CharacterObject.PropertyChanged -= OnCharacterChanged;
-                CharacterObject.Options.PropertyChanged -= OnCharacterOptionsChanged;
+                CharacterObject.Settings.PropertyChanged -= OnCharacterSettingsChanged;
             }
             MAGAttributeObject = null;
             BoostedSkill = null;
@@ -121,14 +124,14 @@ namespace Chummer
             objWriter.WriteElementString("pointsperlevel", _strPointsPerLevel);
             objWriter.WriteElementString("adeptway", _strAdeptWayDiscount);
             objWriter.WriteElementString("action", _strAction);
-            objWriter.WriteElementString("rating", _intRating.ToString(GlobalOptions.InvariantCultureInfo));
-            objWriter.WriteElementString("extrapointcost", _decExtraPointCost.ToString(GlobalOptions.InvariantCultureInfo));
-            objWriter.WriteElementString("levels", _blnLevelsEnabled.ToString(GlobalOptions.InvariantCultureInfo));
-            objWriter.WriteElementString("maxlevels", _intMaxLevels.ToString(GlobalOptions.InvariantCultureInfo));
-            objWriter.WriteElementString("discounted", _blnDiscountedAdeptWay.ToString(GlobalOptions.InvariantCultureInfo));
-            objWriter.WriteElementString("discountedgeas", _blnDiscountedGeas.ToString(GlobalOptions.InvariantCultureInfo));
+            objWriter.WriteElementString("rating", _intRating.ToString(GlobalSettings.InvariantCultureInfo));
+            objWriter.WriteElementString("extrapointcost", _decExtraPointCost.ToString(GlobalSettings.InvariantCultureInfo));
+            objWriter.WriteElementString("levels", _blnLevelsEnabled.ToString(GlobalSettings.InvariantCultureInfo));
+            objWriter.WriteElementString("maxlevels", _intMaxLevels.ToString(GlobalSettings.InvariantCultureInfo));
+            objWriter.WriteElementString("discounted", _blnDiscountedAdeptWay.ToString(GlobalSettings.InvariantCultureInfo));
+            objWriter.WriteElementString("discountedgeas", _blnDiscountedGeas.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteElementString("bonussource", _strBonusSource);
-            objWriter.WriteElementString("freepoints", _decFreePoints.ToString(GlobalOptions.InvariantCultureInfo));
+            objWriter.WriteElementString("freepoints", _decFreePoints.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteElementString("source", _strSource);
             objWriter.WriteElementString("page", _strPage);
             if (Bonus != null)
@@ -164,7 +167,7 @@ namespace Chummer
             if (!objNode.TryGetMultiLineStringFieldQuickly("altnotes", ref _strNotes))
                 objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
 
-            String sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
+            string sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
             objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
             _colNotes = ColorTranslator.FromHtml(sNotesColor);
 
@@ -206,7 +209,7 @@ namespace Chummer
                 string strOldForce = ImprovementManager.ForcedValue;
                 string strOldSelected = ImprovementManager.SelectedValue;
                 ImprovementManager.ForcedValue = Extra;
-                if (!ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId, Bonus, TotalRating, DisplayNameShort(GlobalOptions.Language)))
+                if (!ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId, Bonus, TotalRating, DisplayNameShort(GlobalSettings.Language)))
                 {
                     ImprovementManager.ForcedValue = strOldForce;
                     DeletePower();
@@ -224,7 +227,18 @@ namespace Chummer
         }
 
         private SourceString _objCachedSourceDetail;
-        public SourceString SourceDetail => _objCachedSourceDetail = _objCachedSourceDetail ?? new SourceString(Source, DisplayPage(GlobalOptions.Language), GlobalOptions.Language, GlobalOptions.CultureInfo, CharacterObject);
+
+        public SourceString SourceDetail
+        {
+            get
+            {
+                if (_objCachedSourceDetail == default)
+                    _objCachedSourceDetail = new SourceString(Source,
+                        DisplayPage(GlobalSettings.Language), GlobalSettings.Language, GlobalSettings.CultureInfo,
+                        CharacterObject);
+                return _objCachedSourceDetail;
+            }
+        }
 
         /// <summary>
         /// Load the Power from the XmlNode.
@@ -237,9 +251,9 @@ namespace Chummer
                 _guiID = Guid.NewGuid();
             }
             objNode.TryGetStringFieldQuickly("name", ref _strName);
-            if(!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
+            if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
-                XmlNode node = GetNode(GlobalOptions.Language);
+                XmlNode node = GetNode(GlobalSettings.Language);
                 if (!(node.TryGetField("id", Guid.TryParse, out _guiSourceID)))
                 {
                     string strPowerName = Name;
@@ -282,7 +296,7 @@ namespace Chummer
             objNode.TryGetStringFieldQuickly("page", ref _strPage);
             objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
 
-            String sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
+            string sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
             objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
             _colNotes = ColorTranslator.FromHtml(sNotesColor);
 
@@ -294,17 +308,14 @@ namespace Chummer
             if (Name != "Improved Reflexes" && Name.StartsWith("Improved Reflexes", StringComparison.Ordinal))
             {
                 XmlNode objXmlPower = CharacterObject.LoadData("powers.xml").SelectSingleNode("/chummer/powers/power[starts-with(./name,\"Improved Reflexes\")]");
-                if (objXmlPower != null)
+                if (objXmlPower != null && int.TryParse(Name.TrimStartOnce("Improved Reflexes", true).Trim(), out int intTemp))
                 {
-                    if (int.TryParse(Name.TrimStartOnce("Improved Reflexes", true).Trim(), out int intTemp))
-                    {
-                        Create(objXmlPower, intTemp, null, false);
-                        objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
+                    Create(objXmlPower, intTemp, null, false);
+                    objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
 
-                        sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
-                        objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
-                        _colNotes = ColorTranslator.FromHtml(sNotesColor);
-                    }
+                    sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
+                    objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
+                    _colNotes = ColorTranslator.FromHtml(sNotesColor);
                 }
             }
             else
@@ -358,7 +369,7 @@ namespace Chummer
             objWriter.WriteElementString("action", DisplayActionMethod(strLanguageToPrint));
             objWriter.WriteElementString("source", CharacterObject.LanguageBookShort(Source, strLanguageToPrint));
             objWriter.WriteElementString("page", DisplayPage(strLanguageToPrint));
-            if (GlobalOptions.PrintNotes)
+            if (GlobalSettings.PrintNotes)
                 objWriter.WriteElementString("notes", Notes);
             objWriter.WriteStartElement("enhancements");
             foreach (Enhancement objEnhancement in Enhancements)
@@ -368,15 +379,18 @@ namespace Chummer
             objWriter.WriteEndElement();
             objWriter.WriteEndElement();
         }
-        #endregion
+
+        #endregion Constructor, Create, Save, Load, and Print Methods
 
         #region Properties
+
         /// <summary>
         /// The Character object being used by the Power.
         /// </summary>
         public Character CharacterObject { get; }
 
         private CharacterAttrib _objMAGAttribute;
+
         /// <summary>
         /// MAG Attribute this skill primarily depends on
         /// </summary>
@@ -417,8 +431,7 @@ namespace Chummer
         /// <summary>
         /// Internal identifier which will be used to identify this Power in the Improvement system.
         /// </summary>
-        public string InternalId => _guiID.ToString("D", GlobalOptions.InvariantCultureInfo);
-
+        public string InternalId => _guiID.ToString("D", GlobalSettings.InvariantCultureInfo);
 
         /// <summary>
         /// Identifier of the object within data files.
@@ -428,7 +441,7 @@ namespace Chummer
         /// <summary>
         /// String-formatted identifier of the <inheritdoc cref="SourceID"/> from the data files.
         /// </summary>
-        public string SourceIDString => _guiSourceID.ToString("D", GlobalOptions.InvariantCultureInfo);
+        public string SourceIDString => _guiSourceID.ToString("D", GlobalSettings.InvariantCultureInfo);
 
         /// <summary>
         /// Power's name.
@@ -484,7 +497,7 @@ namespace Chummer
         {
             string strReturn = Name;
 
-            if (!strLanguage.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
             {
                 strReturn = GetNode(strLanguage)?["translate"]?.InnerText ?? Name;
             }
@@ -495,7 +508,7 @@ namespace Chummer
         /// <summary>
         /// The translated name of the Power (Name + any Extra text).
         /// </summary>
-        public string CurrentDisplayName => DisplayName(GlobalOptions.Language);
+        public string CurrentDisplayName => DisplayName(GlobalSettings.Language);
 
         /// <summary>
         /// The translated name of the Power (Name + any Extra text).
@@ -520,12 +533,12 @@ namespace Chummer
         {
             get
             {
-                decimal decReturn = Convert.ToDecimal(_strPointsPerLevel, GlobalOptions.InvariantCultureInfo);
+                decimal decReturn = Convert.ToDecimal(_strPointsPerLevel, GlobalSettings.InvariantCultureInfo);
                 return decReturn;
             }
             set
             {
-                string strNewValue = value.ToString(GlobalOptions.InvariantCultureInfo);
+                string strNewValue = value.ToString(GlobalSettings.InvariantCultureInfo);
                 if (_strPointsPerLevel != strNewValue)
                 {
                     _strPointsPerLevel = strNewValue;
@@ -558,12 +571,12 @@ namespace Chummer
         {
             get
             {
-                decimal decReturn = Convert.ToDecimal(_strAdeptWayDiscount, GlobalOptions.InvariantCultureInfo);
+                decimal decReturn = Convert.ToDecimal(_strAdeptWayDiscount, GlobalSettings.InvariantCultureInfo);
                 return decReturn;
             }
             set
             {
-                string strNewValue = value.ToString(GlobalOptions.InvariantCultureInfo);
+                string strNewValue = value.ToString(GlobalSettings.InvariantCultureInfo);
                 if (_strAdeptWayDiscount != strNewValue)
                 {
                     _strAdeptWayDiscount = strNewValue;
@@ -657,6 +670,7 @@ namespace Chummer
         }
 
         private decimal _decCachedPowerPoints = decimal.MinValue;
+
         /// <summary>
         /// Total number of Power Points the Power costs.
         /// </summary>
@@ -693,7 +707,7 @@ namespace Chummer
             get
             {
                 if (string.IsNullOrEmpty(_strCachedPowerPoints))
-                    _strCachedPowerPoints = PowerPoints.ToString(GlobalOptions.CultureInfo);
+                    _strCachedPowerPoints = PowerPoints.ToString(GlobalSettings.CultureInfo);
                 return _strCachedPowerPoints;
             }
         }
@@ -729,7 +743,6 @@ namespace Chummer
             set => _strSource = value;
         }
 
-
         /// <summary>
         /// Sourcebook Page Number.
         /// </summary>
@@ -747,7 +760,7 @@ namespace Chummer
         /// <returns></returns>
         public string DisplayPage(string strLanguage)
         {
-            if (strLanguage.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Page;
             string s = GetNode(strLanguage)?["altpage"]?.InnerText ?? Page;
             return !string.IsNullOrWhiteSpace(s) ? s : Page;
@@ -850,7 +863,7 @@ namespace Chummer
         /// <summary>
         /// Translated Action.
         /// </summary>
-        public string DisplayAction => DisplayActionMethod(GlobalOptions.Language);
+        public string DisplayAction => DisplayActionMethod(GlobalSettings.Language);
 
         /// <summary>
         /// Translated Action.
@@ -864,18 +877,23 @@ namespace Chummer
                 case "Auto":
                     strReturn = LanguageManager.GetString("String_ActionAutomatic", strLanguage);
                     break;
+
                 case "Free":
                     strReturn = LanguageManager.GetString("String_ActionFree", strLanguage);
                     break;
+
                 case "Simple":
                     strReturn = LanguageManager.GetString("String_ActionSimple", strLanguage);
                     break;
+
                 case "Complex":
                     strReturn = LanguageManager.GetString("String_ActionComplex", strLanguage);
                     break;
+
                 case "Interrupt":
                     strReturn = LanguageManager.GetString("String_ActionInterrupt", strLanguage);
                     break;
+
                 case "Special":
                     strReturn = LanguageManager.GetString("String_SpellDurationSpecial", strLanguage);
                     break;
@@ -889,7 +907,7 @@ namespace Chummer
                 ? ColorManager.GenerateCurrentModeColor(NotesColor)
                 : ColorManager.WindowText;
 
-        #endregion
+        #endregion Properties
 
         #region Complex Properties
 
@@ -909,7 +927,7 @@ namespace Chummer
                 {
                     // +1 at the end so that division of 2 always rounds up, and integer division by 2 is significantly less expensive than decimal/double division
                     intReturn = Math.Min(intReturn, (BoostedSkill.LearnedRating + 1) / 2);
-                    if (CharacterObject.Options.IncreasedImprovedAbilityMultiplier)
+                    if (CharacterObject.Settings.IncreasedImprovedAbilityMultiplier)
                     {
                         intReturn += BoostedSkill.LearnedRating;
                     }
@@ -954,7 +972,7 @@ namespace Chummer
                 DiscountedAdeptWay = false;
         }
 
-        private static readonly DependencyGraph<string, Power> PowerDependencyGraph =
+        private static readonly DependencyGraph<string, Power> s_PowerDependencyGraph =
             new DependencyGraph<string, Power>(
                 new DependencyGraphNode<string, Power>(nameof(DisplayPoints),
                     new DependencyGraphNode<string, Power>(nameof(PowerPoints),
@@ -1016,10 +1034,10 @@ namespace Chummer
             foreach (string strPropertyName in lstPropertyNames)
             {
                 if (lstNamesOfChangedProperties == null)
-                    lstNamesOfChangedProperties = PowerDependencyGraph.GetWithAllDependents(this, strPropertyName);
+                    lstNamesOfChangedProperties = s_PowerDependencyGraph.GetWithAllDependents(this, strPropertyName);
                 else
                 {
-                    foreach (string strLoopChangedProperty in PowerDependencyGraph.GetWithAllDependents(this, strPropertyName))
+                    foreach (string strLoopChangedProperty in s_PowerDependencyGraph.GetWithAllDependents(this, strPropertyName))
                         lstNamesOfChangedProperties.Add(strLoopChangedProperty);
                 }
             }
@@ -1035,17 +1053,17 @@ namespace Chummer
                 _decCachedPowerPoints = decimal.MinValue;
 
             // If the Bonus contains "Rating", remove the existing Improvements and create new ones.
-            if (lstNamesOfChangedProperties.Contains(nameof(TotalRating)))
+            if (lstNamesOfChangedProperties.Contains(nameof(TotalRating)) && Bonus?.InnerXml.Contains("Rating") == true)
             {
-                if (Bonus?.InnerXml.Contains("Rating") == true)
+                // We cannot actually go with setting a rating here because of a load of technical debt involving bonus nodes feeding into `Value` indirectly through a parser
+                // that uses `Rating` instead of using only `Rating` and having the parser work off of whatever is in the `Rating` field
+                // TODO: Solve this bad code
+                ImprovementManager.RemoveImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId);
+                int intTotalRating = TotalRating;
+                if (intTotalRating > 0)
                 {
-                    ImprovementManager.RemoveImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId);
-                    int intTotalRating = TotalRating;
-                    if (intTotalRating > 0)
-                    {
-                        ImprovementManager.ForcedValue = Extra;
-                        ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId, Bonus, intTotalRating, DisplayNameShort(GlobalOptions.Language));
-                    }
+                    ImprovementManager.ForcedValue = Extra;
+                    ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId, Bonus, intTotalRating, DisplayNameShort(GlobalSettings.Language));
                 }
             }
 
@@ -1068,13 +1086,10 @@ namespace Chummer
 
         protected void OnBoostedSkillChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e?.PropertyName == nameof(Skill.LearnedRating) && sender is Skill objSkill)
+            if (e?.PropertyName == nameof(Skill.LearnedRating) && sender is Skill objSkill && BoostedSkill.LearnedRating != _cachedLearnedRating && _cachedLearnedRating != TotalMaximumLevels)
             {
-                if (BoostedSkill.LearnedRating != _cachedLearnedRating && _cachedLearnedRating != TotalMaximumLevels)
-                {
-                    _cachedLearnedRating = objSkill.LearnedRating;
-                    OnPropertyChanged(nameof(TotalMaximumLevels));
-                }
+                _cachedLearnedRating = objSkill.LearnedRating;
+                OnPropertyChanged(nameof(TotalMaximumLevels));
             }
         }
 
@@ -1082,30 +1097,30 @@ namespace Chummer
         {
             if (e.PropertyName == nameof(Character.IsMysticAdept))
             {
-                MAGAttributeObject = CharacterObject.Options.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
+                MAGAttributeObject = CharacterObject.Settings.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
                     ? CharacterObject.MAGAdept
                     : CharacterObject.MAG;
             }
         }
 
-        private void OnCharacterOptionsChanged(object sender, PropertyChangedEventArgs e)
+        private void OnCharacterSettingsChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
-                case nameof(CharacterOptions.MysAdeptSecondMAGAttribute):
-                {
-                    MAGAttributeObject = CharacterObject.Options.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
-                        ? CharacterObject.MAGAdept
-                        : CharacterObject.MAG;
-                    break;
-                }
-                case nameof(CharacterOptions.IncreasedImprovedAbilityMultiplier):
-                {
-                    MAGAttributeObject = CharacterObject.Options.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
-                        ? CharacterObject.MAGAdept
-                        : CharacterObject.MAG;
-                    break;
-                }
+                case nameof(CharacterSettings.MysAdeptSecondMAGAttribute):
+                    {
+                        MAGAttributeObject = CharacterObject.Settings.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
+                            ? CharacterObject.MAGAdept
+                            : CharacterObject.MAG;
+                        break;
+                    }
+                case nameof(CharacterSettings.IncreasedImprovedAbilityMultiplier):
+                    {
+                        MAGAttributeObject = CharacterObject.Settings.MysAdeptSecondMAGAttribute && CharacterObject.IsMysticAdept
+                            ? CharacterObject.MAGAdept
+                            : CharacterObject.MAG;
+                        break;
+                    }
             }
         }
 
@@ -1114,17 +1129,17 @@ namespace Chummer
 
         public XmlNode GetNode()
         {
-            return GetNode(GlobalOptions.Language);
+            return GetNode(GlobalSettings.Language);
         }
 
         public XmlNode GetNode(string strLanguage)
         {
-            if (_objCachedMyXmlNode == null || strLanguage != _strCachedXmlNodeLanguage || GlobalOptions.LiveCustomData)
+            if (_objCachedMyXmlNode == null || strLanguage != _strCachedXmlNodeLanguage || GlobalSettings.LiveCustomData)
             {
                 _objCachedMyXmlNode = CharacterObject.LoadData("powers.xml", strLanguage)
                     .SelectSingleNode(SourceID == Guid.Empty
                         ? "/chummer/powers/power[name = " + Name.CleanXPath() + ']'
-                        : string.Format(GlobalOptions.InvariantCultureInfo,
+                        : string.Format(GlobalSettings.InvariantCultureInfo,
                             "/chummer/powers/power[id = {0} or id = {1}]",
                             SourceIDString.CleanXPath(), SourceIDString.ToUpperInvariant().CleanXPath()));
                 _strCachedXmlNodeLanguage = strLanguage;
@@ -1141,21 +1156,22 @@ namespace Chummer
             {
                 string strSpace = LanguageManager.GetString("String_Space");
                 StringBuilder sbdModifier = new StringBuilder(LanguageManager.GetString("String_Rating") + strSpace
-                    + '(' + Rating.ToString(GlobalOptions.CultureInfo) + strSpace + '×' + strSpace + PointsPerLevel.ToString(GlobalOptions.CultureInfo) + ')');
+                    + '(' + Rating.ToString(GlobalSettings.CultureInfo) + strSpace + '×' + strSpace + PointsPerLevel.ToString(GlobalSettings.CultureInfo) + ')');
                 foreach (Improvement objImprovement in CharacterObject.Improvements.Where(objImprovement => objImprovement.ImproveType == Improvement.ImprovementType.AdeptPower && objImprovement.ImprovedName == Name && objImprovement.UniqueName == Extra && objImprovement.Enabled))
                 {
                     sbdModifier.Append(strSpace + '+' + strSpace + CharacterObject.GetObjectName(objImprovement)
-                                       + strSpace + '(' + objImprovement.Rating.ToString(GlobalOptions.CultureInfo) + ')');
+                                       + strSpace + '(' + objImprovement.Rating.ToString(GlobalSettings.CultureInfo) + ')');
                 }
                 return sbdModifier.ToString();
             }
         }
-        #endregion
+
+        #endregion Complex Properties
 
         public void SetSourceDetail(Control sourceControl)
         {
-            if (_objCachedSourceDetail?.Language != GlobalOptions.Language)
-                _objCachedSourceDetail = null;
+            if (_objCachedSourceDetail.Language != GlobalSettings.Language)
+                _objCachedSourceDetail = default;
             SourceDetail.SetControl(sourceControl);
         }
     }

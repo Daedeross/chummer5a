@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -32,6 +33,7 @@ namespace Chummer
         private readonly XPathNavigator _objXmlDocument;
 
         #region Control Events
+
         public frmSelectSpec(Skill skill)
         {
             _objSkill = skill ?? throw new ArgumentNullException(nameof(skill));
@@ -39,7 +41,7 @@ namespace Chummer
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
-            _objXmlDocument = XmlManager.LoadXPath("skills.xml", _objCharacter?.Options.EnabledCustomDataDirectoryPaths);
+            _objXmlDocument = XmlManager.LoadXPath("skills.xml", _objCharacter?.Settings.EnabledCustomDataDirectoryPaths);
         }
 
         private void frmSelectSpec_Load(object sender, EventArgs e)
@@ -59,7 +61,7 @@ namespace Chummer
                 xmlParentSkill = _objXmlDocument.SelectSingleNode("/chummer/knowledgeskills/skill[name = " + _objSkill.Name.CleanXPath() + "]")
                                  ?? _objXmlDocument.SelectSingleNode("/chummer/knowledgeskills/skill[translate = " + _objSkill.Name.CleanXPath() + "]");
             else
-                xmlParentSkill = _objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = " + _objSkill.Name.CleanXPath() + " and (" + _objCharacter.Options.BookXPath() + ")]");
+                xmlParentSkill = _objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = " + _objSkill.Name.CleanXPath() + " and (" + _objCharacter.Settings.BookXPath() + ")]");
             // Populate the Skill's Specializations (if any).
             XPathNodeIterator xmlSpecList = xmlParentSkill?.Select("specs/spec");
             if (xmlSpecList?.Count > 0)
@@ -74,7 +76,7 @@ namespace Chummer
                     // Look through the Weapons file and grab the names of items that are part of the appropriate Category or use the matching Skill.
                     XPathNavigator objXmlWeaponDocument = _objCharacter.LoadDataXPath("weapons.xml");
                     //Might need to include skill name or might miss some values?
-                    foreach (XPathNavigator objXmlWeapon in objXmlWeaponDocument.Select("/chummer/weapons/weapon[(spec = " + strInnerText.CleanXPath() + " or spec2 = " + strInnerText.CleanXPath() + ") and (" + _objCharacter.Options.BookXPath() + ")]"))
+                    foreach (XPathNavigator objXmlWeapon in objXmlWeaponDocument.Select("/chummer/weapons/weapon[(spec = " + strInnerText.CleanXPath() + " or spec2 = " + strInnerText.CleanXPath() + ") and (" + _objCharacter.Settings.BookXPath() + ")]"))
                     {
                         string strName = objXmlWeapon.SelectSingleNode("name")?.Value;
                         if (!string.IsNullOrEmpty(strName))
@@ -124,7 +126,8 @@ namespace Chummer
         {
             cboSpec.DropDownStyle = cboSpec.SelectedValue?.ToString() == "Custom" ? ComboBoxStyle.DropDown : ComboBoxStyle.DropDownList;
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
 
@@ -156,7 +159,6 @@ namespace Chummer
         /// </summary>
         public string Mode { get; set; }
 
-
         /// <summary>
         /// Whether or not to force the .
         /// </summary>
@@ -165,9 +167,11 @@ namespace Chummer
             get => chkKarma.Checked;
             set => chkKarma.Checked = value;
         }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Accept the selected item and close the form.
         /// </summary>
@@ -176,6 +180,7 @@ namespace Chummer
             if (!string.IsNullOrEmpty(SelectedItem))
                 DialogResult = DialogResult.OK;
         }
-        #endregion
+
+        #endregion Methods
     }
 }

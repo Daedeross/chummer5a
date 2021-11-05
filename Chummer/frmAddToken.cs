@@ -16,9 +16,10 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
- using System.IO;
- using System.Linq;
+
+using System;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Chummer
@@ -27,16 +28,16 @@ namespace Chummer
     {
         // used when the user has filled out the information
         private readonly InitiativeUserControl parentControl;
+
         private bool _blnCharacterAdded;
         private Character _character;
 
         public frmAddToken(InitiativeUserControl init)
         {
             InitializeComponent();
-            //LanguageManager.Load(GlobalOptions.Language, this);
+            //LanguageManager.Load(GlobalSettings.Language, this);
             CenterToParent();
             parentControl = init;
-
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace Chummer
                 int intInitRoll = intInitPasses;
                 for (int j = 0; j < intInitPasses; ++j)
                 {
-                    intInitRoll += GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                    intInitRoll += GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                 }
                 _character.InitRoll = intInitRoll + _character.InitialInit;
             }

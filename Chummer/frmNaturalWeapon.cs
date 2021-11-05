@@ -16,11 +16,12 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Windows.Forms;
- using System.Xml.XPath;
- using Chummer.Backend.Equipment;
+using System.Windows.Forms;
+using System.Xml.XPath;
+using Chummer.Backend.Equipment;
 
 namespace Chummer
 {
@@ -33,6 +34,7 @@ namespace Chummer
         private Weapon _objWeapon;
 
         #region Control Events
+
         public frmNaturalWeapon(Character objCharacter)
         {
             _objCharacter = objCharacter;
@@ -63,7 +65,7 @@ namespace Chummer
             };
             for (int i = 1; i <= 20; ++i)
             {
-                lstDVBase.Add(new ListItem(i.ToString(GlobalOptions.InvariantCultureInfo), i.ToString(GlobalOptions.CultureInfo)));
+                lstDVBase.Add(new ListItem(i.ToString(GlobalSettings.InvariantCultureInfo), i.ToString(GlobalSettings.CultureInfo)));
             }
 
             List<ListItem> lstDVType = new List<ListItem>(2)
@@ -98,9 +100,11 @@ namespace Chummer
         {
             AcceptForm();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Methods
+
         private void MoveControls()
         {
             int intWidth = Math.Max(lblName.Width, lblDV.Width);
@@ -124,9 +128,9 @@ namespace Chummer
             if (nudDVMod.ValueAsInt != 0)
             {
                 if (nudDVMod.Value < 0)
-                    strDamage += nudDVMod.Value.ToString(GlobalOptions.InvariantCultureInfo);
+                    strDamage += nudDVMod.Value.ToString(GlobalSettings.InvariantCultureInfo);
                 else
-                    strDamage += '+' + nudDVMod.Value.ToString(GlobalOptions.InvariantCultureInfo);
+                    strDamage += '+' + nudDVMod.Value.ToString(GlobalSettings.InvariantCultureInfo);
             }
             strDamage += cboDVType.SelectedValue.ToString();
 
@@ -135,9 +139,9 @@ namespace Chummer
             if (nudAP.Value == 0)
                 strAP = "0";
             else if (nudAP.Value > 0)
-                strAP = '+' + nudAP.Value.ToString(GlobalOptions.InvariantCultureInfo);
+                strAP = '+' + nudAP.Value.ToString(GlobalSettings.InvariantCultureInfo);
             else
-                strAP = nudAP.Value.ToString(GlobalOptions.InvariantCultureInfo);
+                strAP = nudAP.Value.ToString(GlobalSettings.InvariantCultureInfo);
 
             // Get the information for the Natural Weapon Critter Power.
             XPathNavigator objPower = _objXmlPowersDocument.SelectSingleNode("powers/power[name = \"Natural Weapon\"]");
@@ -166,14 +170,16 @@ namespace Chummer
                 DialogResult = DialogResult.OK;
             }
         }
-        #endregion
+
+        #endregion Methods
 
         #region Properties
+
         /// <summary>
         /// Weapon that was created as a result of the dialogue.
         /// </summary>
         public Weapon SelectedWeapon => _objWeapon;
 
-        #endregion
+        #endregion Properties
     }
 }

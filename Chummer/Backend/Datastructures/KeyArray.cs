@@ -41,7 +41,7 @@ namespace Chummer
 
         public IEnumerator<T> GetEnumerator()
         {
-            return (IEnumerator<T>) _aobjItems.GetEnumerator();
+            return (IEnumerator<T>)_aobjItems.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -76,6 +76,10 @@ namespace Chummer
             return _intHashCode;
         }
 
+        public static bool operator ==(KeyArray<T> lhs, KeyArray<T> rhs) => lhs.Equals(rhs);
+
+        public static bool operator !=(KeyArray<T> lhs, KeyArray<T> rhs) => !(lhs == rhs);
+
         public bool Equals(KeyArray<T> rhs)
         {
             if (GetHashCode() != rhs.GetHashCode())
@@ -92,7 +96,7 @@ namespace Chummer
 
         public override bool Equals(object obj)
         {
-            return obj != null && Equals((KeyArray<T>) obj);
+            return obj != null && Equals((KeyArray<T>)obj);
         }
     }
 }

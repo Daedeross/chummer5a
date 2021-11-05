@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -30,20 +31,23 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Win32;
+using NLog;
 
 namespace Chummer.Backend
 {
     public static class CrashHandler
     {
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
+
         private sealed class DumpData : ISerializable
         {
             public DumpData(Exception ex)
             {
-                _dicPretendFiles = new Dictionary<string, string> {{"exception.txt", ex?.ToString() ?? "No Exception Specified"}};
+                _dicPretendFiles = new Dictionary<string, string> { { "exception.txt", ex?.ToString() ?? "No Exception Specified" } };
 
                 _dicAttributes = new Dictionary<string, string>
                 {
-                    {"visible-crash-id", Guid.NewGuid().ToString("D", GlobalOptions.InvariantCultureInfo)},
+                    {"visible-crash-id", Guid.NewGuid().ToString("D", GlobalSettings.InvariantCultureInfo)},
 #if DEBUG
                     {"visible-build-type", "DEBUG"},
 #else
@@ -56,13 +60,14 @@ namespace Chummer.Backend
                     {"application-dir", Application.ExecutablePath},
                     {"os-type", Environment.OSVersion.VersionString},
                     {"visible-error-friendly", ex?.Message ?? "No description available"},
-                    { "installation-id", Properties.Settings.Default.UploadClientId.ToString() },
-                    { "option-upload-logs-set", GlobalOptions.UseLoggingApplicationInsights.ToString() }
+                    {"visible-stacktrace", ex?.StackTrace ?? "No stack trace available"},
+                    {"installation-id", Properties.Settings.Default.UploadClientId.ToString() },
+                    {"option-upload-logs-set", GlobalSettings.UseLoggingApplicationInsights.ToString() }
                 };
 
                 try
                 {
-                    _dicAttributes.Add("chummer-ui-language", GlobalOptions.Language);
+                    _dicAttributes.Add("chummer-ui-language", GlobalSettings.Language);
                 }
                 catch (Exception e)
                 {
@@ -70,7 +75,7 @@ namespace Chummer.Backend
                 }
                 try
                 {
-                    _dicAttributes.Add("chummer-cultureinfo", GlobalOptions.CultureInfo.ToString());
+                    _dicAttributes.Add("chummer-cultureinfo", GlobalSettings.CultureInfo.ToString());
                 }
                 catch (Exception e)
                 {
@@ -78,7 +83,7 @@ namespace Chummer.Backend
                 }
                 try
                 {
-                    _dicAttributes.Add("system-cultureinfo", GlobalOptions.SystemCultureInfo.ToString());
+                    _dicAttributes.Add("system-cultureinfo", GlobalSettings.SystemCultureInfo.ToString());
                 }
                 catch (Exception e)
                 {
@@ -134,12 +139,16 @@ namespace Chummer.Backend
             // JavaScriptSerializer requires that all properties it accesses be public.
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly ConcurrentDictionary<string, string> _dicCapturedFiles = new ConcurrentDictionary<string, string>();
+
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly Dictionary<string, string> _dicPretendFiles;
+
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly Dictionary<string, string> _dicAttributes;
+
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly int _intProcessId = Process.GetCurrentProcess().Id;
+
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly uint _uintThreadId = NativeMethods.GetCurrentThreadId();
 
@@ -182,33 +191,39 @@ namespace Chummer.Backend
         {
             try
             {
+                if (GlobalSettings.UseLoggingApplicationInsights >= UseAILogging.Crashes && Program.ChummerTelemetryClient != null)
+                {
+                    ex.Data.Add("IsCrash", bool.TrueString);
+                    ExceptionTelemetry et = new ExceptionTelemetry(ex)
+                    {
+                        SeverityLevel = SeverityLevel.Critical
+                    };
+                    //we have to enable the uploading of THIS message, so it isn't filtered out in the DropUserdataTelemetryProcessos
+                    foreach (DictionaryEntry d in ex.Data)
+                    {
+                        if ((d.Key != null) && (d.Value != null))
+                            et.Properties.Add(d.Key.ToString(), d.Value.ToString());
+                    }
+                    Program.ChummerTelemetryClient.TrackException(et);
+                    Program.ChummerTelemetryClient.Flush();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            try
+            {
                 DumpData dump = new DumpData(ex);
-                dump.AddFile(Path.Combine(Utils.GetStartupPath, "settings", "default.xml"));
+                foreach (string strSettingFile in Directory.EnumerateFiles(Path.Combine(Utils.GetStartupPath, "settings"), "*.xml"))
+                {
+                    dump.AddFile(strSettingFile);
+                }
                 dump.AddFile(Path.Combine(Utils.GetStartupPath, "chummerlog.txt"));
 
                 byte[] info = new UTF8Encoding(true).GetBytes(dump.SerializeBase64());
                 File.WriteAllBytes(Path.Combine(Utils.GetStartupPath, "json.txt"), info);
-
-                if (GlobalOptions.UseLoggingApplicationInsights >= UseAILogging.Crashes)
-                {
-                    if (Program.ChummerTelemetryClient != null)
-                    {
-                        ex.Data.Add("IsCrash", bool.TrueString);
-                        ExceptionTelemetry et = new ExceptionTelemetry(ex)
-                        {
-                            SeverityLevel = SeverityLevel.Critical
-
-                        };
-                        //we have to enable the uploading of THIS message, so it isn't filtered out in the DropUserdataTelemetryProcessos
-                        foreach (DictionaryEntry d in ex.Data)
-                        {
-                            if ((d.Key != null) && (d.Value != null))
-                                et.Properties.Add(d.Key.ToString(), d.Value.ToString());
-                        }
-                        Program.ChummerTelemetryClient.TrackException(et);
-                        Program.ChummerTelemetryClient.Flush();
-                    }
-                }
 
                 //Process crashHandler = Process.Start("crashhandler", "crash " + Path.Combine(Utils.GetStartupPath, "json.txt") + " --debug");
                 Process crashHandler = Process.Start("crashhandler", "crash " + Path.Combine(Utils.GetStartupPath, "json.txt"));
@@ -219,6 +234,7 @@ namespace Chummer.Backend
             {
                 Program.MainForm.ShowMessageBox(
                     "Failed to create crash report." + Environment.NewLine +
+                    "Chummer crashed with version: " + Assembly.GetAssembly(typeof(Program))?.GetName().Version + Environment.NewLine +
                     "Here is some information to help the developers figure out why:" + Environment.NewLine + nex +
                     Environment.NewLine + "Crash information:" + Environment.NewLine + ex, "Failed to Create Crash Report", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }

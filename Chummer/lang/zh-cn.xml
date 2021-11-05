@@ -17,8 +17,8 @@
     You can obtain the full source code for Chummer5a at
     https://github.com/chummer5a/chummer5a
 -->
-<!-- 由纯美苹果园暗影狂奔板块“Shadowrunner集散地”社群翻译，qq群：201635360 
-     translated by Shadowrun Hang-outs, a shadowrun community on http://www.goddessfantasy.net/bbs/index.php?board=1145.0 
+<!-- 由纯美苹果园暗影狂奔板块“Shadowrunner集散地”社群翻译，qq群：201635360
+     translated by Shadowrun Hang-outs, a shadowrun community on http://www.goddessfantasy.net/bbs/index.php?board=1145.0
 -->
 <chummer>
     <version>-350</version>
@@ -1590,7 +1590,7 @@
         </string>
         <string>
             <key>Message_InvalidAvail</key>
-            <text>{0}个装备的可获得性高于上限{1}。</text>
+            <text>{0}个装备的可获得性高于上限{1}：</text>
         </string>
         <string>
             <key>MessageTitle_Invalid</key>
@@ -2669,7 +2669,7 @@
         </string>
         <string>
             <key>Tip_CommonNuyen</key>
-            <text>你角色用来购买装备的新円数量。1业力＝{0}¥。</text>
+            <text>你角色用来购买装备的新円数量。{0}。</text>
         </string>
         <string>
             <key>Tip_CommonContacts</key>
@@ -4347,10 +4347,6 @@
         <string>
             <key>Label_Options_CyberlimbCount</key>
             <text>通常的角色肢体</text>
-        </string>
-        <string>
-            <key>Label_Options_NuyenPerBP</key>
-            <text>每点业力能兑换的新円：</text>
         </string>
         <string>
             <key>Checkbox_Options_AutomaticUpdates</key>
@@ -7930,7 +7926,7 @@
         </string>
         <string>
             <key>Message_RestrictedGearUsed</key>
-            <text>「限制装备」应用于：\n{0}</text>
+            <text>「限制装备」应用于：{0}</text>
         </string>
         <string>
             <key>Label_Size</key>
@@ -8113,7 +8109,7 @@
             <text>该名称的个性化数据目录已存在。</text>
         </string>
         <string>
-            <key>Message_Duplicate_CustomDataDirectoryName_Title</key>
+            <key>MessageTitle_Duplicate_CustomDataDirectoryName</key>
             <text>个性化数据目录名称重复</text>
         </string>
         <string>
@@ -8186,7 +8182,7 @@
         </string>
         <string>
             <key>About_Description_Text</key>
-            <text>暗影狂奔5版角色生成器\n\r\n\r感谢Keith和他在制作和维持SR4E的Chummer中所做的一切。没有他，这一切都不会存在。\n\r\n\r感谢Dumpshock社群中的每一位成员，用珍贵的反馈、妙想、Bug报告支持这个项目，指出我愚蠢的错误。同样感谢那些把Chummer到其他语言的志愿者！</text>
+            <text>暗影狂奔5版角色生成器\n\n感谢Keith和他在制作和维持SR4E的Chummer中所做的一切。没有他，这一切都不会存在。\n\n感谢Dumpshock社群中的每一位成员，用珍贵的反馈、妙想、Bug报告支持这个项目，指出我愚蠢的错误。同样感谢那些把Chummer到其他语言的志愿者！</text>
         </string>
         <string>
             <key>About_Label_Contributors</key>
@@ -8198,7 +8194,7 @@
         </string>
         <string>
             <key>About_Company_Text</key>
-            <text>初版Chummer由Keith Rudolph为4版制作。\n\rChummer5由Adam Schmidt更新：srchummer5@gmail.com\n\rChummer5a由Anonymous fa/tg/uy更新：chummer5isalive@gmail.com\n\r其他5a更新由Johannes Elgaard完成：joha4270@gmail.com</text>
+            <text>初版Chummer由Keith Rudolph为4版制作。\nChummer5由Adam Schmidt更新：srchummer5@gmail.com\nChummer5a由Anonymous fa/tg/uy更新：chummer5isalive@gmail.com\n其他5a更新由Johannes Elgaard完成：joha4270@gmail.com\n其他5a更新由Delnar_Ersike完成：delnar.ersike@gmail.com</text>
         </string>
         <string>
             <key>String_Cyberzombie</key>
@@ -8214,7 +8210,11 @@
         </string>
         <string>
           <key>About_Label_Disclaimer_Text</key>
-          <text>Chummer完全是非官方的，并无The Topps Company, Inc或Catalyst Game Labs的支持。The Topps Company, Inc.拥有与游戏《暗影狂奔》相关的名称、标志、艺术作品、商标、图片、声音、音频、视频和/或任何使用的专利材料的独占权。\n\r\n\rUnless agreed to in writing, the developer provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.\n\r\n\rBy using Chummer You agree that You legally own a copy of the Shadowrun rulebook and any sourcebook whose information you select to use. You are solely responsible for determining the appropriateness of using or redistributing the content You create and assume any risks associated with Your exercise of permissions under this License.\n\r\n\rChummer使用的图标来自FatCow Icon Set，可在https://www.fatcow.com/free-icons。</text>
+          <text>Chummer完全是非官方的，并无The Topps Company, Inc或Catalyst Game Labs的支持。The Topps Company, Inc.拥有与游戏《暗影狂奔》相关的名称、标志、艺术作品、商标、图片、声音、音频、视频和/或任何使用的专利材料的独占权。\n\nUnless agreed to in writing, the developer provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.\n\nBy using Chummer You agree that You legally own a copy of the Shadowrun rulebook and any sourcebook whose information you select to use. You are solely responsible for determining the appropriateness of using or redistributing the content You create and assume any risks associated with Your exercise of permissions under this License.\n\nChummer使用的图标来自FatCow Icon Set，可在https://www.fatcow.com/free-icons。</text>
+        </string>
+        <string>
+          <key>About_Copyright_Text</key>
+          <text>版权© Keith Rudolph 2013，授权给GNU GPLv3</text>
         </string>
         <string>
             <key>Button_AddMod</key>

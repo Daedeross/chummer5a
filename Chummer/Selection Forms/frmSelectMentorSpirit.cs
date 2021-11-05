@@ -16,10 +16,11 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Windows.Forms;
- using System.Xml.XPath;
+using System.Windows.Forms;
+using System.Xml.XPath;
 
 namespace Chummer
 {
@@ -32,6 +33,7 @@ namespace Chummer
         private readonly Character _objCharacter;
 
         #region Control Events
+
         public frmSelectMentorSpirit(Character objCharacter, string strXmlFile = "mentors.xml")
         {
             InitializeComponent();
@@ -136,16 +138,18 @@ namespace Chummer
                     string strPage = objXmlMentor.SelectSingleNode("altpage")?.Value ??
                                      objXmlMentor.SelectSingleNode("page")?.Value ??
                                      LanguageManager.GetString("String_Unknown");
-                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalOptions.Language,
-                        GlobalOptions.CultureInfo, _objCharacter);
+                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalSettings.Language,
+                        GlobalSettings.CultureInfo, _objCharacter);
                     objSourceString.SetControl(lblSource);
                     lblSourceLabel.Visible = !string.IsNullOrEmpty(lblSource.Text);
                     cmdOK.Enabled = true;
                     tlpRight.Visible = true;
+                    tlpBottomRight.Visible = true;
                 }
                 else
                 {
                     tlpRight.Visible = false;
+                    tlpBottomRight.Visible = false;
                     cmdOK.Enabled = false;
                 }
             }
@@ -180,7 +184,7 @@ namespace Chummer
         {
             string strForceId = string.Empty;
 
-            string strFilter = '(' + _objCharacter.Options.BookXPath() + ')';
+            string strFilter = '(' + _objCharacter.Settings.BookXPath() + ')';
             if (!string.IsNullOrEmpty(txtSearch.Text))
                 strFilter += " and " + CommonFunctions.GenerateSearchXPath(txtSearch.Text);
             List<ListItem> lstMentors = new List<ListItem>();
@@ -221,9 +225,11 @@ namespace Chummer
         {
             DialogResult = DialogResult.Cancel;
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Forced selection for mentor spirit
         /// </summary>
@@ -246,6 +252,7 @@ namespace Chummer
         /// Second choice that was selected in the dialogue.
         /// </summary>
         public string Choice2 => cboChoice2.SelectedValue?.ToString() ?? string.Empty;
-        #endregion
+
+        #endregion Properties
     }
 }

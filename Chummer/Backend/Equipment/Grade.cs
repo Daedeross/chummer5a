@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,7 +29,7 @@ namespace Chummer.Backend.Equipment
     /// <summary>
     /// Grade of Cyberware or Bioware.
     /// </summary>
-    [DebuggerDisplay("{DisplayName(GlobalOptions.DefaultLanguage)}")]
+    [DebuggerDisplay("{DisplayName(GlobalSettings.DefaultLanguage)}")]
     public class Grade : IHasName, IHasInternalId, IHasXmlNode
     {
         private readonly Character _objCharacter;
@@ -44,6 +45,7 @@ namespace Chummer.Backend.Equipment
         private readonly Improvement.ImprovementSource _eSource;
 
         #region Constructor and Load Methods
+
         public Grade(Character objCharacter, Improvement.ImprovementSource eSource)
         {
             _objCharacter = objCharacter ?? throw new ArgumentNullException(nameof(objCharacter));
@@ -63,7 +65,7 @@ namespace Chummer.Backend.Equipment
             {
                 _guiID = Guid.NewGuid();
             }
-            if(!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
+            if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
                 XPathNavigator xmlDataNode = _objCharacter.LoadDataXPath(_eSource == Improvement.ImprovementSource.Bioware
                         ? "bioware.xml"
@@ -103,12 +105,12 @@ namespace Chummer.Backend.Equipment
 
         public XmlNode GetNode()
         {
-            return GetNode(GlobalOptions.Language);
+            return GetNode(GlobalSettings.Language);
         }
 
         public XmlNode GetNode(string strLanguage)
         {
-            if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage && !GlobalOptions.LiveCustomData)
+            if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage && !GlobalSettings.LiveCustomData)
                 return _objCachedMyXmlNode;
             _objCachedMyXmlNode = _objCharacter.LoadData(_eSource == Improvement.ImprovementSource.Bioware
                     ? "bioware.xml"
@@ -122,9 +124,11 @@ namespace Chummer.Backend.Equipment
             _strCachedXmlNodeLanguage = strLanguage;
             return _objCachedMyXmlNode;
         }
-        #endregion
+
+        #endregion Constructor and Load Methods
 
         #region Helper Methods
+
         /// <summary>
         /// Convert a string to a Grade.
         /// </summary>
@@ -144,13 +148,15 @@ namespace Chummer.Backend.Equipment
 
             return lstGrades.FirstOrDefault(x => x.Name == "Standard");
         }
-        #endregion
+
+        #endregion Helper Methods
 
         #region Properties
+
         /// <summary>
         /// Internal identifier which will be used to identify this grade.
         /// </summary>
-        public string InternalId => _guiID == Guid.Empty ? string.Empty : _guiID.ToString("D", GlobalOptions.InvariantCultureInfo);
+        public string InternalId => _guiID == Guid.Empty ? string.Empty : _guiID.ToString("D", GlobalSettings.InvariantCultureInfo);
 
         /// <summary>
         /// Identifier of the object within data files.
@@ -160,7 +166,7 @@ namespace Chummer.Backend.Equipment
         /// <summary>
         /// String-formatted identifier of the <inheritdoc cref="SourceId"/> from the data files.
         /// </summary>
-        public string SourceIDString => _guiSourceID.ToString("D", GlobalOptions.InvariantCultureInfo);
+        public string SourceIDString => _guiSourceID.ToString("D", GlobalSettings.InvariantCultureInfo);
 
         /// <summary>
         /// The English name of the Grade.
@@ -176,13 +182,13 @@ namespace Chummer.Backend.Equipment
         /// </summary>
         public string DisplayName(string strLanguage)
         {
-            if (strLanguage.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Name;
 
             return GetNode(strLanguage)?["translate"]?.InnerText ?? Name;
         }
 
-        public string CurrentDisplayName => DisplayName(GlobalOptions.Language);
+        public string CurrentDisplayName => DisplayName(GlobalSettings.Language);
 
         /// <summary>
         /// The Grade's Essence cost multiplier.
@@ -232,6 +238,7 @@ namespace Chummer.Backend.Equipment
             get => _intAddictionThreshold;
             set => _intAddictionThreshold = value;
         }
-        #endregion
+
+        #endregion Properties
     }
 }

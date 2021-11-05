@@ -1099,6 +1099,15 @@
             <text>Cyberware kann nicht entfernt werden</text>
         </string>
         <string>
+          <key>Message_FoundPDFsInFolder</key>
+          <text>Soll das Logfile für eine detailierte Info geöffnet werden? Chummer hat PDFs im Verzeichnis gefunden: </text>
+        </string>
+      <string>
+        <key>MessageTitle_FoundPDFsInFolder</key>
+        <text>Scan abgeschlossen</text>
+      </string>
+      
+      <string>
             <key>Message_ComplexFormLimit</key>
             <text>Sie können nicht mehr Komplexe Formen beherrschen als zweimal ihr RES-Wert. Siehe Seite 98, SR5 Grundregelwerk (Errata).</text>
         </string>
@@ -1396,7 +1405,7 @@
         </string>
         <string>
             <key>Message_InvalidAvail</key>
-            <text>noch {0} Gegenstände mit einer Verfügbarkeit höher als {1} erlaubt</text>
+            <text>{0} Gegenstände mit einer Verfügbarkeit höher als die erlaubte Verfügbarkeit {1}:</text>
         </string>
         <string>
             <key>MessageTitle_Invalid</key>
@@ -1484,43 +1493,43 @@
         </string>
         <string>
             <key>Message_ConfirmKarmaExpense</key>
-            <text>Sind Sie sicher, dass Sie Karma für die Verbesserung von {0} ausgeben möchten?</text>
+            <text>Sind Sie sicher, dass Sie {2} Karma für die Verbesserung von {0} auf {1} ausgeben möchten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseSpecialization</key>
-            <text>Sind Sie sicher, dass Sie Karma zum Ändern der Spezialisierung zu {0} ausgeben möchten?</text>
+            <text>Sind Sie sicher, dass Sie {1} Karma zum Ändern der Spezialisierung zu {0} ausgeben möchten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseEnemy</key>
-            <text>Müssen Sie Karma ausgeben, um diesen Feind zu entfernen?</text>
+            <text>Müssen Sie {0} Karma ausgeben, um diesen Feind zu entfernen?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseSpend</key>
-            <text>Sind Sie sicher, dass Sie Karma für {0} ausgeben möchten?</text>
+            <text>Sind Sie sicher, dass Sie {1} Karma für {0} ausgeben möchten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseRemove</key>
-            <text>Sind Sie sicher, dass Sie Karma für das Entfernen von {0} ausgeben möchten?</text>
+            <text>Sind Sie sicher, dass Sie {1} Karma für das Entfernen von {0} ausgeben möchten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseFocus</key>
-            <text>Sind Sie sicher, dass Sie Karma für das Binden des Fokus ausgeben möchten?</text>
+            <text>Sind Sie sicher, dass Sie {0} Karma für das Binden des Fokus ausgeben möchten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseJoinGroup</key>
-            <text>Möchten Sie wirklich Karma ausgeben, um dieser Gruppe beizutreten?</text>
+            <text>Möchten Sie wirklich {0} Karma ausgeben, um dieser Gruppe beizutreten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseLeaveGroup</key>
-            <text>Möchten Sie wirklich Karma ausgeben, um diese Gruppe zu verlassen?</text>
+            <text>Möchten Sie wirklich {0} Karma ausgeben, um diese Gruppe zu verlassen?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseJoinNetwork</key>
-            <text>Möchten Sie wirklich Karma ausgeben, um diesem Netzwerk beizutreten?</text>
+            <text>Möchten Sie wirklich {0} Karma ausgeben, um diesem Netzwerk beizutreten?</text>
         </string>
         <string>
             <key>Message_ConfirmKarmaExpenseLeaveNetwork</key>
-            <text>Möchten Sie wirklich Karma ausgeben, um das Netzwerk zu verlassen?</text>
+            <text>Möchten Sie wirklich {0} Karma ausgeben, um das Netzwerk zu verlassen?</text>
         </string>
         <string>
             <key>MessageTitle_ConfirmKarmaExpense</key>
@@ -2392,7 +2401,7 @@
         </string>
         <string>
             <key>Tip_CommonNuyen</key>
-            <text>Die Menge Nuyen die Ihr Charakter für den Kauf von Ausrüstung zur Verfügung hat. 1 GP = 5.000¥.</text>
+            <text>Die Menge Nuyen die Ihr Charakter für den Kauf von Ausrüstung zur Verfügung hat. {0}.</text>
         </string>
         <string>
             <key>Tip_CommonAIRating</key>
@@ -2541,6 +2550,14 @@
       <string>
         <key>Tab_Options_CustomDataDirectories</key>
         <text>Dateipfad der Custom Data Files</text>
+      </string>
+      <string>
+        <key>Tooltip_CharacterOptions_LanguageSpecificManifestMissing</key>
+        <string>Es gibt kein Manifest in deiner Sprache.</string>
+      </string>
+      <string>
+        <key>Tooltip_CharacterOptions_ManifestMissing</key>
+        <string>Für diesen Custom Data Ordner wurde kein oder ein leeres Manifest gefunden.</string>
       </string>
         <!-- End Region -->
         <!-- Region  Martial Arts Tab -->
@@ -3895,10 +3912,6 @@
         <string>
             <key>Label_Options_CyberlimbCount</key>
             <text>Gliedmaßen für Standard-Charaktere:</text>
-        </string>
-        <string>
-            <key>Label_Options_NuyenPerBP</key>
-            <text>Nuyen pro Generierungspunkt:</text>
         </string>
         <string>
             <key>Checkbox_Options_AutomaticUpdates</key>
@@ -6018,6 +6031,10 @@
             <key>Button_Options_PDFTest</key>
             <text>Test - Seite 5 öffnen</text>
         </string>
+      <string>
+        <key>Button_Options_PDFFolderScan</key>
+        <text>Ein Verzeichnis nach PDFs durchsuchen</text>
+      </string>
         <string>
             <key>Checkbox_Options_DatesIncludeTime</key>
             <text>Zu Ausgaben soll die Uhrzeit angezeigt werden</text>
@@ -7935,7 +7952,7 @@
         </string>
         <string>
             <key>Message_RestrictedGearUsed</key>
-            <text>Eingeschränkte Ausrüstung wurde verwendet:\n{0}</text>
+            <text>Eingeschränkte Ausrüstung wurde verwendet:{0}</text>
         </string>
         <string>
             <key>Message_SelectQuality_RequireESSGradeAbove</key>
@@ -8658,7 +8675,7 @@
             <text>Ein benutzerdefiniertes Datenverzeichnis dieses Namens ist bereits vorhanden.</text>
         </string>
         <string>
-            <key>Message_Duplicate_CustomDataDirectoryName_Title</key>
+            <key>MessageTitle_Duplicate_CustomDataDirectoryName</key>
             <text>Doppelter Name eines benutzerdefinierten Datenverzeichnisses</text>
         </string>
         <string>
@@ -8707,7 +8724,7 @@
         </string>
         <string>
             <key>About_Description_Text</key>
-            <text>Charaktergenerator für Shadowrun 5. Edition\n\r\n\rDanke an Keith für die wundervolle Arbeit, die er in die Erstellung und Pflege von Chummer für die 4. Edition gesteckt hat. Ohne ihn wäre das alles nicht möglich.\n\r\n\rHerzlichen Dank an alle der 'Dumpshock community', dass sie dieses Projekt mit all ihren wertvollen Rückmeldungen, tollen Ideen, Verbesserungsvorschlägen und Hinweise auf enthaltene Fehler unterstützt haben. Ein großes Dankeschön auch an alle, die sich freiwillig gemeldet haben um Chummer in andere Sprachen zu übersetzen!</text>
+            <text>Charaktergenerator für Shadowrun 5. Edition\n\nDanke an Keith für die wundervolle Arbeit, die er in die Erstellung und Pflege von Chummer für die 4. Edition gesteckt hat. Ohne ihn wäre das alles nicht möglich.\n\nHerzlichen Dank an alle der 'Dumpshock community', dass sie dieses Projekt mit all ihren wertvollen Rückmeldungen, tollen Ideen, Verbesserungsvorschlägen und Hinweise auf enthaltene Fehler unterstützt haben. Ein großes Dankeschön auch an alle, die sich freiwillig gemeldet haben um Chummer in andere Sprachen zu übersetzen!</text>
         </string>
         <string>
             <key>String_WorkingForTheMan</key>
@@ -8735,11 +8752,11 @@
         </string>
         <string>
             <key>About_Copyright_Text</key>
-            <text>Copyright © Keith Rudolph 2013</text>
+            <text>Copyright © Keith Rudolph 2013, lizenziert GNU GPLv3</text>
         </string>
         <string>
             <key>About_Company_Text</key>
-            <text>Original Chummer für die 4. Edition von Keith Rudolph.\n\r\rChummer5 Update von Adam Schmidt: srchummer5@gmail.com\n\rChummer5a Update von Anonymous fa/tg/uy: chummer5isalive@gmail.com\n\r\r Zusätzliche 5a Updates von Johannes Elgaard: joha4270@gmail.com</text>
+            <text>Original Chummer für die 4. Edition von Keith Rudolph.\nChummer5 Update von Adam Schmidt: srchummer5@gmail.com\nChummer5a Update von Anonymous fa/tg/uy: chummer5isalive@gmail.com\nZusätzliche 5a Updates von Johannes Elgaard: joha4270@gmail.comnZusätzliche 5a Updates von Delnar_Ersike: delnar.ersike@gmail.com</text>
         </string>
         <string>
             <key>About_Label_Contributors</key>
@@ -8751,7 +8768,7 @@
         </string>
         <string>
             <key>About_Label_Disclaimer_Text</key>
-            <text>Chummer ist völlig unabhängig und wird in keiner Weise von 'The Topps Company, Inc.' oder 'Catalyst Game Labs' unterstützt. The Topps Company, Inc. ist alleiniger Eigentümer der Namen, Logos, Kunstwerke, Marken, Fotos, Sounds, Audio, Video und/oder aller proprietären Materialien, die in Verbindung mit dem Spiel Shadowrun verwendet werden.\n\r\n\rOhne schriftliche Zustimmung stellt der Ersteller (und jeder Mitwirkende seine Beiträge) zur Verfügung "WIE ES IST" OHNE GEWÄHRLEISTUNGEN ODER BEDINGUNGEN JEGLICHER ART, weder ausdrücklich noch stillschweigend, einschließlich, aber nicht beschränkt auf Garantien oder Bedingungen von TITEL, NICHTVERLETZUNG, MARKTFÄHIGKEIT oder Eignung für einen bestimmten Zweck.\n\r\n\rDurch die Verwendung von Chummer erklären Sie sich damit einverstanden, dass Sie rechtlich Eigentümer einer Kopie der Shadowrun-Regeln und jedes Quellbuchs sind, dessen Informationen Sie zur Verwendung auswählen. Sie sind allein für die Feststellung der Angemessenheit der Nutzung oder Weiterverbreitung der von Ihnen erstellten Inhalte verantwortlich und übernehmen alle Risiken, die mit Ihrer Ausübung von Berechtigungen unter dieser Lizenz verbunden sind.\n\r\n\rChummer verwendet Icons aus dem 'FatCow Icon Set', welches unter https://www.fatcow.com/free-icons verfügbar ist.</text>
+            <text>Chummer ist völlig unabhängig und wird in keiner Weise von 'The Topps Company, Inc.' oder 'Catalyst Game Labs' unterstützt. The Topps Company, Inc. ist alleiniger Eigentümer der Namen, Logos, Kunstwerke, Marken, Fotos, Sounds, Audio, Video und/oder aller proprietären Materialien, die in Verbindung mit dem Spiel Shadowrun verwendet werden.\n\nOhne schriftliche Zustimmung stellt der Ersteller (und jeder Mitwirkende seine Beiträge) zur Verfügung "WIE ES IST" OHNE GEWÄHRLEISTUNGEN ODER BEDINGUNGEN JEGLICHER ART, weder ausdrücklich noch stillschweigend, einschließlich, aber nicht beschränkt auf Garantien oder Bedingungen von TITEL, NICHTVERLETZUNG, MARKTFÄHIGKEIT oder Eignung für einen bestimmten Zweck.\n\nDurch die Verwendung von Chummer erklären Sie sich damit einverstanden, dass Sie rechtlich Eigentümer einer Kopie der Shadowrun-Regeln und jedes Quellbuchs sind, dessen Informationen Sie zur Verwendung auswählen. Sie sind allein für die Feststellung der Angemessenheit der Nutzung oder Weiterverbreitung der von Ihnen erstellten Inhalte verantwortlich und übernehmen alle Risiken, die mit Ihrer Ausübung von Berechtigungen unter dieser Lizenz verbunden sind.\n\nChummer verwendet Icons aus dem 'FatCow Icon Set', welches unter https://www.fatcow.com/free-icons verfügbar ist.</text>
         </string>
         <string>
             <key>String_Nightly</key>
@@ -9097,6 +9114,10 @@
             <key>Menu_ShowMySINners</key>
             <text>Alle Daten anzeigen</text>
         </string>
+      <string>
+        <key>Menu_SINnersCreateGroup</key>
+        <text>Lege eine neue Gruppe an</text>
+      </string>
         <string>
             <key>Menu_RemovePinnedChummer</key>
             <text>Charakter un-pinnen</text>
@@ -9656,6 +9677,28 @@
         <string>
             <key>LimitCondition_SkillGroupStealthNaked</key>
             <text>Nur für die Fertigkeitsgruppe Heimlichkeit, muss vollständig unbekleidet sein</text>
+        </string>
+        <!--Region Sustained Spells Control-->
+        <string>
+          <key>Label_SustainedSelf</key>
+          <text>Selbst</text>
+        </string>
+        <string>
+          <key>Label_SustainedForce</key>
+          <text>Kraft:</text>
+        </string>
+        <string>
+          <key>Label_NetHits</key>
+          <text>Net Erfolge:</text>
+        </string>
+        <!--End Region-->
+        <string>
+          <key>Button_SustainSpell</key>
+          <text>Aufrechterhalten</text>
+        </string>
+        <string>
+          <key>Error_Message_PDF_IndexOutOfBounds</key>
+          <text>Das PDF-File hat eine falsche Seiten-Offset-Zahl in den globalen Einstellungen konfiguriert.</text>
         </string>
     </strings>
 </chummer>

@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -31,8 +32,8 @@ namespace Chummer
     public class CenterableMessageBox
     {
         private static IWin32Window _owner;
-        private static readonly NativeMethods.HookProc _hookProc;
-        private static IntPtr _hHook;
+        private static readonly NativeMethods.HookProc s_HookProc = MessageBoxHookProc;
+        private static IntPtr _hHook = IntPtr.Zero;
 
         public static DialogResult Show(string text)
         {
@@ -129,19 +130,13 @@ namespace Chummer
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct CWPRETSTRUCT
+        public struct CwpRetStruct
         {
             public IntPtr lResult;
             public IntPtr lParam;
             public IntPtr wParam;
             public uint message;
             public IntPtr hwnd;
-        };
-
-        static CenterableMessageBox()
-        {
-            _hookProc = MessageBoxHookProc;
-            _hHook = IntPtr.Zero;
         }
 
         private static void Initialize()
@@ -153,7 +148,7 @@ namespace Chummer
 
             if (_owner != null)
             {
-                _hHook = NativeMethods.SetWindowsHookEx(WH_CALLWNDPROCRET, _hookProc, IntPtr.Zero, Thread.CurrentThread.ManagedThreadId);
+                _hHook = NativeMethods.SetWindowsHookEx(WH_CALLWNDPROCRET, s_HookProc, IntPtr.Zero, Thread.CurrentThread.ManagedThreadId);
             }
         }
 
@@ -164,7 +159,7 @@ namespace Chummer
                 return NativeMethods.CallNextHookEx(_hHook, nCode, wParam, lParam);
             }
 
-            CWPRETSTRUCT msg = (CWPRETSTRUCT)Marshal.PtrToStructure(lParam, typeof(CWPRETSTRUCT));
+            CwpRetStruct msg = (CwpRetStruct)Marshal.PtrToStructure(lParam, typeof(CwpRetStruct));
             IntPtr hook = _hHook;
 
             if (msg.message == (int)CbtHookAction.HCBT_ACTIVATE)

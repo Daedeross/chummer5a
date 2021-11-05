@@ -20,6 +20,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Chummer.Backend.Skills;
 using Chummer.Properties;
@@ -52,7 +53,7 @@ namespace Chummer.UI.Skills
 
                 int intMinimumSize;
                 using (Graphics g = CreateGraphics())
-                    intMinimumSize = (int) (25 * g.DpiX / 96.0f);
+                    intMinimumSize = (int)(25 * g.DpiX / 96.0f);
 
                 // Creating these controls outside of the designer saves on handles
                 if (skillGroup.CharacterObject.Created)
@@ -62,6 +63,7 @@ namespace Chummer.UI.Skills
                         Anchor = AnchorStyles.Right,
                         AutoSize = true,
                         Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold, GraphicsUnit.Point, 0),
+                        Margin = new Padding(3, 6, 3, 6),
                         MinimumSize = new Size(intMinimumSize, 0),
                         Name = "lblGroupRating",
                         TextAlign = ContentAlignment.MiddleRight
@@ -71,8 +73,9 @@ namespace Chummer.UI.Skills
                         Anchor = AnchorStyles.Right,
                         AutoSize = true,
                         AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                        Image = Resources.add,
-                        Margin = new Padding(3, 0, 3, 0),
+                        ImageDpi96 = Resources.add,
+                        ImageDpi192 = Resources.add1,
+                        MinimumSize = new Size(24, 24),
                         Name = "btnCareerIncrease",
                         Padding = new Padding(1),
                         UseVisualStyleBackColor = true
@@ -96,7 +99,7 @@ namespace Chummer.UI.Skills
                         AutoSize = true,
                         InterceptMouseWheel = NumericUpDownEx.InterceptMouseWheelMode.WhenMouseOver,
                         Margin = new Padding(3, 2, 3, 2),
-                        Maximum = new decimal(new[] {99, 0, 0, 0}),
+                        Maximum = new decimal(new[] { 99, 0, 0, 0 }),
                         Name = "nudKarma"
                     };
                     nudSkill = new NumericUpDownEx
@@ -105,19 +108,19 @@ namespace Chummer.UI.Skills
                         AutoSize = true,
                         InterceptMouseWheel = NumericUpDownEx.InterceptMouseWheelMode.WhenMouseOver,
                         Margin = new Padding(3, 2, 3, 2),
-                        Maximum = new decimal(new[] {99, 0, 0, 0}),
+                        Maximum = new decimal(new[] { 99, 0, 0, 0 }),
                         Name = "nudSkill"
                     };
 
-                    nudKarma.DoDatabinding("Value", _skillGroup, nameof(SkillGroup.Karma));
+                    nudKarma.DoDataBinding("Value", _skillGroup, nameof(SkillGroup.Karma));
                     nudKarma.DoOneWayDataBinding("Enabled", _skillGroup, nameof(SkillGroup.KarmaUnbroken));
-                    nudKarma.InterceptMouseWheel = GlobalOptions.InterceptMode;
+                    nudKarma.InterceptMouseWheel = GlobalSettings.InterceptMode;
 
-                    nudSkill.DoDatabinding("Visible", _skillGroup.CharacterObject,
+                    nudSkill.DoOneWayDataBinding("Visible", _skillGroup.CharacterObject,
                         nameof(Character.EffectiveBuildMethodUsesPriorityTables));
-                    nudSkill.DoDatabinding("Value", _skillGroup, nameof(SkillGroup.Base));
+                    nudSkill.DoDataBinding("Value", _skillGroup, nameof(SkillGroup.Base));
                     nudSkill.DoOneWayDataBinding("Enabled", _skillGroup, nameof(SkillGroup.BaseUnbroken));
-                    nudSkill.InterceptMouseWheel = GlobalOptions.InterceptMode;
+                    nudSkill.InterceptMouseWheel = GlobalSettings.InterceptMode;
 
                     tlpMain.Controls.Add(nudSkill, 2, 0);
                     tlpMain.Controls.Add(nudKarma, 3, 0);
@@ -143,9 +146,10 @@ namespace Chummer.UI.Skills
         }
 
         #region Control Events
+
         private void btnCareerIncrease_Click(object sender, EventArgs e)
         {
-            string confirmstring = string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_ConfirmKarmaExpense"),
+            string confirmstring = string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_ConfirmKarmaExpense"),
                     _skillGroup.CurrentDisplayName, _skillGroup.Rating + 1, _skillGroup.UpgradeKarmaCost);
 
             if (!CommonFunctions.ConfirmKarmaExpense(confirmstring))
@@ -153,13 +157,17 @@ namespace Chummer.UI.Skills
 
             _skillGroup.Upgrade();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         public int NameWidth => lblName.PreferredWidth;
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Update the position of controls.
         /// </summary>
@@ -168,50 +176,50 @@ namespace Chummer.UI.Skills
         {
             lblName.MinimumSize = new Size(intNameWidth, lblName.MinimumSize.Height);
         }
-        #endregion
+
+        #endregion Methods
 
         /// <summary>
         /// I'm not super pleased with how this works, but it's functional so w/e.
         /// The goal is for controls to retain the ability to display tooltips even while disabled. IT DOES NOT WORK VERY WELL.
         /// </summary>
+
         #region ButtonWithToolTip Visibility workaround
 
-        ButtonWithToolTip _activeButton;
+        private ButtonWithToolTip _activeButton;
+
         protected ButtonWithToolTip ActiveButton
         {
             get => _activeButton;
             set
             {
-                if (value == ActiveButton) return;
+                if (value == ActiveButton)
+                    return;
                 ActiveButton?.ToolTipObject.Hide(this);
                 _activeButton = value;
-                if (_activeButton?.Visible == true)
+                if (ActiveButton?.Visible == true)
                 {
-                    ActiveButton?.ToolTipObject.Show(ActiveButton?.ToolTipText, this);
+                    ActiveButton.ToolTipObject.Show(ActiveButton.ToolTipText, this);
                 }
             }
         }
 
-        protected Control FindToolTipControl(Point pt)
+        private ButtonWithToolTip FindToolTipControl(Point pt)
         {
-            foreach (Control c in Controls)
-            {
-                if (!(c is ButtonWithToolTip)) continue;
-                if (c.Bounds.Contains(pt)) return c;
-            }
-            return null;
+            return Controls.OfType<ButtonWithToolTip>().FirstOrDefault(c => c.Bounds.Contains(pt));
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
-            ActiveButton = FindToolTipControl(e.Location) as ButtonWithToolTip;
+            ActiveButton = FindToolTipControl(e.Location);
         }
 
         private void OnMouseLeave(object sender, EventArgs e)
         {
             ActiveButton = null;
         }
-        #endregion
+
+        #endregion ButtonWithToolTip Visibility workaround
 
         private void SkillGroupControl_DpiChangedAfterParent(object sender, EventArgs e)
         {

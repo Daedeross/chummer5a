@@ -16,11 +16,12 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Text;
- using System.Windows.Forms;
- using System.Xml.XPath;
+using System.Text;
+using System.Windows.Forms;
+using System.Xml.XPath;
 
 namespace Chummer
 {
@@ -33,12 +34,13 @@ namespace Chummer
         private readonly XPathNavigator _objXmlDocument;
 
         #region Control Events
+
         public frmSelectSkillGroup(Character objCharacter)
         {
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
-            _objXmlDocument = XmlManager.LoadXPath("skills.xml", objCharacter?.Options.EnabledCustomDataDirectoryPaths);
+            _objXmlDocument = XmlManager.LoadXPath("skills.xml", objCharacter?.Settings.EnabledCustomDataDirectoryPaths);
         }
 
         private void frmSelectSkillGroup_Load(object sender, EventArgs e)
@@ -91,9 +93,11 @@ namespace Chummer
         {
             DialogResult = DialogResult.Cancel;
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         // Skill Group that was selected in the dialogue.
         public string SelectedSkillGroup => _strReturnValue;
 
@@ -118,6 +122,7 @@ namespace Chummer
         {
             set => _strExcludeCategory = value;
         }
-        #endregion
+
+        #endregion Properties
     }
 }

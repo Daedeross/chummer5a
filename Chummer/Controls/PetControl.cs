@@ -16,12 +16,13 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
- using System.Windows.Forms;
- using System.Xml.XPath;
+using System.Windows.Forms;
+using System.Xml.XPath;
 
 namespace Chummer
 {
@@ -32,9 +33,11 @@ namespace Chummer
 
         // Events.
         public event TextEventHandler ContactDetailChanged;
+
         public event EventHandler DeleteContact;
 
         #region Control Events
+
         public PetControl(Contact objContact)
         {
             _objContact = objContact;
@@ -71,10 +74,18 @@ namespace Chummer
                 ContactDetailChanged?.Invoke(this, new TextEventArgs("Name"));
         }
 
-        private void cboMetatype_TextChanged(object sender, EventArgs e)
+        private void UpdateMetatype(object sender, EventArgs e)
         {
-            if (!_blnLoading)
-                ContactDetailChanged?.Invoke(this, new TextEventArgs("Metatype"));
+            if (_blnLoading || _objContact.DisplayMetatype == cboMetatype.Text)
+                return;
+            _objContact.DisplayMetatype = cboMetatype.Text;
+            if (_objContact.DisplayMetatype != cboMetatype.Text)
+            {
+                _blnLoading = true;
+                cboMetatype.Text = _objContact.DisplayMetatype;
+                _blnLoading = false;
+            }
+            ContactDetailChanged?.Invoke(this, new TextEventArgs("Metatype"));
         }
 
         private void cmdDelete_Click(object sender, EventArgs e)
@@ -84,7 +95,7 @@ namespace Chummer
             DeleteContact?.Invoke(this, e);
         }
 
-        private void imgLink_Click(object sender, EventArgs e)
+        private void cmdLink_Click(object sender, EventArgs e)
         {
             // Determine which options should be shown based on the FileName value.
             if (!string.IsNullOrEmpty(_objContact.FileName))
@@ -99,7 +110,7 @@ namespace Chummer
                 tsContactOpen.Visible = false;
                 tsRemoveCharacter.Visible = false;
             }
-            cmsContact.Show(imgLink, imgLink.Left - 700, imgLink.Top);
+            cmsContact.Show(cmdLink, cmdLink.Left - 700, cmdLink.Top);
         }
 
         private void tsContactOpen_Click(object sender, EventArgs e)
@@ -134,7 +145,7 @@ namespace Chummer
 
                     if (blnError)
                     {
-                        Program.MainForm.ShowMessageBox(string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_FileNotFound"), _objContact.FileName), LanguageManager.GetString("MessageTitle_FileNotFound"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Program.MainForm.ShowMessageBox(string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_FileNotFound"), _objContact.FileName), LanguageManager.GetString("MessageTitle_FileNotFound"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
                 }
@@ -162,7 +173,7 @@ namespace Chummer
                 using (new CursorWait(this))
                 {
                     _objContact.FileName = openFileDialog.FileName;
-                    imgLink.SetToolTip(LanguageManager.GetString("Tip_Contact_OpenFile"));
+                    cmdLink.ToolTipText = LanguageManager.GetString("Tip_Contact_OpenFile");
 
                     // Set the relative path.
                     Uri uriApplication = new Uri(Utils.GetStartupPath);
@@ -182,12 +193,12 @@ namespace Chummer
             {
                 _objContact.FileName = string.Empty;
                 _objContact.RelativeFileName = string.Empty;
-                imgLink.SetToolTip(LanguageManager.GetString("Tip_Contact_LinkFile"));
+                cmdLink.ToolTipText = LanguageManager.GetString("Tip_Contact_LinkFile");
                 ContactDetailChanged?.Invoke(this, new TextEventArgs("File"));
             }
         }
 
-        private void imgNotes_Click(object sender, EventArgs e)
+        private void cmdNotes_Click(object sender, EventArgs e)
         {
             using (frmNotes frmContactNotes = new frmNotes(_objContact.Notes, _objContact.NotesColor))
             {
@@ -200,15 +211,17 @@ namespace Chummer
             string strTooltip = LanguageManager.GetString("Tip_Contact_EditNotes");
             if (!string.IsNullOrEmpty(_objContact.Notes))
                 strTooltip += Environment.NewLine + Environment.NewLine + _objContact.Notes;
-            imgNotes.SetToolTip(strTooltip.WordWrap());
+            cmdNotes.ToolTipText = strTooltip.WordWrap();
             ContactDetailChanged?.Invoke(this, new TextEventArgs("Notes"));
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Methods
+
         private void LoadContactList()
         {
-            List<ListItem> lstMetatypes = new List<ListItem> (30)
+            List<ListItem> lstMetatypes = new List<ListItem>(30)
             {
                 ListItem.Blank
             };
@@ -226,7 +239,7 @@ namespace Chummer
                     {
                         string strMetavariantName = objXmlMetavariantNode.SelectSingleNode("name")?.Value ?? string.Empty;
                         if (lstMetatypes.All(x => strMetavariantName.Equals(x.Value.ToString(), StringComparison.OrdinalIgnoreCase)))
-                            lstMetatypes.Add(new ListItem(strMetavariantName, string.Format(GlobalOptions.CultureInfo, strMetavariantFormat, objXmlMetavariantNode.SelectSingleNode("translate")?.Value ?? strMetavariantName)));
+                            lstMetatypes.Add(new ListItem(strMetavariantName, string.Format(GlobalSettings.CultureInfo, strMetavariantFormat, objXmlMetavariantNode.SelectSingleNode("translate")?.Value ?? strMetavariantName)));
                     }
                 }
             }
@@ -240,22 +253,26 @@ namespace Chummer
 
         private void DoDataBindings()
         {
-            cboMetatype.DoDatabinding("Text", _objContact, nameof(_objContact.DisplayMetatype));
-            txtContactName.DoDatabinding("Text", _objContact, nameof(_objContact.Name));
+            cboMetatype.SelectedValue = _objContact.Metatype;
+            if (cboMetatype.SelectedIndex < 0)
+                cboMetatype.Text = _objContact.DisplayMetatype;
+            txtContactName.DoDataBinding("Text", _objContact, nameof(_objContact.Name));
             this.DoOneWayDataBinding("BackColor", _objContact, nameof(_objContact.PreferredColor));
 
             // Properties controllable by the character themselves
             txtContactName.DoOneWayDataBinding("Enabled", _objContact, nameof(_objContact.NoLinkedCharacter));
             cboMetatype.DoOneWayDataBinding("Enabled", _objContact, nameof(_objContact.NoLinkedCharacter));
         }
-        #endregion
+
+        #endregion Methods
 
         #region Properties
+
         /// <summary>
         /// Contact object this is linked to.
         /// </summary>
         public Contact ContactObject => _objContact;
 
-        #endregion
+        #endregion Properties
     }
 }

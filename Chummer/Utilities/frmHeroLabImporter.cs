@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -31,8 +32,7 @@ namespace Chummer
 {
     public partial class frmHeroLabImporter : Form
     {
-        private readonly List<HeroLabCharacterCache> _lstCharacterCache = new List<HeroLabCharacterCache>(1);
-        private readonly object _lstCharacterCacheLock = new object();
+        private readonly ThreadSafeList<HeroLabCharacterCache> _lstCharacterCache = new ThreadSafeList<HeroLabCharacterCache>(1);
         private readonly Dictionary<string, Bitmap> _dicImages = new Dictionary<string, Bitmap>();
 
         public frmHeroLabImporter()
@@ -94,8 +94,8 @@ namespace Chummer
                             {
                                 XPathDocument xmlSourceDoc;
                                 using (StreamReader sr = new StreamReader(entry.Open(), true))
-                                    using (XmlReader objXmlReader = XmlReader.Create(sr, GlobalOptions.SafeXmlReaderSettings))
-                                        xmlSourceDoc = new XPathDocument(objXmlReader);
+                                using (XmlReader objXmlReader = XmlReader.Create(sr, GlobalSettings.SafeXmlReaderSettings))
+                                    xmlSourceDoc = new XPathDocument(objXmlReader);
                                 lstCharacterXmlStatblocks.Add(xmlSourceDoc.CreateNavigator());
                             }
                             // If we run into any problems loading the character cache, fail out early.
@@ -239,11 +239,8 @@ namespace Chummer
                     };
                     nodRootNode.Nodes.Add(objNode);
 
-                    lock (_lstCharacterCacheLock)
-                    {
-                        _lstCharacterCache.Add(objCache);
-                        objNode.Tag = _lstCharacterCache.IndexOf(objCache);
-                    }
+                    _lstCharacterCache.Add(objCache);
+                    objNode.Tag = _lstCharacterCache.IndexOf(objCache);
                 }
             }
             nodRootNode.Expand();
@@ -251,6 +248,7 @@ namespace Chummer
         }
 
         #region Classes
+
         /// <summary>
         /// Caches a subset of a full character's properties for loading purposes.
         /// </summary>
@@ -270,7 +268,8 @@ namespace Chummer
             internal Image Mugshot { get; set; }
             internal bool Created { get; set; }
         }
-        #endregion
+
+        #endregion Classes
 
         /// <summary>
         /// Generates a name for the treenode based on values contained in the CharacterCache object.
@@ -328,7 +327,7 @@ namespace Chummer
                 lblPlayerName.Visible = !string.IsNullOrEmpty(lblPlayerName.Text);
 
                 lblCareerKarma.Text = objCache.Karma;
-                if (string.IsNullOrEmpty(lblCareerKarma.Text) || lblCareerKarma.Text == 0.ToString(GlobalOptions.CultureInfo))
+                if (string.IsNullOrEmpty(lblCareerKarma.Text) || lblCareerKarma.Text == 0.ToString(GlobalSettings.CultureInfo))
                     lblCareerKarma.Text = strNone;
                 lblCareerKarmaLabel.Visible = !string.IsNullOrEmpty(lblCareerKarma.Text);
                 lblCareerKarma.Visible = !string.IsNullOrEmpty(lblCareerKarma.Text);
@@ -398,7 +397,7 @@ namespace Chummer
             TreeNode objSelectedNode = treCharacterList.SelectedNode;
             if (objSelectedNode != null && objSelectedNode.Level > 0)
             {
-                int intIndex = Convert.ToInt32(objSelectedNode.Tag, GlobalOptions.InvariantCultureInfo);
+                int intIndex = Convert.ToInt32(objSelectedNode.Tag, GlobalSettings.InvariantCultureInfo);
                 if (intIndex >= 0 && intIndex < _lstCharacterCache.Count)
                     objCache = _lstCharacterCache[intIndex];
             }
@@ -431,28 +430,21 @@ namespace Chummer
                 picMugshot.SizeMode = PictureBoxSizeMode.Zoom;
             }
         }
-        #endregion
+
+        #endregion Form Methods
 
         private void DoImport()
         {
             TreeNode objSelectedNode = treCharacterList.SelectedNode;
             if (objSelectedNode == null || objSelectedNode.Level <= 0)
                 return;
-            int intIndex = Convert.ToInt32(objSelectedNode.Tag, GlobalOptions.InvariantCultureInfo);
+            int intIndex = Convert.ToInt32(objSelectedNode.Tag, GlobalSettings.InvariantCultureInfo);
             if (intIndex < 0 || intIndex >= _lstCharacterCache.Count)
                 return;
             string strFile = _lstCharacterCache[intIndex]?.FilePath;
             string strCharacterId = _lstCharacterCache[intIndex]?.CharacterId;
             if (string.IsNullOrEmpty(strFile) || string.IsNullOrEmpty(strCharacterId))
                 return;
-            string strFilePath = Path.Combine(Application.StartupPath, "settings", "default.xml");
-            if (!File.Exists(strFilePath)
-                && Program.MainForm.ShowMessageBox(this, LanguageManager.GetString("Message_CharacterOptions_OpenOptions"), LanguageManager.GetString("MessageTitle_CharacterOptions_OpenOptions"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
-                using (new CursorWait(this))
-                	using (frmOptions frmOptions = new frmOptions())
-                    	frmOptions.ShowDialog(this);
-            }
             using (new CursorWait(this))
             {
                 cmdImport.Enabled = false;

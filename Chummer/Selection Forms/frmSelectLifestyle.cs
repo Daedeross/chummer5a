@@ -16,18 +16,20 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Windows.Forms;
+using System.Linq;
+using System.Windows.Forms;
 using System.Xml;
- using Chummer.Backend.Equipment;
- using NLog;
+using Chummer.Backend.Equipment;
+using NLog;
 
 namespace Chummer
 {
     public partial class frmSelectLifestyle : Form
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private bool _blnAddAgain;
         private readonly Lifestyle _objLifestyle;
         private Lifestyle _objSourceLifestyle;
@@ -38,6 +40,7 @@ namespace Chummer
         private bool _blnSkipRefresh = true;
 
         #region Control Events
+
         public frmSelectLifestyle(Character objCharacter)
         {
             InitializeComponent();
@@ -54,7 +57,7 @@ namespace Chummer
             string strSelectedId = string.Empty;
             // Populate the Lifestyle ComboBoxes.
             List<ListItem> lstLifestyle = new List<ListItem>();
-            using (XmlNodeList xmlLifestyleList = _objXmlDocument.SelectNodes("/chummer/lifestyles/lifestyle[" + _objCharacter.Options.BookXPath() + "]"))
+            using (XmlNodeList xmlLifestyleList = _objXmlDocument.SelectNodes("/chummer/lifestyles/lifestyle[" + _objCharacter.Settings.BookXPath() + "]"))
             {
                 if (xmlLifestyleList?.Count > 0)
                 {
@@ -105,7 +108,7 @@ namespace Chummer
 
             string strSpace = LanguageManager.GetString("String_Space");
             // Fill the Options list.
-            using (XmlNodeList xmlLifestyleOptionsList = _objXmlDocument.SelectNodes("/chummer/qualities/quality[(source = \"SR5\" or category = \"Contracts\") and (" + _objCharacter.Options.BookXPath() + ")]"))
+            using (XmlNodeList xmlLifestyleOptionsList = _objXmlDocument.SelectNodes("/chummer/qualities/quality[(source = \"SR5\" or category = \"Contracts\") and (" + _objCharacter.Settings.BookXPath() + ")]"))
             {
                 if (xmlLifestyleOptionsList?.Count > 0)
                 {
@@ -130,7 +133,7 @@ namespace Chummer
                             nodOption.Text = (objXmlOption["translate"]?.InnerText ?? strOptionName)
                                              + strSpace
                                              + (intCost > 0 ? "[+" : "[")
-                                             + intCost.ToString(GlobalOptions.CultureInfo)
+                                             + intCost.ToString(GlobalSettings.CultureInfo)
                                              + strBaseString + "%]";
                         }
                         else
@@ -141,7 +144,7 @@ namespace Chummer
                             nodOption.Text = (objXmlOption["translate"]?.InnerText ?? strOptionName)
                                              + strSpace
                                              + '['
-                                             + decCost.ToString(_objCharacter.Options.NuyenFormat, GlobalOptions.CultureInfo)
+                                             + decCost.ToString(_objCharacter.Settings.NuyenFormat, GlobalSettings.CultureInfo)
                                              + "¥]";
                         }
                         treQualities.Nodes.Add(nodOption);
@@ -253,8 +256,8 @@ namespace Chummer
 
             if (!string.IsNullOrEmpty(strSource) && !string.IsNullOrEmpty(strPage))
             {
-                SourceString objSource = new SourceString(strSource, strPage, GlobalOptions.Language,
-                    GlobalOptions.CultureInfo, _objCharacter);
+                SourceString objSource = new SourceString(strSource, strPage, GlobalSettings.Language,
+                    GlobalSettings.CultureInfo, _objCharacter);
                 lblSource.Text = objSource.ToString();
                 lblSource.SetToolTip(objSource.LanguageBookTooltip);
             }
@@ -266,7 +269,6 @@ namespace Chummer
 
             lblSourceLabel.Visible = !string.IsNullOrEmpty(lblSource.Text);
         }
-
 
         private void cboCity_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -281,9 +283,11 @@ namespace Chummer
                 return;
             RefreshBoroughList();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Whether or not the user wants to add another item after this one.
         /// </summary>
@@ -299,9 +303,10 @@ namespace Chummer
         /// </summary>
         public LifestyleType StyleType { get; set; } = LifestyleType.Standard;
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Accept the selected item and close the form.
         /// </summary>
@@ -318,13 +323,13 @@ namespace Chummer
                 _objLifestyle.Page = objXmlLifestyle["page"]?.InnerText;
                 _objLifestyle.Name = txtLifestyleName.Text;
                 _objLifestyle.BaseLifestyle = objXmlLifestyle["name"]?.InnerText;
-                _objLifestyle.Cost = Convert.ToDecimal(objXmlLifestyle["cost"]?.InnerText, GlobalOptions.InvariantCultureInfo);
+                _objLifestyle.Cost = Convert.ToDecimal(objXmlLifestyle["cost"]?.InnerText, GlobalSettings.InvariantCultureInfo);
                 _objLifestyle.Roommates = _objLifestyle.TrustFund ? 0 : nudRoommates.ValueAsInt;
                 _objLifestyle.Percentage = nudPercentage.Value;
                 _objLifestyle.LifestyleQualities.Clear();
                 _objLifestyle.StyleType = StyleType;
-                _objLifestyle.Dice = Convert.ToInt32(objXmlLifestyle["dice"]?.InnerText, GlobalOptions.InvariantCultureInfo);
-                _objLifestyle.Multiplier = Convert.ToDecimal(objXmlLifestyle["multiplier"]?.InnerText, GlobalOptions.InvariantCultureInfo);
+                _objLifestyle.Dice = Convert.ToInt32(objXmlLifestyle["dice"]?.InnerText, GlobalSettings.InvariantCultureInfo);
+                _objLifestyle.Multiplier = Convert.ToDecimal(objXmlLifestyle["multiplier"]?.InnerText, GlobalSettings.InvariantCultureInfo);
                 _objLifestyle.PrimaryTenant = chkPrimaryTenant.Checked;
                 _objLifestyle.TrustFund = chkTrustFund.Checked;
                 _objLifestyle.City = cboCity.Text;
@@ -380,8 +385,8 @@ namespace Chummer
                     string strPage = objXmlAspect["altpage"]?.InnerText ?? objXmlAspect["page"]?.InnerText;
                     if (!string.IsNullOrEmpty(strSource) && !string.IsNullOrEmpty(strPage))
                     {
-                        SourceString objSource = new SourceString(strSource, strPage, GlobalOptions.Language,
-                            GlobalOptions.CultureInfo, _objCharacter);
+                        SourceString objSource = new SourceString(strSource, strPage, GlobalSettings.Language,
+                            GlobalSettings.CultureInfo, _objCharacter);
                         lblSource.Text = objSource.ToString();
                         lblSource.SetToolTip(objSource.LanguageBookTooltip);
                     }
@@ -403,7 +408,7 @@ namespace Chummer
                             {
                                 object objProcess = CommonFunctions.EvaluateInvariantXPath(strCost, out bool blnIsSuccess);
                                 if (blnIsSuccess)
-                                    decCost += Convert.ToDecimal(objProcess, GlobalOptions.InvariantCultureInfo);
+                                    decCost += Convert.ToDecimal(objProcess, GlobalSettings.InvariantCultureInfo);
                             }
                         }
                     }
@@ -439,7 +444,7 @@ namespace Chummer
 
             decimal decNuyen = decBaseCost + decBaseCost * decMod + decCost;
 
-            lblCost.Text = decNuyen.ToString(_objCharacter.Options.NuyenFormat, GlobalOptions.CultureInfo) + '¥';
+            lblCost.Text = decNuyen.ToString(_objCharacter.Settings.NuyenFormat, GlobalSettings.CultureInfo) + '¥';
             if (nudPercentage.Value != 100 || nudRoommates.Value != 0 && !chkPrimaryTenant.Checked)
             {
                 decimal decDiscount = decNuyen;
@@ -449,7 +454,7 @@ namespace Chummer
                     decDiscount /= nudRoommates.Value;
                 }
 
-                lblCost.Text += LanguageManager.GetString("String_Space") + '(' + decDiscount.ToString(_objCharacter.Options.NuyenFormat, GlobalOptions.CultureInfo) + "¥)";
+                lblCost.Text += LanguageManager.GetString("String_Space") + '(' + decDiscount.ToString(_objCharacter.Settings.NuyenFormat, GlobalSettings.CultureInfo) + "¥)";
             }
 
             lblCostLabel.Visible = !string.IsNullOrEmpty(lblCost.Text);
@@ -458,7 +463,7 @@ namespace Chummer
             if (Lifestyle.StaticIsTrustFundEligible(_objCharacter, strBaseLifestyle))
             {
                 chkTrustFund.Visible = true;
-                chkTrustFund.Checked = _objSourceLifestyle.TrustFund;
+                chkTrustFund.Checked = _objSourceLifestyle?.TrustFund ?? !_objCharacter.Lifestyles.Any(x => x.TrustFund);
             }
             else
             {
@@ -483,9 +488,7 @@ namespace Chummer
         /// <param name="treTree">TreeView to sort.</param>
         private static void SortTree(TreeView treTree)
         {
-            List<TreeNode> lstNodes = new List<TreeNode>();
-            foreach (TreeNode objNode in treTree.Nodes)
-                lstNodes.Add(objNode);
+            List<TreeNode> lstNodes = treTree.Nodes.Cast<TreeNode>().ToList();
             treTree.Nodes.Clear();
             try
             {
@@ -493,6 +496,7 @@ namespace Chummer
             }
             catch (ArgumentException)
             {
+                // Swallow this
             }
             foreach (TreeNode objNode in lstNodes)
                 treTree.Nodes.Add(objNode);
@@ -551,6 +555,7 @@ namespace Chummer
         {
             CommonFunctions.OpenPdfFromControl(sender, e);
         }
-        #endregion
+
+        #endregion Methods
     }
 }

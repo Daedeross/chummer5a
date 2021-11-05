@@ -35,7 +35,6 @@ namespace Chummer
         private string _strSelectedId;
         private Regex _rgxSearchRegex;
 
-
         private string _strWorkStage;
 
         public frmSelectLifeModule(Character objCharacter, int intStage)
@@ -50,7 +49,7 @@ namespace Chummer
 
         private void frmSelectLifeModule_Load(object sender, EventArgs e)
         {
-            string strSelectString = "chummer/stages/stage[@order = " + _intStage.ToString(GlobalOptions.InvariantCultureInfo).CleanXPath() + "]";
+            string strSelectString = "chummer/stages/stage[@order = " + _intStage.ToString(GlobalSettings.InvariantCultureInfo).CleanXPath() + "]";
 
             XmlNode xmlStageNode = _xmlDocument.SelectSingleNode(strSelectString);
             if (xmlStageNode != null)
@@ -82,7 +81,6 @@ namespace Chummer
 
                 if (!chkLimitList.Checked || xmlNode.CreateNavigator().RequirementsMet(_objCharacter))
                 {
-
                     TreeNode treNode = new TreeNode
                     {
                         Text = xmlNode["name"]?.InnerText ?? string.Empty
@@ -90,7 +88,7 @@ namespace Chummer
                     if (xmlNode["versions"] != null)
                     {
                         treNode.Nodes.AddRange(
-                            BuildList(xmlNode.SelectNodes("versions/version[" + _objCharacter.Options.BookXPath() + "or not(source)]")));
+                            BuildList(xmlNode.SelectNodes("versions/version[" + _objCharacter.Settings.BookXPath() + "or not(source)]")));
                     }
 
                     treNode.Tag = xmlNode["id"]?.InnerText;
@@ -109,7 +107,6 @@ namespace Chummer
                     {
                         lstTreeNodes.Add(treNode);
                     }
-
                 }
             }
 
@@ -135,7 +132,6 @@ namespace Chummer
 
         private void treModules_AfterSelect(object sender, TreeViewEventArgs e)
         {
-
             bool blnSelectAble;
             if (e.Node.Nodes.Count == 0)
             {
@@ -172,7 +168,6 @@ namespace Chummer
                 cmdOK.Enabled = false;
                 cmdOKAdd.Enabled = false;
             }
-
         }
 
         public XmlNode SelectedNode => Quality.GetNodeOverrideable(_strSelectedId, _objCharacter.LoadData("lifemodules.xml"));
@@ -196,7 +191,7 @@ namespace Chummer
             {
                 if (cboStage.DataSource == null)
                 {
-                    List<ListItem> Stages = new List<ListItem>(6)
+                    List<ListItem> lstStages = new List<ListItem>(6)
                     {
                         new ListItem("0", LanguageManager.GetString("String_All"))
                     };
@@ -208,12 +203,12 @@ namespace Chummer
                                 string strOrder = xnode.Attributes?["order"]?.Value;
                                 if (!string.IsNullOrEmpty(strOrder))
                                 {
-                                    Stages.Add(new ListItem(strOrder, xnode.InnerText));
+                                    lstStages.Add(new ListItem(strOrder, xnode.InnerText));
                                 }
                             }
 
                     //Sort based on integer value of key
-                    Stages.Sort((x, y) =>
+                    lstStages.Sort((x, y) =>
                     {
                         if (int.TryParse(x.Value.ToString(), out int xint))
                         {
@@ -232,14 +227,13 @@ namespace Chummer
 
                         return 0;
                     });
-                    
-                    cboStage.PopulateWithListItems(Stages);
+
+                    cboStage.PopulateWithListItems(lstStages);
                 }
 
-                ListItem selectedItem = ((List<ListItem>) cboStage.DataSource).Find(x => x.Value.ToString() == _intStage.ToString(GlobalOptions.InvariantCultureInfo));
+                ListItem selectedItem = ((List<ListItem>)cboStage.DataSource).Find(x => x.Value.ToString() == _intStage.ToString(GlobalSettings.InvariantCultureInfo));
                 if (!string.IsNullOrEmpty(selectedItem.Name))
                     cboStage.SelectedItem = selectedItem;
-
             }
             else
             {
@@ -251,7 +245,7 @@ namespace Chummer
 
         private void cboStage_SelectionChangeCommitted(object sender, EventArgs e)
         {
-            string strSelected = (string) cboStage.SelectedValue;
+            string strSelected = (string)cboStage.SelectedValue;
             if (strSelected == "0")
             {
                 _strWorkStage = string.Empty;
@@ -286,7 +280,7 @@ namespace Chummer
 
         private string GetSelectString()
         {
-            string strReturn = "[(" + _objCharacter.Options.BookXPath();
+            string strReturn = "[(" + _objCharacter.Settings.BookXPath();
 
             //chummer/modules/module//name[contains(., "C")]/..["" = string.Empty]
             // /chummer/modules/module//name[contains(., "can")]/..[id]
@@ -301,7 +295,6 @@ namespace Chummer
                 strReturn += ") and (stage = " + _strWorkStage.CleanXPath();
             }
             strReturn += ")]";
-
 
             return strReturn;
         }

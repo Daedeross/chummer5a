@@ -16,7 +16,8 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Windows.Forms;
 
 namespace Chummer
@@ -24,6 +25,7 @@ namespace Chummer
     public partial class frmDiceHits : Form
     {
         #region Control Events
+
         public frmDiceHits()
         {
             InitializeComponent();
@@ -34,7 +36,7 @@ namespace Chummer
         private void frmDiceHits_Load(object sender, EventArgs e)
         {
             string strSpace = LanguageManager.GetString("String_Space");
-            lblDice.Text = LanguageManager.GetString("String_DiceHits_HitsOn") + strSpace + Dice.ToString(GlobalOptions.CultureInfo)
+            lblDice.Text = LanguageManager.GetString("String_DiceHits_HitsOn") + strSpace + Dice.ToString(GlobalSettings.CultureInfo)
                            + LanguageManager.GetString("String_D6") + LanguageManager.GetString("String_Colon") + strSpace;
             nudDiceResult.Maximum = Dice * 6;
             nudDiceResult.Minimum = 6;
@@ -57,12 +59,13 @@ namespace Chummer
                 int intResult = 0;
                 for (int i = 0; i < Dice; ++i)
                 {
-                    intResult += GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                    intResult += GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                 }
                 nudDiceResult.ValueAsInt = intResult;
             }
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
 
@@ -99,6 +102,7 @@ namespace Chummer
         /// Dice roll result.
         /// </summary>
         public int Result => nudDiceResult.ValueAsInt;
-        #endregion
+
+        #endregion Properties
     }
 }

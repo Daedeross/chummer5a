@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace Chummer
     public partial class frmSelectAIProgram : Form
     {
         private string _strSelectedAIProgram = string.Empty;
-        private static string s_StrSelectedCategory = string.Empty;
+        private static string _strSelectedCategory = string.Empty;
 
         private bool _blnLoading = true;
         private bool _blnAddAgain;
@@ -41,6 +42,7 @@ namespace Chummer
         private readonly XPathNavigator _xmlOptionalAIProgramsNode;
 
         #region Control Events
+
         public frmSelectAIProgram(Character objCharacter, bool blnAdvancedProgramAllowed = true, bool blnInherentProgram = false)
         {
             InitializeComponent();
@@ -80,8 +82,8 @@ namespace Chummer
 
             cboCategory.BeginUpdate();
             cboCategory.PopulateWithListItems(_lstCategory);
-            if (!string.IsNullOrEmpty(s_StrSelectedCategory))
-                cboCategory.SelectedValue = s_StrSelectedCategory;
+            if (!string.IsNullOrEmpty(_strSelectedCategory))
+                cboCategory.SelectedValue = _strSelectedCategory;
             if (cboCategory.SelectedIndex == -1)
                 cboCategory.SelectedIndex = 0;
             cboCategory.EndUpdate();
@@ -112,12 +114,6 @@ namespace Chummer
             AcceptForm();
         }
 
-        private void trePrograms_DoubleClick(object sender, EventArgs e)
-        {
-            _blnAddAgain = false;
-            AcceptForm();
-        }
-
         private void cmdCancel_Click(object sender, EventArgs e)
         {
             DialogResult = DialogResult.Cancel;
@@ -136,27 +132,34 @@ namespace Chummer
 
         private void txtSearch_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Down)
+            switch (e.KeyCode)
             {
-                if (lstAIPrograms.SelectedIndex + 1 < lstAIPrograms.Items.Count)
-                {
+                case Keys.Down when lstAIPrograms.SelectedIndex + 1 < lstAIPrograms.Items.Count:
                     lstAIPrograms.SelectedIndex += 1;
-                }
-                else if (lstAIPrograms.Items.Count > 0)
-                {
-                    lstAIPrograms.SelectedIndex = 0;
-                }
-            }
-            if (e.KeyCode == Keys.Up)
-            {
-                if (lstAIPrograms.SelectedIndex - 1 >= 0)
-                {
+                    break;
+
+                case Keys.Down:
+                    {
+                        if (lstAIPrograms.Items.Count > 0)
+                        {
+                            lstAIPrograms.SelectedIndex = 0;
+                        }
+
+                        break;
+                    }
+                case Keys.Up when lstAIPrograms.SelectedIndex - 1 >= 0:
                     lstAIPrograms.SelectedIndex -= 1;
-                }
-                else if (lstAIPrograms.Items.Count > 0)
-                {
-                    lstAIPrograms.SelectedIndex = lstAIPrograms.Items.Count - 1;
-                }
+                    break;
+
+                case Keys.Up:
+                    {
+                        if (lstAIPrograms.Items.Count > 0)
+                        {
+                            lstAIPrograms.SelectedIndex = lstAIPrograms.Items.Count - 1;
+                        }
+
+                        break;
+                    }
             }
         }
 
@@ -165,9 +168,11 @@ namespace Chummer
             if (e.KeyCode == Keys.Up)
                 txtSearch.Select(txtSearch.Text.Length, 0);
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Whether or not the user wants to add another item after this one.
         /// </summary>
@@ -181,9 +186,11 @@ namespace Chummer
             get => _strSelectedAIProgram;
             set => _strSelectedAIProgram = value;
         }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Update the Program's information based on the Program selected.
         /// </summary>
@@ -219,7 +226,7 @@ namespace Chummer
                         string strPage = objXmlProgram.SelectSingleNode("altpage")?.Value ?? objXmlProgram.SelectSingleNode("page")?.Value;
                         if (!string.IsNullOrEmpty(strPage))
                         {
-                            SourceString objSource = new SourceString(strSource, strPage, GlobalOptions.Language, GlobalOptions.CultureInfo, _objCharacter);
+                            SourceString objSource = new SourceString(strSource, strPage, GlobalSettings.Language, GlobalSettings.CultureInfo, _objCharacter);
                             lblSource.Text = objSource.ToString();
                             lblSource.SetToolTip(objSource.LanguageBookTooltip);
                         }
@@ -252,10 +259,10 @@ namespace Chummer
             if (_blnLoading)
                 return;
 
-            StringBuilder sbdFilter = new StringBuilder('(' + _objCharacter.Options.BookXPath() + ')');
+            StringBuilder sbdFilter = new StringBuilder('(' + _objCharacter.Settings.BookXPath() + ')');
 
             string strCategory = cboCategory.SelectedValue?.ToString();
-            if (!string.IsNullOrEmpty(strCategory) && strCategory != "Show All" && (GlobalOptions.SearchInCategoryOnly || txtSearch.TextLength == 0))
+            if (!string.IsNullOrEmpty(strCategory) && strCategory != "Show All" && (GlobalSettings.SearchInCategoryOnly || txtSearch.TextLength == 0))
                 sbdFilter.Append(" and category = " + strCategory.CleanXPath());
             else
             {
@@ -312,13 +319,10 @@ namespace Chummer
 
                 string strName = objXmlProgram.SelectSingleNode("name")?.Value ?? LanguageManager.GetString("String_Unknown");
                 // If this is a critter with Optional Programs, see if this Program is allowed.
-                if (_xmlOptionalAIProgramsNode?.SelectSingleNode("program") != null)
-                {
-                    if (_xmlOptionalAIProgramsNode.SelectSingleNode("program[. = " + strName.CleanXPath() + "]") == null)
-                        continue;
-                }
+                if (_xmlOptionalAIProgramsNode?.SelectSingleNode("program") != null && _xmlOptionalAIProgramsNode.SelectSingleNode("program[. = " + strName.CleanXPath() + "]") == null)
+                    continue;
                 string strDisplayName = objXmlProgram.SelectSingleNode("translate")?.Value ?? strName;
-                if (!GlobalOptions.SearchInCategoryOnly && txtSearch.TextLength != 0)
+                if (!GlobalSettings.SearchInCategoryOnly && txtSearch.TextLength != 0)
                 {
                     string strCategory = objXmlProgram.SelectSingleNode("category")?.Value;
                     if (!string.IsNullOrEmpty(strCategory))
@@ -358,7 +362,7 @@ namespace Chummer
                 }
 
                 _strSelectedAIProgram = strSelectedId;
-                s_StrSelectedCategory = (GlobalOptions.SearchInCategoryOnly || txtSearch.TextLength == 0) ? cboCategory.SelectedValue?.ToString() : xmlProgram.SelectSingleNode("category")?.Value;
+                _strSelectedCategory = (GlobalSettings.SearchInCategoryOnly || txtSearch.TextLength == 0) ? cboCategory.SelectedValue?.ToString() : xmlProgram.SelectSingleNode("category")?.Value;
 
                 DialogResult = DialogResult.OK;
             }
@@ -368,6 +372,7 @@ namespace Chummer
         {
             CommonFunctions.OpenPdfFromControl(sender, e);
         }
-        #endregion
+
+        #endregion Methods
     }
 }

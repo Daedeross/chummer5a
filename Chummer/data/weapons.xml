@@ -19,7 +19,7 @@
   https://github.com/chummer5a/chummer5a
 -->
 <chummer xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://www.w3.org/2001/XMLSchema weapons.xsd">
+         xsi:schemaLocation="http://www.w3.org/2001/XMLSchema weapons.xsd">
 
   <categories>
     <category blackmarket="Weapons" type="melee">Blades</category>
@@ -84,8 +84,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -110,8 +108,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -144,8 +140,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -170,8 +164,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -228,8 +220,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -259,8 +249,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -285,7 +273,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -311,7 +298,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -345,7 +331,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -382,7 +367,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -421,7 +405,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -447,7 +430,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -481,7 +463,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -518,7 +499,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -560,8 +540,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -602,7 +580,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -646,7 +623,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -687,7 +663,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -732,7 +707,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -774,7 +748,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -808,7 +781,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -842,7 +814,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -876,7 +847,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -925,7 +895,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -962,7 +931,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -1620,7 +1588,7 @@
       <cost>1000</cost>
       <source>RG</source>
       <page>20</page>
-	  <spec>Staves</spec>
+      <spec>Staves</spec>
     </weapon>
     <weapon>
       <id>e6d9f23b-f4a4-4ba8-86ea-b3811f87fc82</id>
@@ -1739,6 +1707,7 @@
       <alternaterange>Harpoon Gun (Underwater)</alternaterange>
       <range>Harpoon Gun</range>
       <weapontype>harpoongun</weapontype>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>437c30e5-580a-401a-8097-e9fab0dc2b57</id>
@@ -1759,6 +1728,7 @@
       <page>23</page>
       <range>Shuriken</range>
       <weapontype>slingshot</weapontype>
+      <spec>Slingshot</spec>
     </weapon>
     <weapon>
       <id>db213a06-0430-4711-81a3-5790d5152ba3</id>
@@ -1778,13 +1748,14 @@
       <source>SR5</source>
       <page>424</page>
       <range>Heavy Crossbows</range>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>bc9db3ec-6fa2-407d-ad76-e49daac3c06f</id>
       <name>Light Crossbow</name>
       <category>Crossbows</category>
       <type>Ranged</type>
-      <conceal>2</conceal>
+      <conceal>6</conceal>
       <accuracy>7</accuracy>
       <reach>0</reach>
       <damage>5P</damage>
@@ -1797,13 +1768,14 @@
       <source>SR5</source>
       <page>424</page>
       <range>Light Crossbows</range>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>0df17331-7631-4f78-b857-0f3929678db2</id>
       <name>Medium Crossbow</name>
       <category>Crossbows</category>
       <type>Ranged</type>
-      <conceal>4</conceal>
+      <conceal>6</conceal>
       <accuracy>6</accuracy>
       <reach>0</reach>
       <damage>7P</damage>
@@ -1816,6 +1788,7 @@
       <source>SR5</source>
       <page>424</page>
       <range>Medium Crossbows</range>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>28072a3f-5153-444e-83e3-46129b9ff572</id>
@@ -1835,6 +1808,7 @@
       <source>RG</source>
       <page>23</page>
       <range>Heavy Pistols</range>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>d50f0212-490b-44ca-8365-09e62ea69697</id>
@@ -1856,6 +1830,7 @@
       <alternaterange>Harpoon Gun (Underwater)</alternaterange>
       <range>Harpoon Gun</range>
       <weapontype>harpoongun</weapontype>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>a47e8191-869a-456e-b376-ed04ba7a59f0</id>
@@ -2003,13 +1978,14 @@
       <ap>-5</ap>
       <mode>0</mode>
       <rc>0</rc>
-      <ammo>0</ammo>
+      <ammo>10</ammo>
       <avail>10R</avail>
       <cost>0</cost>
       <source>SR5</source>
       <page>438</page>
       <hide />
       <spec>Shields</spec>
+      <requireammo>False</requireammo>
     </weapon>
     <weapon>
       <id>c0f77a8a-6bda-489e-aea6-bd4d6b3efe33</id>
@@ -2911,11 +2887,11 @@
       <accuracy>0</accuracy>
       <reach>0</reach>
       <damage>24P (-4/m)</damage>
-      <ap>-4/-10</ap>
+      <ap>-4//-10</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
-      <avail>18F</avail>
+      <avail>22F</avail>
       <cost>2800</cost>
       <source>SR5</source>
       <page>436</page>
@@ -2933,7 +2909,7 @@
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
-      <avail>12F</avail>
+      <avail>16F</avail>
       <cost>2000</cost>
       <source>SR5</source>
       <page>436</page>
@@ -2951,7 +2927,7 @@
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
-      <avail>18F</avail>
+      <avail>22F</avail>
       <cost>2100</cost>
       <source>SR5</source>
       <page>436</page>
@@ -2985,7 +2961,7 @@
       <accuracy>0</accuracy>
       <reach>0</reach>
       <damage>24P (-4/m)</damage>
-      <ap>-4/-10</ap>
+      <ap>-4//-10</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
@@ -3118,8 +3094,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -3144,8 +3118,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -3158,8 +3130,8 @@
       <conceal>8</conceal>
       <accuracy>4</accuracy>
       <reach>0</reach>
-      <damage>As Grenade</damage>
-      <ap>As Grenade</ap>
+      <damage>Grenade</damage>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>2(m)/6(c)</ammo>
@@ -3201,7 +3173,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -3240,7 +3211,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -3276,7 +3246,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -3840,7 +3809,7 @@
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>({STR}+1)P</damage>
-      <ap>-1/-2</ap>
+      <ap>-1//-2</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
@@ -4040,7 +4009,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4078,7 +4046,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4110,7 +4077,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4151,7 +4117,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4497,7 +4462,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4534,7 +4498,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4565,7 +4528,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4623,7 +4585,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4657,7 +4618,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4694,7 +4654,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4725,7 +4684,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4756,7 +4714,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4790,7 +4747,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -4827,7 +4783,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4855,7 +4810,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4894,7 +4848,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -4911,7 +4864,7 @@
       <accuracy>5</accuracy>
       <reach>0</reach>
       <damage>Missile</damage>
-      <ap>-</ap>
+      <ap>Missile</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1(ml)</ammo>
@@ -4919,6 +4872,12 @@
       <cost>1200</cost>
       <source>SR5</source>
       <page>431</page>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>41eb651e-3efc-4978-9318-7ece7f151eef</id>
@@ -4937,6 +4896,12 @@
       <cost>14000</cost>
       <source>RG</source>
       <page>47</page>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>b4e80557-89cc-40ef-ab2d-8970b818fae9</id>
@@ -4955,6 +4920,12 @@
       <cost>7500</cost>
       <source>RG</source>
       <page>46</page>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>6753f5f1-72c5-41fb-beb6-6c1a37b82f5e</id>
@@ -4965,7 +4936,7 @@
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>Missile</damage>
-      <ap>-</ap>
+      <ap>Missile</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>2(ml)</ammo>
@@ -4978,6 +4949,12 @@
           <name>Smartgun System, Internal</name>
         </accessory>
       </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>923ba564-7883-49e8-82a2-415cbfa96685</id>
@@ -4999,7 +4976,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5041,7 +5017,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5095,7 +5070,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5122,7 +5096,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5154,7 +5127,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5189,7 +5161,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5216,7 +5187,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5248,7 +5218,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5280,7 +5249,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5315,7 +5283,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5347,7 +5314,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5374,7 +5340,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5409,7 +5374,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5436,7 +5400,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5471,7 +5434,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5508,7 +5470,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5542,7 +5503,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5573,7 +5533,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5604,7 +5563,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5641,7 +5599,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5704,7 +5661,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5730,7 +5686,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5793,7 +5748,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -5932,7 +5886,7 @@
       <accuracy>3</accuracy>
       <reach>0</reach>
       <damage>Special</damage>
-      <ap />
+      <ap>-</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>Special</ammo>
@@ -5959,7 +5913,7 @@
       <accuracy>5</accuracy>
       <reach>0</reach>
       <damage>9P</damage>
-      <ap />
+      <ap>-</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1(b)</ammo>
@@ -5980,7 +5934,7 @@
       <accuracy>Physical</accuracy>
       <reach>0</reach>
       <damage>({STR}+3)S/12P</damage>
-      <ap>+4/-8</ap>
+      <ap>+4//-8</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1</ammo>
@@ -6000,7 +5954,7 @@
       <accuracy>6</accuracy>
       <reach>0</reach>
       <damage>7P</damage>
-      <ap />
+      <ap>-</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1(b)</ammo>
@@ -6107,6 +6061,7 @@
       <page>28</page>
       <range>Light Pistols</range>
       <useskill>Exotic Ranged Weapon</useskill>
+      <!-- ReSharper disable once MarkupTextTypo -->
       <weapontype>netgunxl</weapontype>
     </weapon>
     <weapon>
@@ -6155,7 +6110,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6186,7 +6140,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6212,7 +6165,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6238,7 +6190,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6284,7 +6235,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6315,7 +6265,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6357,7 +6306,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6388,7 +6336,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6419,7 +6366,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6450,7 +6396,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -6487,7 +6432,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6527,7 +6471,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -6560,7 +6503,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -6598,7 +6540,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6657,7 +6598,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6693,7 +6633,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6726,7 +6665,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6762,7 +6700,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6785,7 +6722,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -6820,7 +6756,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -6853,7 +6788,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -7015,12 +6949,13 @@
       <ap>-5</ap>
       <mode>0</mode>
       <rc>0</rc>
-      <ammo>0</ammo>
+      <ammo>10</ammo>
       <avail>6R</avail>
       <cost>550</cost>
       <source>SR5</source>
       <page>423</page>
       <useskill>Unarmed Combat</useskill>
+      <requireammo>False</requireammo>
     </weapon>
     <weapon>
       <id>fec4a4f8-4432-4bdc-b3b9-83c032d71d63</id>
@@ -7034,7 +6969,7 @@
       <ap>-5</ap>
       <mode>0</mode>
       <rc>0</rc>
-      <ammo>0</ammo>
+      <ammo>10</ammo>
       <avail>0</avail>
       <cost>0</cost>
       <source>SR5</source>
@@ -7043,6 +6978,8 @@
       <hide />
       <spec>Cyber Implants</spec>
       <useskill>Unarmed Combat</useskill>
+      <requireammo>False</requireammo>
+      <allowaccessory>True</allowaccessory>
     </weapon>
     <weapon>
       <id>63dcfdb6-bbd9-4a58-bbf4-cd35f7614fdc</id>
@@ -7073,7 +7010,7 @@
       <accuracy>3</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>6(m)</ammo>
@@ -7084,7 +7021,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -7104,7 +7040,7 @@
       <accuracy>6</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>6(c)</ammo>
@@ -7115,7 +7051,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -7135,7 +7070,7 @@
       <accuracy>6</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>6(c)</ammo>
@@ -7146,7 +7081,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -7264,7 +7198,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -8536,6 +8469,7 @@
         </OR>
       </required>
       <useskill>Archery</useskill>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>7914b526-90a1-4691-93bf-1eace51b914f</id>
@@ -8779,7 +8713,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -8822,7 +8755,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -8876,7 +8808,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -8997,7 +8928,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -9037,7 +8967,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -9222,6 +9151,7 @@
       <source>CA</source>
       <page>134</page>
       <spec>Pepper Punch Pen</spec>
+      <!-- ReSharper disable once MarkupTextTypo -->
       <weapontype>pepperpunch</weapontype>
     </weapon>
     <weapon>
@@ -9777,7 +9707,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -9809,7 +9738,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10001,7 +9929,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10035,7 +9962,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10072,7 +9998,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10165,7 +10090,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10191,7 +10115,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10220,7 +10143,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10238,7 +10160,7 @@
       <accuracy>3</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>6(m)</ammo>
@@ -10283,7 +10205,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10317,7 +10238,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10348,7 +10268,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -10378,7 +10297,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -10411,7 +10329,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10442,7 +10359,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10454,31 +10370,32 @@
       <category>Assault Rifles</category>
       <type>Ranged</type>
       <conceal>6</conceal>
-      <accuracy>0</accuracy>
+      <accuracy>5</accuracy>
       <reach>0</reach>
-      <damage>0</damage>
-      <ap>0</ap>
-      <mode>0</mode>
+      <damage>9P</damage>
+      <ap>-2</ap>
+      <mode>SA/BF/FA</mode>
       <rc>0</rc>
       <ammo>40(c)</ammo>
       <avail>10F</avail>
       <cost>4500</cost>
       <source>2050</source>
       <page>184</page>
+      <accessories>
+        <accessory>
+          <name>Gas-Vent 1 System</name>
+        </accessory>
+      </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
-      <underbarrels>
-        <underbarrel>Steyr AUG-CSL SMG (2050)</underbarrel>
-        <underbarrel>Steyr AUG-CSL Carbine (2050)</underbarrel>
-        <underbarrel>Steyr AUG-CSL Assault Rifles (2050)</underbarrel>
-        <underbarrel>Steyr AUG-CSL LMG (2050)</underbarrel>
-      </underbarrels>
+      <addweapon>Steyr AUG-CSL SMG (2050)</addweapon>
+      <addweapon>Steyr AUG-CSL Carbine (2050)</addweapon>
+      <addweapon>Steyr AUG-CSL LMG (2050)</addweapon>
     </weapon>
     <weapon>
       <id>5e116545-08b4-4eae-8dab-6f1546786296</id>
@@ -10505,7 +10422,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10515,7 +10431,7 @@
     <weapon>
       <id>ef76228b-c339-4262-b8e3-597de652d9b4</id>
       <name>Steyr AUG-CSL Carbine (2050)</name>
-      <category>Sniper Rifles</category>
+      <category>Sporting Rifles</category>
       <type>Ranged</type>
       <conceal>6</conceal>
       <accuracy>5</accuracy>
@@ -10537,39 +10453,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
-        <mount>Top</mount>
-        <mount>Under</mount>
-      </accessorymounts>
-      <hide />
-    </weapon>
-    <weapon>
-      <id>4c09761e-d2a2-4958-9113-5b61db145a20</id>
-      <name>Steyr AUG-CSL Assault Rifles (2050)</name>
-      <category>Assault Rifles</category>
-      <type>Ranged</type>
-      <conceal>6</conceal>
-      <accuracy>5</accuracy>
-      <reach>0</reach>
-      <damage>9P</damage>
-      <ap>-2</ap>
-      <mode>SA/BF/FA</mode>
-      <rc>0</rc>
-      <ammo>40(c)</ammo>
-      <avail>0</avail>
-      <cost>0</cost>
-      <source>2050</source>
-      <page>184</page>
-      <accessories>
-        <accessory>
-          <name>Gas-Vent 1 System</name>
-        </accessory>
-      </accessories>
-      <accessorymounts>
-        <mount>Stock</mount>
-        <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -10601,12 +10484,14 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
       <hide />
+      <range>Light Machine Guns</range>
+      <spec>Machine Guns</spec>
+      <useskill>Heavy Weapons</useskill>
     </weapon>
     <!-- Grenade -->
     <weapon>
@@ -10885,7 +10770,7 @@
       <accuracy>0</accuracy>
       <reach>0</reach>
       <damage>24P (-4/m)</damage>
-      <ap>-4/-10</ap>
+      <ap>-4//-10</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
@@ -10939,7 +10824,7 @@
       <accuracy>0</accuracy>
       <reach>0</reach>
       <damage>24P (-4/m)</damage>
-      <ap>-4/-10</ap>
+      <ap>-4//-10</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
@@ -11001,6 +10886,12 @@
       <cost>15000</cost>
       <source>2050</source>
       <page>196</page>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>c6540493-21b1-44db-9cd3-e2b22770a320</id>
@@ -11041,7 +10932,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -11072,7 +10962,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11099,7 +10988,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11131,7 +11019,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11322,7 +11209,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -11373,7 +11259,7 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
+
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -11415,7 +11301,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -11455,7 +11340,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -11491,7 +11375,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
       <ammocategory>Assault Rifles</ammocategory>
     </weapon>
@@ -11535,7 +11418,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
       <underbarrels>
         <underbarrel>HK Urban Enforcer Microgrenade Launcher</underbarrel>
@@ -11550,7 +11432,7 @@
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>4(m)</ammo>
@@ -11561,7 +11443,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11603,16 +11484,13 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
-      <underbarrels>
-        <underbarrel>Steyr AUG-CSL III (Carbine)</underbarrel>
-        <underbarrel>Steyr AUG-CSL III (LMG)</underbarrel>
-        <underbarrel>Steyr AUG-CSL III (Sniper Rifle)</underbarrel>
-      </underbarrels>
+      <addweapon>Steyr AUG-CSL III (Carbine)</addweapon>
+      <addweapon>Steyr AUG-CSL III (LMG)</addweapon>
+      <addweapon>Steyr AUG-CSL III (Sniper Rifle)</addweapon>
     </weapon>
     <weapon>
       <id>037bfd07-2130-4fcf-bbd5-2413f74ca23f</id>
@@ -11645,7 +11523,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11686,7 +11563,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11727,7 +11603,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11783,7 +11658,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11801,7 +11675,7 @@
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>8(m)</ammo>
@@ -11812,7 +11686,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11851,7 +11724,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11880,7 +11752,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -11998,7 +11869,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -12037,7 +11907,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -12068,7 +11937,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -12100,7 +11968,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -12173,8 +12040,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -12564,6 +12429,7 @@
       <cost>0</cost>
       <source>SL</source>
       <page>23</page>
+	  <hide />
     </weapon>
     <weapon>
       <id>884d8ed3-3e21-4bf6-b0e5-2197b3d8bc5f</id>
@@ -12760,6 +12626,7 @@
         <mount>Under</mount>
       </accessorymounts>
       <range>Medium Crossbow</range>
+      <spec>Crossbow</spec>
     </weapon>
     <weapon>
       <id>ced53705-2d9c-4ee6-b612-550f6ae63980</id>
@@ -13340,7 +13207,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -13365,7 +13231,6 @@
       <accessories>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
         <accessory>
           <name>Folding Stock</name>
@@ -13375,7 +13240,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -13406,7 +13270,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13444,13 +13307,11 @@
         </accessory>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
       </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13481,7 +13342,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13519,7 +13379,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13545,7 +13404,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13575,19 +13433,18 @@
         </accessory>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
       </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
       </accessorymounts>
       <addweapon>Onotari HL-13 Personal Defense Weapon</addweapon>
       <addweapon>Onotari HL-13 Urban Assault</addweapon>
+      <addweapon>Onotari HL-13 (Sniper Rifle)</addweapon>
     </weapon>
     <weapon>
       <id>19d63a61-29f4-4892-a6eb-8042cd171676</id>
@@ -13601,26 +13458,27 @@
       <ap>-2</ap>
       <mode>FA</mode>
       <rc>0</rc>
-      <ammo>100(belt)</ammo>
+      <ammo>30(c)</ammo>
       <avail>6F</avail>
-      <cost>500</cost>
+      <cost>0</cost>
       <source>SL</source>
       <page>38</page>
       <accessories>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
       </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
       </accessorymounts>
       <hide />
+      <range>Submachine Guns</range>
+      <spec>Submachine Guns</spec>
+      <useskill>Automatics</useskill>
     </weapon>
     <weapon>
       <id>6704239c-42c0-43c2-8d4c-3f8ff6c01212</id>
@@ -13634,9 +13492,9 @@
       <ap>-2</ap>
       <mode>FA</mode>
       <rc>0</rc>
-      <ammo>100(belt)</ammo>
+      <ammo>30(c)</ammo>
       <avail>6F</avail>
-      <cost>500</cost>
+      <cost>0</cost>
       <source>SL</source>
       <page>38</page>
       <accessories>
@@ -13646,18 +13504,57 @@
         </accessory>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
       </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
       </accessorymounts>
       <hide />
+      <range>Submachine Guns</range>
+      <spec>Submachine Guns</spec>
+      <useskill>Automatics</useskill>
+    </weapon>
+    <weapon>
+      <id>6cfbb0cf-16e1-40b7-b2b8-9822c5642198</id>
+      <name>Onotari HL-13 (Sniper Rifle)</name>
+      <category>Sniper Rifles</category>
+      <type>Ranged</type>
+      <conceal>6</conceal>
+      <accuracy>6</accuracy>
+      <reach>0</reach>
+      <damage>11P</damage>
+      <ap>-2</ap>
+      <mode>SA/BF</mode>
+      <rc>0</rc>
+      <ammo>30(c)</ammo>
+      <avail>6F</avail>
+      <cost>0</cost>
+      <source>SL</source>
+      <page>39</page>
+      <accessories>
+        <accessory>
+          <name>Slide Mount</name>
+          <mount>Under</mount>
+        </accessory>
+        <accessory>
+          <name>Smartgun System, Internal</name>
+        </accessory>
+      </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Barrel</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
+      <hide />
+      <range>Sniper Rifles</range>
+      <spec>Sniper Rifles</spec>
+      <useskill>Longarms</useskill>
     </weapon>
     <weapon>
       <id>75a192ee-b109-4c68-a139-65de302f622d</id>
@@ -13689,7 +13586,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13719,13 +13615,11 @@
         </accessory>
         <accessory>
           <name>Smartgun System, Internal</name>
-          <mount>Internal</mount>
         </accessory>
       </accessories>
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13751,7 +13645,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13785,7 +13678,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -13839,7 +13731,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -13874,7 +13765,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -13909,7 +13799,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -13936,8 +13825,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -13955,7 +13842,7 @@
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>Missile</damage>
-      <ap>-</ap>
+      <ap>Missile</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1(ml)</ammo>
@@ -13963,6 +13850,12 @@
       <cost>750</cost>
       <source>SL</source>
       <page>42</page>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>48299fd8-e705-4fce-a998-598cdb17aea2</id>
@@ -13973,7 +13866,7 @@
       <accuracy>5</accuracy>
       <reach>0</reach>
       <damage>Missile</damage>
-      <ap>-</ap>
+      <ap>Missile</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>1(ml)</ammo>
@@ -13986,6 +13879,12 @@
           <name>Imaging Scope</name>
         </accessory>
       </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>df26dd8f-f26f-4d6b-b98c-fbaf810b569e</id>
@@ -14012,8 +13911,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -14117,6 +14014,7 @@
       <cost>800</cost>
       <source>SL</source>
       <page>46</page>
+      <requireammo>False</requireammo>
     </weapon>
     <weapon>
       <id>fb545997-dcd5-48d4-963e-4f0c797e5982</id>
@@ -14143,7 +14041,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -14254,7 +14151,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -14330,7 +14226,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
       <weapontype>supermach</weapontype>
     </weapon>
@@ -14381,7 +14276,7 @@
       <accuracy>5</accuracy>
       <reach>0</reach>
       <damage>Grenade</damage>
-      <ap>-</ap>
+      <ap>Grenade</ap>
       <mode>SS</mode>
       <rc>0</rc>
       <ammo>6(c)</ammo>
@@ -14571,24 +14466,24 @@
       <source>NF</source>
       <page>172</page>
     </weapon>
-	<weapon>
-	  <id>9e04a42b-6e65-4a3f-b8ff-b91efefb1f5c</id>
-	  <name>Pitchfork</name>
-	  <category>Clubs</category>
-	  <type>Melee</type>
-	  <conceal>0</conceal>
-	  <accuracy>3</accuracy>
-	  <reach>3</reach>
-	  <damage>({STR}+2)P</damage>
-	  <ap>-1</ap>
-	  <mode>0</mode>
-	  <rc>0</rc>
-	  <ammo>0</ammo>
-	  <avail>4</avail>
-	  <cost>25</cost>
-	  <source>NF</source>
-	  <page>172</page>
-	</weapon>
+    <weapon>
+      <id>9e04a42b-6e65-4a3f-b8ff-b91efefb1f5c</id>
+      <name>Pitchfork</name>
+      <category>Clubs</category>
+      <type>Melee</type>
+      <conceal>0</conceal>
+      <accuracy>3</accuracy>
+      <reach>3</reach>
+      <damage>({STR}+2)P</damage>
+      <ap>-1</ap>
+      <mode>0</mode>
+      <rc>0</rc>
+      <ammo>0</ammo>
+      <avail>4</avail>
+      <cost>25</cost>
+      <source>NF</source>
+      <page>172</page>
+    </weapon>
     <weapon>
       <id>c5861520-b344-45b3-8497-ec1b935ef531</id>
       <name>Grenade: Molotov Cocktail</name>
@@ -14836,7 +14731,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -14863,9 +14757,65 @@
       <source>SOTG</source>
       <page>16</page>
       <range>Machine Pistols</range>
-	    <sizecategory>Heavy Machine Guns</sizecategory>
+      <sizecategory>Heavy Machine Guns</sizecategory>
       <useskill>Exotic Ranged Weapons</useskill>
       <weapontype>firefighting cannons</weapontype>
+    </weapon>
+    <weapon>
+      <id>828021e1-a9ff-44e4-9559-918aa156e279</id>
+      <name>Ruhrmetall SFW-30</name>
+      <category>Heavy Machine Guns</category>
+      <type>Ranged</type>
+      <conceal>10</conceal>
+      <accuracy>6</accuracy>
+      <reach>0</reach>
+      <damage>14P</damage>
+      <ap>-10</ap>
+      <mode>FA</mode>
+      <rc>-6</rc>
+      <ammo>100(belt)</ammo>
+      <avail>24F</avail>
+      <cost>60000</cost>
+      <source>SOTG</source>
+      <page>14</page>
+      <accessories>
+        <accessory>
+          <name>Smartgun System, Internal</name>
+          <name>Trigger Removal</name>
+        </accessory>
+      </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Barrel</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
+      <underbarrels>
+        <underbarrel>Underbarrel Weapon</underbarrel>
+      </underbarrels>
+      <spec>Machine Guns</spec>
+    </weapon>
+    <weapon>
+      <id>59b08aa4-e71a-4f94-ad79-faa0668b0c81</id>
+      <name>Underbarrel Weapon</name>
+      <category>Heavy Machine Guns</category>
+      <type>Ranged</type>
+      <conceal>10</conceal>
+      <accuracy>6</accuracy>
+      <reach>0</reach>
+      <damage>12P</damage>
+      <ap>-4</ap>
+      <mode>SA</mode>
+      <rc>-6</rc>
+      <ammo>10(m)</ammo>
+      <avail>0</avail>
+      <cost>0</cost>
+      <source>SOTG</source>
+      <page>14</page>
+      <allowaccessory>False</allowaccessory>
+      <hide />
+      <spec>Machine Guns</spec>
     </weapon>
     <!-- End Region -->
     <!-- Region Datapuls Verschlusssache (German) -->
@@ -14979,7 +14929,7 @@
       <accuracy>0</accuracy>
       <reach>0</reach>
       <damage>18P (-6/m)</damage>
-      <ap>-4/-10</ap>
+      <ap>-4//-10</ap>
       <mode>0</mode>
       <rc>0</rc>
       <ammo>0</ammo>
@@ -15136,7 +15086,7 @@
       <name>Krime Varmint</name>
       <category>Heavy Pistols</category>
       <type>Ranged</type>
-      <conceal>0</conceal>
+      <conceal>2</conceal>
       <accuracy>4</accuracy>
       <reach>0</reach>
       <damage>8P</damage>
@@ -15162,6 +15112,7 @@
         <mount>Stock</mount>
         <mount>Side</mount>
       </accessorymounts>
+      <range>Submachine Guns</range>
       <spec>Semi-Automatics</spec>
     </weapon>
     <weapon>
@@ -15189,7 +15140,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
       </accessorymounts>
@@ -15227,7 +15177,6 @@
         <mount>Top</mount>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
       </accessorymounts>
     </weapon>
     <weapon>
@@ -15258,7 +15207,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15293,7 +15241,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15327,7 +15274,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15383,7 +15329,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15419,7 +15364,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15453,7 +15397,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15484,7 +15427,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15529,7 +15471,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15563,7 +15504,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Under</mount>
         <mount>Top</mount>
@@ -15615,7 +15555,7 @@
       <avail>10F</avail>
       <cost>3000</cost>
       <source>KK</source>
-      <page>19</page>
+      <page>14</page>
       <accessories>
         <accessory>
           <name>Bipod</name>
@@ -15627,7 +15567,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15650,7 +15589,7 @@
       <avail>18F</avail>
       <cost>1500</cost>
       <source>KK</source>
-      <page>20</page>
+      <page>15</page>
       <accessories>
         <accessory>
           <name>Metahuman Adaptation</name>
@@ -15659,7 +15598,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15681,7 +15619,7 @@
       <avail>20R</avail>
       <cost>3500</cost>
       <source>KK</source>
-      <page>21</page>
+      <page>16</page>
       <accessories>
         <accessory>
           <name>Metahuman Adaptation</name>
@@ -15690,8 +15628,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -15712,7 +15648,7 @@
       <avail>8</avail>
       <cost>500</cost>
       <source>KK</source>
-      <page>22</page>
+      <page>17</page>
       <accessories>
         <accessory>
           <name>Metahuman Adaptation</name>
@@ -15721,8 +15657,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
-        <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
       </accessorymounts>
@@ -15743,7 +15677,7 @@
       <avail>9F</avail>
       <cost>2500</cost>
       <source>KK</source>
-      <page>23</page>
+      <page>18</page>
       <accessories>
         <accessory>
           <name>Metahuman Adaptation</name>
@@ -15755,6 +15689,12 @@
           <name>Matrix Signal Scanner</name>
         </accessory>
       </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
     </weapon>
     <weapon>
       <id>7fffffff-e125-44fb-8977-7fffffffc59c</id>
@@ -15772,12 +15712,18 @@
       <avail>9F</avail>
       <cost>12500</cost>
       <source>KK</source>
-      <page>24</page>
+      <page>19</page>
       <accessories>
         <accessory>
           <name>Metahuman Adaptation</name>
         </accessory>
       </accessories>
+      <accessorymounts>
+        <mount>Stock</mount>
+        <mount>Side</mount>
+        <mount>Top</mount>
+        <mount>Under</mount>
+      </accessorymounts>
       <useskill>Gunnery</useskill>
     </weapon>
     <weapon>
@@ -15796,7 +15742,7 @@
       <avail>20F</avail>
       <cost>10000</cost>
       <source>KK</source>
-      <page>25</page>
+      <page>20</page>
       <accessories>
         <accessory>
           <name>Smart Firing Platform</name>
@@ -15822,7 +15768,6 @@
       <accessorymounts>
         <mount>Stock</mount>
         <mount>Side</mount>
-        <mount>Internal</mount>
         <mount>Barrel</mount>
         <mount>Top</mount>
         <mount>Under</mount>
@@ -15846,7 +15791,7 @@
       <avail>12R</avail>
       <cost>2000</cost>
       <source>KK</source>
-      <page>26</page>
+      <page>21</page>
       <useskill>Gunnery</useskill>
     </weapon>
     <weapon>
@@ -16264,6 +16209,17 @@
       <rating>0</rating>
     </accessory>
     <accessory>
+      <id>5D5D9FC6-9CB9-40A4-8185-891E29DAECC5</id>
+      <name>External Clip Port</name>
+      <mount />
+      <avail>-</avail>
+      <cost>1000</cost>
+      <source>SR5</source>
+      <page>458</page>
+      <hide />
+      <rating>0</rating>
+    </accessory>
+    <accessory>
       <id>7e25eb59-3ce1-44d8-8367-527fd8c8bc1d</id>
       <name>Smart Firing Platform</name>
       <mount>Under</mount>
@@ -16403,10 +16359,7 @@
       <rating>0</rating>
       <required>
         <weapondetails>
-          <OR>
-            <name>Enfield AS-7</name>
-            <name>Enfield AS-7 (2050)</name>
-          </OR>
+          <name operation="contains">Enfield AS-7</name>
         </weapondetails>
       </required>
     </accessory>
@@ -16423,9 +16376,7 @@
       <rating>0</rating>
       <required>
         <weapondetails>
-          <OR>
-            <name>Auto-Assault 16</name>
-          </OR>
+          <name>Auto-Assault 16</name>
         </weapondetails>
       </required>
     </accessory>
@@ -16526,7 +16477,7 @@
     <accessory>
       <id>90804D8B-16CA-4A6F-81E6-454F71768DCE</id>
       <name>Collapsed Frame</name>
-      <mount>Internal</mount>
+      <mount />
       <avail>0</avail>
       <cost>0</cost>
       <source>RG</source>
@@ -17212,18 +17163,8 @@
       <rating>0</rating>
       <required>
         <oneof>
-          <group>
-            <weapondetails>
-              <OR>
-                <name>Enfield AS-7</name>
-                <name>Enfield AS-7 (2050)</name>
-              </OR>
-            </weapondetails>
-            <grouponeof>
-              <accessory>Drum Magazine, 24-round</accessory>
-              <accessory>Drum Magazine, 32-round</accessory>
-            </grouponeof>
-          </group>
+          <accessory>Drum Magazine, 24-round</accessory>
+          <accessory>Drum Magazine, 32-round</accessory>
           <weapondetails>
             <OR>
               <ammo operation="contains">(cy)</ammo>
@@ -17685,6 +17626,13 @@
         </weapondetails>
       </forbidden>
       <rating>0</rating>
+      <required>
+        <oneof>
+          <accessory>Smartgun System, Internal</accessory>
+          <accessory>Smartgun System, External</accessory>
+          <accessory>Krime Dual-Mode External Smartgun Link</accessory>
+        </oneof>
+      </required>
     </accessory>
     <accessory>
       <id>85b01b5c-c788-4b43-8190-9e0c18391436</id>
@@ -18088,7 +18036,6 @@
       <cost>400</cost>
       <source>SL</source>
       <page>27</page>
-      <accuracy>0</accuracy>
       <forbidden>
         <oneof>
           <accessory>Ceramic/Plasteel Components</accessory>

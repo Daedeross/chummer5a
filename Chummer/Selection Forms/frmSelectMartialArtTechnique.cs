@@ -38,6 +38,7 @@ namespace Chummer
         private readonly HashSet<string> _setAllowedTechniques = new HashSet<string>();
 
         #region Control Events
+
         public frmSelectMartialArtTechnique(Character objCharacter, MartialArt objMartialArt)
         {
             InitializeComponent();
@@ -65,17 +66,16 @@ namespace Chummer
                 else if (_objMartialArt.Techniques.Count == 0)
                 {
                     //TODO: Support for allowing all techniques  > 0.
-                    string strFilter = '(' + _objCharacter.Options.BookXPath() + ')';
+                    string strFilter = '(' + _objCharacter.Settings.BookXPath() + ')';
                     XPathNodeIterator objTechniquesList = _xmlBaseChummerNode.Select("techniques/technique[" + strFilter + "]");
 
                     foreach (XPathNavigator xmlTechnique in objTechniquesList)
                     {
                         if (_objMartialArt.Techniques.Any(x => x.Name == xmlTechnique.Value) || xmlTechnique.SelectSingleNode("name") == null) continue;
-                            _setAllowedTechniques.Add(xmlTechnique.SelectSingleNode("name")?.Value);
+                        _setAllowedTechniques.Add(xmlTechnique.SelectSingleNode("name")?.Value);
                     }
                 }
             }
-
         }
 
         private void frmSelectMartialArtTechnique_Load(object sender, EventArgs e)
@@ -93,12 +93,6 @@ namespace Chummer
         private void cmdCancel_Click(object sender, EventArgs e)
         {
             DialogResult = DialogResult.Cancel;
-        }
-
-        private void lstTechniques_DoubleClick(object sender, EventArgs e)
-        {
-            _blnAddAgain = false;
-            AcceptForm();
         }
 
         private void cmdOKAdd_Click(object sender, EventArgs e)
@@ -121,7 +115,7 @@ namespace Chummer
                 {
                     string strSource = xmlTechnique.SelectSingleNode("source")?.Value ?? LanguageManager.GetString("String_Unknown");
                     string strPage = xmlTechnique.SelectSingleNode("altpage")?.Value ?? xmlTechnique.SelectSingleNode("page")?.Value ?? LanguageManager.GetString("String_Unknown");
-                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalOptions.Language, GlobalOptions.CultureInfo, _objCharacter);
+                    SourceString objSourceString = new SourceString(strSource, strPage, GlobalSettings.Language, GlobalSettings.CultureInfo, _objCharacter);
                     objSourceString.SetControl(lblSource);
                     lblSourceLabel.Visible = !string.IsNullOrEmpty(lblSource.Text);
                     tlpRight.Visible = true;
@@ -141,9 +135,11 @@ namespace Chummer
         {
             RefreshTechniquesList();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Whether or not the user wants to add another item after this one.
         /// </summary>
@@ -154,9 +150,10 @@ namespace Chummer
         /// </summary>
         public string SelectedTechnique => _strSelectedTechnique;
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Accept the selected item and close the form.
         /// </summary>
@@ -175,7 +172,7 @@ namespace Chummer
         /// </summary>
         private void RefreshTechniquesList()
         {
-            string strFilter = '(' + _objCharacter.Options.BookXPath() + ')';
+            string strFilter = '(' + _objCharacter.Settings.BookXPath() + ')';
             if (!string.IsNullOrEmpty(txtSearch.Text))
                 strFilter += " and " + CommonFunctions.GenerateSearchXPath(txtSearch.Text);
             XPathNodeIterator objTechniquesList = _xmlBaseChummerNode.Select("techniques/technique[" + strFilter + "]");
@@ -214,6 +211,7 @@ namespace Chummer
         {
             CommonFunctions.OpenPdfFromControl(sender, e);
         }
-        #endregion
+
+        #endregion Methods
     }
 }

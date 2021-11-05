@@ -38,8 +38,8 @@ namespace ChummerHub.Controllers.V1
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger _logger;
-        private readonly SignInManager<ApplicationUser> _signInManager = null;
-        private readonly UserManager<ApplicationUser> _userManager = null;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly TelemetryClient tc;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member 'SINnerGroupController.SINnerGroupController(ApplicationDbContext, ILogger<SINnerController>, SignInManager<ApplicationUser>, UserManager<ApplicationUser>, TelemetryClient)'
@@ -1156,7 +1156,7 @@ namespace ChummerHub.Controllers.V1
             if (user == null)
                 throw new NoUserRightException("Could not verify ApplicationUser!");
             bool candelete = false;
-            var members = _context.SINners.Where(a => a.MyGroup == mygroup).ToList();
+            var members = await _context.SINners.Where(a => a.MyGroup == mygroup).ToListAsync();
             if (mygroup.IsPublic == false)
             {
                 if (mygroup.GroupCreatorUserName?.ToUpperInvariant() != user.NormalizedEmail
@@ -1206,9 +1206,9 @@ namespace ChummerHub.Controllers.V1
 
         private async Task<ActionResult<bool>> DeleteLeaveGroupInternal(Guid groupid, Guid sinnerid)
         {
-            if (groupid == null || groupid == Guid.Empty)
+            if (groupid == default || groupid == Guid.Empty)
                 throw new ArgumentNullException(nameof(groupid));
-            if (sinnerid == null || sinnerid == Guid.Empty)
+            if (sinnerid == default || sinnerid == Guid.Empty)
                 throw new ArgumentNullException(nameof(sinnerid));
 
             var group = await _context.SINnerGroups.Include(a => a.MyGroups).FirstOrDefaultAsync(a => a.Id == groupid);

@@ -13,7 +13,7 @@ namespace ChummerHub.Client.Backend
     /// </summary>
     public class NamedPipeManager : IDisposable
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         public string NamedPipeName { get; }
         public event Action<string> ReceiveString;
 
@@ -29,11 +29,15 @@ namespace ChummerHub.Client.Backend
         /// <summary>
         /// Starts a new Pipe server on a new thread
         /// </summary>
-        public async void StartServer()
+        public async Task StartServer()
         {
             StopServer();
-            if (_objRunningTask?.IsCompleted == false) // Wait for existing thread to shut down
-                await _objRunningTask;
+            try
+            {
+                if (_objRunningTask?.IsCompleted == false) // Wait for existing thread to shut down
+                    await _objRunningTask;
+            }
+            catch (TaskCanceledException) { }
             _objCancellationTokenSource = new CancellationTokenSource();
             _objRunningTask = Task.Run(RunChummerFilePipeThread, _objCancellationTokenSource.Token);
         }
@@ -49,8 +53,7 @@ namespace ChummerHub.Client.Backend
         /// </summary>
         public void StopServer()
         {
-            if (_objCancellationTokenSource != null)
-                _objCancellationTokenSource.Cancel();
+            _objCancellationTokenSource?.Cancel(false);
             Log.Trace("Sending Exit to PipeServer...");
             Write(EXIT_STRING);
         }

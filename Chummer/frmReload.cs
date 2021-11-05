@@ -16,21 +16,27 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using System.Windows.Forms;
- using Chummer.Backend.Equipment;
+using Chummer.Backend.Equipment;
 
 namespace Chummer
 {
     public partial class frmReload : Form
     {
+        private readonly Weapon _objWeapon;
         private readonly List<Gear> _lstAmmo = new List<Gear>(5);
         private readonly List<string> _lstCount = new List<string>(30);
 
         #region Control Events
-        public frmReload()
+
+        public frmReload(Weapon objWeapon)
         {
+            _objWeapon = objWeapon;
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
@@ -43,15 +49,15 @@ namespace Chummer
             // Add each of the items to a new List since we need to also grab their plugin information.
             foreach (Gear objGear in _lstAmmo)
             {
-                string strName = objGear.DisplayNameShort(GlobalOptions.Language) + " x" + objGear.Quantity.ToString(GlobalOptions.InvariantCultureInfo);
+                string strName = objGear.DisplayNameShort(GlobalSettings.Language) + " x" + objGear.Quantity.ToString(GlobalSettings.InvariantCultureInfo);
                 if (objGear.Rating > 0)
-                    strName += strSpace + '(' + LanguageManager.GetString(objGear.RatingLabel) + strSpace + objGear.Rating.ToString(GlobalOptions.CultureInfo) + ')';
+                    strName += strSpace + '(' + LanguageManager.GetString(objGear.RatingLabel) + strSpace + objGear.Rating.ToString(GlobalSettings.CultureInfo) + ')';
 
                 if (objGear.Parent is Gear objParent)
                 {
-                    if (!string.IsNullOrEmpty(objParent.DisplayNameShort(GlobalOptions.Language)))
+                    if (!string.IsNullOrEmpty(objParent.DisplayNameShort(GlobalSettings.Language)))
                     {
-                        strName += strSpace + '(' + objParent.DisplayNameShort(GlobalOptions.Language);
+                        strName += strSpace + '(' + objParent.DisplayNameShort(GlobalSettings.Language);
                         if (objParent.Location != null)
                             strName += strSpace + '@' + strSpace + objParent.Location.DisplayName();
                         strName += ')';
@@ -63,15 +69,15 @@ namespace Chummer
                 // Retrieve the plugin information if it has any.
                 if (objGear.Children.Count > 0)
                 {
-                    string strPlugins = string.Empty;
+                    StringBuilder sbdPlugins = new StringBuilder();
                     foreach (Gear objChild in objGear.Children)
                     {
-                        strPlugins += objChild.DisplayNameShort(GlobalOptions.Language) + ',' + strSpace;
+                        sbdPlugins.Append(objChild.DisplayNameShort(GlobalSettings.Language) + ',' + strSpace);
                     }
                     // Remove the trailing comma.
-                    strPlugins = strPlugins.Substring(0, strPlugins.Length - 1 - strSpace.Length);
+                    sbdPlugins.Length -= 1 + strSpace.Length;
                     // Append the plugin information to the name.
-                    strName += strSpace + '[' + strPlugins + ']';
+                    strName += strSpace + '[' + sbdPlugins + ']';
                 }
                 lstAmmo.Add(new ListItem(objGear.InternalId, strName));
             }
@@ -100,9 +106,11 @@ namespace Chummer
         {
             AcceptForm();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// List of Ammo Gear that the user can selected.
         /// </summary>
@@ -135,11 +143,16 @@ namespace Chummer
         /// <summary>
         /// Number of rounds that were selected to be loaded.
         /// </summary>
-        public int SelectedCount => Convert.ToInt32(cboType.Text, GlobalOptions.InvariantCultureInfo);
+        public int SelectedCount =>
+            int.TryParse(cboType.Text, NumberStyles.Integer, GlobalSettings.InvariantCultureInfo,
+                out int intReturn)
+                ? intReturn
+                : _objWeapon?.AmmoRemaining ?? 0;
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Accept the selected item and close the form.
         /// </summary>
@@ -147,6 +160,7 @@ namespace Chummer
         {
             DialogResult = DialogResult.OK;
         }
-        #endregion
+
+        #endregion Methods
     }
 }

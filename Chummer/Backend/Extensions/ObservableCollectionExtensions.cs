@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -44,7 +45,7 @@ namespace Chummer
             if (length < 0)
                 throw new ArgumentOutOfRangeException(nameof(length));
             if (index + length > lstCollection.Count)
-                throw new ArgumentException(nameof(length));
+                throw new ArgumentOutOfRangeException(nameof(length));
             if (length == 0)
                 return;
             T[] aobjSorted = new T[length];

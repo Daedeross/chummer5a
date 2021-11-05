@@ -16,21 +16,24 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Linq;
- using System.Windows.Forms;
+using System.Linq;
+using System.Windows.Forms;
 using System.Xml;
- using System.Xml.XPath;
- using Chummer.Backend.Skills;
+using System.Xml.XPath;
+using Chummer.Backend.Skills;
 
 namespace Chummer
 {
     public partial class frmSelectExoticSkill : Form
     {
         private readonly Character _objCharacter;
+        private string _strForceSkill;
 
         #region Control Events
+
         public frmSelectExoticSkill(Character objCharacter)
         {
             InitializeComponent();
@@ -62,7 +65,7 @@ namespace Chummer
                     foreach (XmlNode objXmlSkill in objXmlSkillList)
                     {
                         string strName = objXmlSkill["name"]?.InnerText;
-                        if (!string.IsNullOrEmpty(strName))
+                        if (!string.IsNullOrEmpty(strName) && (string.IsNullOrEmpty(_strForceSkill) || strName.Equals(_strForceSkill, StringComparison.OrdinalIgnoreCase)))
                             lstSkills.Add(new ListItem(strName, objXmlSkill["translate"]?.InnerText ?? strName));
                     }
                 }
@@ -73,7 +76,10 @@ namespace Chummer
 
             // Select the first Skill in the list.
             if (lstSkills.Count > 0)
+            {
                 cboCategory.SelectedIndex = 0;
+                cboCategory.Enabled = lstSkills.Count > 1;
+            }
             else
                 cmdOK.Enabled = false;
 
@@ -86,9 +92,16 @@ namespace Chummer
         {
             BuildList();
         }
-        #endregion
+
+        public void ForceSkill(string strSkill)
+        {
+            _strForceSkill = strSkill;
+        }
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Skill that was selected in the dialogue.
         /// </summary>
@@ -100,7 +113,7 @@ namespace Chummer
         public string SelectedExoticSkillSpecialisation => cboSkillSpecialisations.SelectedValue?.ToString()
                                                            ?? _objCharacter.ReverseTranslateExtra(cboSkillSpecialisations.Text);
 
-        #endregion
+        #endregion Properties
 
         private void BuildList()
         {
@@ -108,10 +121,10 @@ namespace Chummer
             if (string.IsNullOrEmpty(strSelectedCategory))
                 return;
             XPathNodeIterator xmlWeaponList = _objCharacter.LoadDataXPath("weapons.xml")
-                .Select(string.Format(GlobalOptions.InvariantCultureInfo,
+                .Select(string.Format(GlobalSettings.InvariantCultureInfo,
                     "/chummer/weapons/weapon[(category = {0} or useskill = {1}) and ({2})]",
                     (strSelectedCategory + 's').CleanXPath(), strSelectedCategory.CleanXPath(),
-                    _objCharacter.Options.BookXPath(false)));
+                    _objCharacter.Settings.BookXPath(false)));
             List<ListItem> lstSkillSpecializations = new List<ListItem>(xmlWeaponList.Count);
             if (xmlWeaponList.Count > 0)
             {
@@ -126,7 +139,7 @@ namespace Chummer
             }
 
             foreach (XPathNavigator xmlSpec in _objCharacter.LoadDataXPath("skills.xml")
-                .Select("/chummer/skills/skill[name = " + strSelectedCategory.CleanXPath() + " and (" + _objCharacter.Options.BookXPath() + ")]/specs/spec"))
+                .Select("/chummer/skills/skill[name = " + strSelectedCategory.CleanXPath() + " and (" + _objCharacter.Settings.BookXPath() + ")]/specs/spec"))
             {
                 string strName = xmlSpec.Value;
                 if (!string.IsNullOrEmpty(strName))
@@ -136,7 +149,7 @@ namespace Chummer
             }
 
             HashSet<string> lstExistingExoticSkills = new HashSet<string>(_objCharacter.SkillsSection.Skills
-                .Where(x => x.Name == strSelectedCategory).Select(x => ((ExoticSkill) x).Specific));
+                .Where(x => x.Name == strSelectedCategory).Select(x => ((ExoticSkill)x).Specific));
             lstSkillSpecializations.RemoveAll(x => lstExistingExoticSkills.Contains(x.Value));
             lstSkillSpecializations.Sort(Comparer<ListItem>.Create((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal)));
             string strOldText = cboSkillSpecialisations.Text;

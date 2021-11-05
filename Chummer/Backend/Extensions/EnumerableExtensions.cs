@@ -65,15 +65,25 @@ namespace Chummer
         {
             if (lstItems == null)
                 return 0;
-
-            int intHash = 19;
-            foreach (T objItem in lstItems)
-            {
-                intHash = intHash * 31 + objItem.GetHashCode();
-            }
-            return intHash;
+            // uint to prevent overflows
+            return (int)lstItems.Aggregate<T, uint>(19, (current, objItem) => current * 31 + (uint)objItem.GetHashCode());
         }
-        
+
+        /// <summary>
+        /// Get a HashCode representing the contents of an enumerable (instead of just of the pointer to the location where the enumerable would start) in a way where the order of the items is irrelevant
+        /// NOTE: GetEnsembleHashCode and GetOrderInvariantEnsembleHashCode will almost never be the same for the same collection!
+        /// </summary>
+        /// <typeparam name="T">The type for which GetHashCode() will be called</typeparam>
+        /// <param name="lstItems">The collection containing the contents</param>
+        /// <returns>A HashCode that is generated based on the contents of <paramref name="lstItems"/></returns>
+        public static int GetOrderInvariantEnsembleHashCode<T>(this IEnumerable<T> lstItems)
+        {
+            if (lstItems == null)
+                return 0;
+            // uint to prevent overflows
+            return (int)(19 + lstItems.Aggregate<T, uint>(0, (current, obj) => current + (uint)obj.GetHashCode()) * 31);
+        }
+
         /// <summary>
         /// Syntactic sugar to wraps this object instance into an IEnumerable consisting of a single item.
         /// </summary>

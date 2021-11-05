@@ -16,7 +16,8 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -34,6 +35,7 @@ namespace Chummer
         private bool _blnSkipUpdate;
 
         #region Control Events
+
         public frmSelectContactConnection()
         {
             InitializeComponent();
@@ -86,10 +88,10 @@ namespace Chummer
             // Populate the fields with their data.
             // Membership.
             cboMembership.Items.Add("+0: " + LanguageManager.GetString("String_None"));
-            cboMembership.Items.Add("+1: " + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "2-19"));
-            cboMembership.Items.Add("+2: " + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "20-99"));
-            cboMembership.Items.Add("+4: " + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "100-1000"));
-            cboMembership.Items.Add("+6: " + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "1000+"));
+            cboMembership.Items.Add("+1: " + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "2-19"));
+            cboMembership.Items.Add("+2: " + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "20-99"));
+            cboMembership.Items.Add("+4: " + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "100-1000"));
+            cboMembership.Items.Add("+6: " + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_SelectContactConnection_Members"), "1000+"));
 
             // Area of Influence.
             cboAreaOfInfluence.Items.Add("+0: " + LanguageManager.GetString("String_None"));
@@ -112,16 +114,16 @@ namespace Chummer
 
             // Select the appropriate field values.
             _blnSkipUpdate = true;
-            cboMembership.SelectedIndex = cboMembership.FindString('+' + _intMembership.ToString(GlobalOptions.InvariantCultureInfo));
-            cboAreaOfInfluence.SelectedIndex = cboAreaOfInfluence.FindString('+' + _intAreaOfInfluence.ToString(GlobalOptions.InvariantCultureInfo));
-            cboMagicalResources.SelectedIndex = cboMagicalResources.FindString('+' + _intMagicalResources.ToString(GlobalOptions.InvariantCultureInfo));
-            cboMatrixResources.SelectedIndex = cboMatrixResources.FindString('+' + _intMatrixResources.ToString(GlobalOptions.InvariantCultureInfo));
+            cboMembership.SelectedIndex = cboMembership.FindString('+' + _intMembership.ToString(GlobalSettings.InvariantCultureInfo));
+            cboAreaOfInfluence.SelectedIndex = cboAreaOfInfluence.FindString('+' + _intAreaOfInfluence.ToString(GlobalSettings.InvariantCultureInfo));
+            cboMagicalResources.SelectedIndex = cboMagicalResources.FindString('+' + _intMagicalResources.ToString(GlobalSettings.InvariantCultureInfo));
+            cboMatrixResources.SelectedIndex = cboMatrixResources.FindString('+' + _intMatrixResources.ToString(GlobalSettings.InvariantCultureInfo));
             txtGroupName.Text = _strGroupName;
             cmdChangeColour.BackColor = _objColour;
             chkFreeContact.Checked = _blnFree;
             _blnSkipUpdate = false;
 
-            lblTotalConnectionModifier.Text = (_intMembership + _intAreaOfInfluence + _intMagicalResources + _intMatrixResources).ToString(GlobalOptions.CultureInfo);
+            lblTotalConnectionModifier.Text = (_intMembership + _intAreaOfInfluence + _intMagicalResources + _intMatrixResources).ToString(GlobalSettings.CultureInfo);
         }
 
         private void cmdChangeColour_Click(object sender, EventArgs e)
@@ -142,9 +144,11 @@ namespace Chummer
                 }
             }
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Membership.
         /// </summary>
@@ -207,9 +211,11 @@ namespace Chummer
             get => _blnFree;
             set => _blnFree = value;
         }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Refresh the Connection Group information.
         /// </summary>
@@ -218,15 +224,16 @@ namespace Chummer
             if (_blnSkipUpdate)
                 return;
 
-            _intMembership = Convert.ToInt32(cboMembership.Text.Substring(0, 2), GlobalOptions.InvariantCultureInfo);
-            _intAreaOfInfluence = Convert.ToInt32(cboAreaOfInfluence.Text.Substring(0, 2), GlobalOptions.InvariantCultureInfo);
-            _intMagicalResources = Convert.ToInt32(cboMagicalResources.Text.Substring(0, 2), GlobalOptions.InvariantCultureInfo);
-            _intMatrixResources = Convert.ToInt32(cboMatrixResources.Text.Substring(0, 2), GlobalOptions.InvariantCultureInfo);
+            _intMembership = Convert.ToInt32(cboMembership.Text.Substring(0, 2), GlobalSettings.InvariantCultureInfo);
+            _intAreaOfInfluence = Convert.ToInt32(cboAreaOfInfluence.Text.Substring(0, 2), GlobalSettings.InvariantCultureInfo);
+            _intMagicalResources = Convert.ToInt32(cboMagicalResources.Text.Substring(0, 2), GlobalSettings.InvariantCultureInfo);
+            _intMatrixResources = Convert.ToInt32(cboMatrixResources.Text.Substring(0, 2), GlobalSettings.InvariantCultureInfo);
             _strGroupName = txtGroupName.Text;
             _blnFree = chkFreeContact.Checked;
 
-            lblTotalConnectionModifier.Text = (_intMembership + _intAreaOfInfluence + _intMagicalResources + _intMatrixResources).ToString(GlobalOptions.CultureInfo);
+            lblTotalConnectionModifier.Text = (_intMembership + _intAreaOfInfluence + _intMagicalResources + _intMatrixResources).ToString(GlobalSettings.CultureInfo);
         }
-        #endregion
+
+        #endregion Methods
     }
 }

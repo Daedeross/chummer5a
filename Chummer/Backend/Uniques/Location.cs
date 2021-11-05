@@ -16,8 +16,9 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Drawing;
@@ -39,15 +40,17 @@ namespace Chummer
         private Color _colNotes = ColorManager.HasNotesColor;
         private int _intSortOrder;
         private readonly Character _objCharacter;
+
         #region Constructor, Create, Save, Load, and Print Methods
-        public Location(Character objCharacter, ObservableCollection<Location> objParent, string strName = "")
+
+        public Location(Character objCharacter, ICollection<Location> objParent, string strName = "")
         {
             // Create the GUID for the new art.
             _guiID = Guid.NewGuid();
             _objCharacter = objCharacter;
             _strName = strName;
             Parent = objParent;
-            Children.CollectionChanged += ChildrenOnCollectionChanged;
+            Children.AddTaggedCollectionChanged(this, ChildrenOnCollectionChanged);
         }
 
         /// <summary>
@@ -59,11 +62,11 @@ namespace Chummer
             if (objWriter == null)
                 return;
             objWriter.WriteStartElement("location");
-            objWriter.WriteElementString("guid", _guiID.ToString("D", GlobalOptions.InvariantCultureInfo));
+            objWriter.WriteElementString("guid", _guiID.ToString("D", GlobalSettings.InvariantCultureInfo));
             objWriter.WriteElementString("name", _strName);
             objWriter.WriteElementString("notes", System.Text.RegularExpressions.Regex.Replace(_strNotes, @"[\u0000-\u0008\u000B\u000C\u000E-\u001F]", ""));
             objWriter.WriteElementString("notesColor", ColorTranslator.ToHtml(_colNotes));
-            objWriter.WriteElementString("sortorder", _intSortOrder.ToString(GlobalOptions.InvariantCultureInfo));
+            objWriter.WriteElementString("sortorder", _intSortOrder.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteEndElement();
         }
 
@@ -83,7 +86,7 @@ namespace Chummer
                 objNode.TryGetStringFieldQuickly("name", ref _strName);
                 objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
 
-                String sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
+                string sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
                 objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
                 _colNotes = ColorTranslator.FromHtml(sNotesColor);
             }
@@ -108,17 +111,19 @@ namespace Chummer
             objWriter.WriteElementString("name", DisplayNameShort(strLanguageToPrint));
             objWriter.WriteElementString("fullname", DisplayName(strLanguageToPrint));
             objWriter.WriteElementString("name_english", Name);
-            if (GlobalOptions.PrintNotes)
+            if (GlobalSettings.PrintNotes)
                 objWriter.WriteElementString("notes", Notes);
             objWriter.WriteEndElement();
         }
-        #endregion
+
+        #endregion Constructor, Create, Save, Load, and Print Methods
 
         #region Properties
+
         /// <summary>
         /// Internal identifier which will be used to identify this Metamagic in the Improvement system.
         /// </summary>
-        public string InternalId => _guiID.ToString("D", GlobalOptions.InvariantCultureInfo);
+        public string InternalId => _guiID.ToString("D", GlobalSettings.InvariantCultureInfo);
 
         /// <summary>
         /// Metamagic name.
@@ -135,10 +140,10 @@ namespace Chummer
         public string DisplayNameShort(string strLanguage = "")
         {
             if (string.IsNullOrEmpty(strLanguage))
-                strLanguage = GlobalOptions.Language;
-            return strLanguage != GlobalOptions.Language
-                ? LanguageManager.TranslateExtra(!GlobalOptions.Language.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase)
-                    ? LanguageManager.ReverseTranslateExtra(Name, GlobalOptions.Language, _objCharacter)
+                strLanguage = GlobalSettings.Language;
+            return strLanguage != GlobalSettings.Language
+                ? LanguageManager.TranslateExtra(!GlobalSettings.Language.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase)
+                    ? LanguageManager.ReverseTranslateExtra(Name, GlobalSettings.Language, _objCharacter)
                     : Name, strLanguage, _objCharacter)
                 : Name;
         }
@@ -149,7 +154,7 @@ namespace Chummer
         public string DisplayName(string strLanguage = "")
         {
             if (string.IsNullOrEmpty(strLanguage))
-                strLanguage = GlobalOptions.Language;
+                strLanguage = GlobalSettings.Language;
             return DisplayNameShort(strLanguage);
         }
 
@@ -182,13 +187,15 @@ namespace Chummer
 
         public TaggedObservableCollection<IHasLocation> Children { get; } = new TaggedObservableCollection<IHasLocation>();
 
-        public ObservableCollection<Location> Parent { get; }
-        #endregion
+        public ICollection<Location> Parent { get; }
+
+        #endregion Properties
 
         #region UI Methods
+
         public TreeNode CreateTreeNode(ContextMenuStrip cmsLocation)
         {
-            string strText = DisplayName(GlobalOptions.Language);
+            string strText = DisplayName(GlobalSettings.Language);
             TreeNode objNode = new TreeNode
             {
                 Name = InternalId,
@@ -206,8 +213,8 @@ namespace Chummer
             !string.IsNullOrEmpty(Notes)
                 ? ColorManager.GenerateCurrentModeColor(NotesColor)
                 : ColorManager.WindowText;
-        #endregion
 
+        #endregion UI Methods
 
         private void ChildrenOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -217,16 +224,19 @@ namespace Chummer
                     foreach (IHasLocation objNewItem in e.NewItems)
                         objNewItem.Location = this;
                     break;
+
                 case NotifyCollectionChangedAction.Remove:
                     foreach (IHasLocation objOldItem in e.OldItems)
                         objOldItem.Location = null;
                     break;
+
                 case NotifyCollectionChangedAction.Replace:
                     foreach (IHasLocation objOldItem in e.OldItems)
                         objOldItem.Location = null;
                     foreach (IHasLocation objNewItem in e.NewItems)
                         objNewItem.Location = this;
                     break;
+
                 case NotifyCollectionChangedAction.Reset:
                     foreach (IHasLocation objItem in Children)
                     {

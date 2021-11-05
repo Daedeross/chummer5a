@@ -16,7 +16,8 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Globalization;
 using System.Windows.Forms;
 
@@ -25,12 +26,13 @@ namespace Chummer
     public sealed partial class frmExpense : Form
     {
         private ExpenseType _objMode = ExpenseType.Karma;
-        private readonly CharacterOptions _objCharacterOptions;
+        private readonly CharacterSettings _objCharacterSettings;
 
         #region Control Events
-        public frmExpense(CharacterOptions objCharacterOptions)
+
+        public frmExpense(CharacterSettings objCharacterSettings)
         {
-            _objCharacterOptions = objCharacterOptions;
+            _objCharacterSettings = objCharacterSettings;
 
             InitializeComponent();
             this.UpdateLightDarkMode();
@@ -38,16 +40,16 @@ namespace Chummer
 
             // Determine the DateTime format and use that to display the date field (removing seconds since they're not important).
 
-            if (GlobalOptions.CustomDateTimeFormats)
+            if (GlobalSettings.CustomDateTimeFormats)
             {
-                datDate.CustomFormat = GlobalOptions.DatesIncludeTime
-                    ? GlobalOptions.CustomDateFormat+GlobalOptions.CustomTimeFormat
-                    : GlobalOptions.CustomDateFormat;
+                datDate.CustomFormat = GlobalSettings.DatesIncludeTime
+                    ? GlobalSettings.CustomDateFormat + GlobalSettings.CustomTimeFormat
+                    : GlobalSettings.CustomDateFormat;
             }
             else
             {
-                DateTimeFormatInfo objDateTimeInfo = GlobalOptions.CultureInfo.DateTimeFormat;
-                datDate.CustomFormat = GlobalOptions.DatesIncludeTime
+                DateTimeFormatInfo objDateTimeInfo = GlobalSettings.CultureInfo.DateTimeFormat;
+                datDate.CustomFormat = GlobalSettings.DatesIncludeTime
                     ? objDateTimeInfo.FullDateTimePattern.FastEscapeOnceFromEnd(":ss")
                     : objDateTimeInfo.LongDatePattern;
             }
@@ -59,9 +61,11 @@ namespace Chummer
 
         private void cmdOK_Click(object sender, EventArgs e)
         {
-            if (KarmaNuyenExchange && _objMode == ExpenseType.Nuyen && nudAmount.Value % _objCharacterOptions.NuyenPerBP != 0)
+            if (KarmaNuyenExchange && _objMode == ExpenseType.Nuyen && nudAmount.Value % _objCharacterSettings.NuyenPerBPWftP != 0)
             {
-                Program.MainForm.ShowMessageBox(this, LanguageManager.GetString("Message_KarmaNuyenExchange"), LanguageManager.GetString("MessageTitle_KarmaNuyenExchange"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Program.MainForm.ShowMessageBox(this, LanguageManager.GetString("Message_KarmaNuyenExchange"),
+                    LanguageManager.GetString("MessageTitle_KarmaNuyenExchange"), MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
             }
             else
             {
@@ -73,9 +77,11 @@ namespace Chummer
         {
             DialogResult = DialogResult.Cancel;
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Amount gained or spent.
         /// </summary>
@@ -163,9 +169,10 @@ namespace Chummer
         public bool KarmaNuyenExchange { get; set; }
         public string KarmaNuyenExchangeString { get; set; }
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         /// <summary>
         /// Lock fields on the Form so that only the Date and Reason fields are editable.
         /// </summary>
@@ -178,7 +185,8 @@ namespace Chummer
             if (blnEditAmount && nudAmount.Minimum < 0)
                 nudAmount.Minimum = nudAmount.Maximum * -1;
         }
-        #endregion
+
+        #endregion Methods
 
         private void chkKarmaNuyenExchange_CheckedChanged(object sender, EventArgs e)
         {
@@ -186,10 +194,11 @@ namespace Chummer
             {
                 txtDescription.Text = KarmaNuyenExchangeString;
             }
+
             if (chkKarmaNuyenExchange.Checked && _objMode == ExpenseType.Nuyen)
             {
-                nudAmount.Increment = _objCharacterOptions.NuyenPerBP;
-                nudAmount.Value = _objCharacterOptions.NuyenPerBP;
+                nudAmount.Increment = _objCharacterSettings.NuyenPerBPWftP;
+                nudAmount.Value = _objCharacterSettings.NuyenPerBPWftP;
             }
             else
             {

@@ -16,26 +16,27 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
-using System.ComponentModel;
- using System.IO;
- using System.IO.Compression;
- using System.Net;
-using System.Text;
-using System.Windows.Forms;
-using System.Reflection;
- using Application = System.Windows.Forms.Application;
+
+using System;
 using System.Collections.Generic;
- using System.Linq;
- using System.Threading;
- using System.Threading.Tasks;
- using NLog;
+using System.ComponentModel;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using NLog;
+using Application = System.Windows.Forms.Application;
 
 namespace Chummer
 {
     public partial class frmUpdate : Form
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private bool _blnSilentMode;
         private string _strDownloadFile = string.Empty;
         private string _strLatestVersion = string.Empty;
@@ -57,9 +58,9 @@ namespace Chummer
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
-            CurrentVersion = string.Format(GlobalOptions.InvariantCultureInfo, "{0}.{1}.{2}",
+            CurrentVersion = string.Format(GlobalSettings.InvariantCultureInfo, "{0}.{1}.{2}",
                 _objCurrentVersion.Major, _objCurrentVersion.Minor, _objCurrentVersion.Build);
-            _blnPreferNightly = GlobalOptions.PreferNightlyBuilds;
+            _blnPreferNightly = GlobalSettings.PreferNightlyBuilds;
             _strTempUpdatePath = Path.Combine(Path.GetTempPath(), "changelog.txt");
 
             _clientChangelogDownloader = new WebClient { Proxy = WebRequest.DefaultWebProxy, Encoding = Encoding.UTF8, Credentials = CredentialCache.DefaultNetworkCredentials };
@@ -68,7 +69,7 @@ namespace Chummer
             _clientDownloader.DownloadProgressChanged += wc_DownloadProgressChanged;
         }
 
-        private void frmUpdate_Load(object sender, EventArgs e)
+        private async void frmUpdate_Load(object sender, EventArgs e)
         {
             Log.Info("frmUpdate_Load enter");
             Log.Info("Check Global Mutex for duplicate");
@@ -83,7 +84,7 @@ namespace Chummer
                 Utils.BreakIfDebug();
                 blnHasDuplicate = true;
             }
-            Log.Info("blnHasDuplicate = " + blnHasDuplicate.ToString(GlobalOptions.InvariantCultureInfo));
+            Log.Info("blnHasDuplicate = " + blnHasDuplicate.ToString(GlobalSettings.InvariantCultureInfo));
             // If there is more than 1 instance running, do not let the application be updated.
             if (blnHasDuplicate)
             {
@@ -93,25 +94,37 @@ namespace Chummer
                 Log.Info("frmUpdate_Load exit");
                 Close();
             }
-            if (_tskConnectionLoader?.IsCompleted != false)
+            if (_tskConnectionLoader == null || (_tskConnectionLoader.IsCompleted && (_tskConnectionLoader.IsCanceled ||
+                _tskConnectionLoader.IsFaulted)))
             {
-                DownloadChangelog();
+                await DownloadChangelog();
             }
             Log.Info("frmUpdate_Load exit");
         }
 
         private bool _blnFormClosing;
+
         private void frmUpdate_FormClosing(object sender, FormClosingEventArgs e)
         {
             _blnFormClosing = true;
-            _objConnectionLoaderCancellationTokenSource.Cancel();
+            _objConnectionLoaderCancellationTokenSource?.Cancel(false);
             _clientDownloader.CancelAsync();
             _clientChangelogDownloader.CancelAsync();
         }
 
-        private void DownloadChangelog()
+        private async Task DownloadChangelog()
         {
+            _objConnectionLoaderCancellationTokenSource?.Cancel(false);
             _objConnectionLoaderCancellationTokenSource = new CancellationTokenSource();
+            try
+            {
+                if (_tskConnectionLoader?.IsCompleted == false)
+                    await _tskConnectionLoader;
+            }
+            catch (TaskCanceledException)
+            {
+                // Swallow this
+            }
             _tskConnectionLoader = Task.Run(async () =>
             {
                 await LoadConnection();
@@ -134,9 +147,9 @@ namespace Chummer
                 }
                 if (File.Exists(_strTempUpdatePath))
                 {
-                    string strUpdateLog = File.ReadAllText(_strTempUpdatePath);
+                    string strUpdateLog = File.ReadAllText(_strTempUpdatePath).CleanForHtml();
                     await webNotes.DoThreadSafeAsync(() => webNotes.DocumentText = "<font size=\"-1\" face=\"Courier New,Serif\">"
-                        + strUpdateLog.CleanForHTML() + "</font>");
+                        + strUpdateLog + "</font>");
                 }
             }
             await this.DoThreadSafeAsync(DoVersionTextUpdate);
@@ -258,7 +271,7 @@ namespace Chummer
                     Program.MainForm.ShowMessageBox(this,
                     string.IsNullOrEmpty(_strExceptionString)
                         ? LanguageManager.GetString("Warning_Update_CouldNotConnect")
-                        : string.Format(GlobalOptions.CultureInfo,
+                        : string.Format(GlobalSettings.CultureInfo,
                             LanguageManager.GetString("Warning_Update_CouldNotConnectException"), _strExceptionString),
                     Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -270,10 +283,10 @@ namespace Chummer
                     return;
                 File.Move(_strTempUpdatePath, _strTempUpdatePath + ".old");
             }
-            string strURL = "https://raw.githubusercontent.com/chummer5a/chummer5a/" + LatestVersion + "/Chummer/changelog.txt";
+            string strUrl = "https://raw.githubusercontent.com/chummer5a/chummer5a/" + LatestVersion + "/Chummer/changelog.txt";
             try
             {
-                Uri uriConnectionAddress = new Uri(strURL);
+                Uri uriConnectionAddress = new Uri(strUrl);
                 if (!Utils.SafeDeleteFile(_strTempUpdatePath + ".tmp", !SilentMode))
                     return;
                 await _clientChangelogDownloader.DownloadFileTaskAsync(uriConnectionAddress, _strTempUpdatePath + ".tmp");
@@ -292,7 +305,7 @@ namespace Chummer
                 _strExceptionString = strException;
                 if (!SilentMode)
                     Program.MainForm.ShowMessageBox(this,
-                        string.Format(GlobalOptions.CultureInfo,
+                        string.Format(GlobalSettings.CultureInfo,
                             LanguageManager.GetString("Warning_Update_CouldNotConnectException"), strException),
                         Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -308,7 +321,7 @@ namespace Chummer
                 _strExceptionString = strException;
                 if (!SilentMode)
                     Program.MainForm.ShowMessageBox(this,
-                        string.Format(GlobalOptions.CultureInfo,
+                        string.Format(GlobalSettings.CultureInfo,
                             LanguageManager.GetString("Warning_Update_CouldNotConnectException"), strException),
                         Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -326,9 +339,10 @@ namespace Chummer
             set
             {
                 _blnSilentMode = value;
-                if (value && (_tskConnectionLoader == null || _tskConnectionLoader.IsCompleted))
+                if (value && (_tskConnectionLoader == null || (_tskConnectionLoader.IsCompleted && (_tskConnectionLoader.IsCanceled ||
+                    _tskConnectionLoader.IsFaulted))))
                 {
-                    DownloadChangelog();
+                    Utils.RunWithoutThreadLock(DownloadChangelog);
                 }
             }
         }
@@ -359,7 +373,7 @@ namespace Chummer
             {
                 lblUpdaterStatus.Text = string.IsNullOrEmpty(_strExceptionString)
                     ? LanguageManager.GetString("Warning_Update_CouldNotConnect")
-                    : string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Warning_Update_CouldNotConnectException").NormalizeWhiteSpace(), _strExceptionString);
+                    : string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Warning_Update_CouldNotConnectException").NormalizeWhiteSpace(), _strExceptionString);
                 cmdUpdate.Text = LanguageManager.GetString("Button_Reconnect");
                 cmdRestart.Enabled = false;
                 cmdCleanReinstall.Enabled = false;
@@ -367,25 +381,26 @@ namespace Chummer
             }
 
             int intResult = 0;
-            if (Version.TryParse(strLatestVersion, out Version objLatestVersion))
+            if (VersionExtensions.TryParse(strLatestVersion, out Version objLatestVersion))
                 intResult = objLatestVersion?.CompareTo(_objCurrentVersion) ?? 0;
 
             string strSpace = LanguageManager.GetString("String_Space");
             if (intResult > 0)
             {
-                lblUpdaterStatus.Text = string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_Update_Available"), strLatestVersion) + strSpace +
-                                        string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_Currently_Installed_Version"), CurrentVersion);
+                lblUpdaterStatus.Text = string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_Update_Available"), strLatestVersion) + strSpace +
+                                        string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_Currently_Installed_Version"), CurrentVersion);
                 cmdUpdate.Text = LanguageManager.GetString("Button_Download");
             }
             else
             {
-                lblUpdaterStatus.Text = new StringBuilder(LanguageManager.GetString("String_Up_To_Date"))
-                                            .Append(strSpace)
-                                            .AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_Currently_Installed_Version"),
-                                                CurrentVersion)
-                                            .Append(strSpace)
-                                            .AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_Latest_Version"),
-                                                LanguageManager.GetString(_blnPreferNightly ? "String_Nightly" : "String_Stable"), strLatestVersion).ToString();
+                lblUpdaterStatus.Text = LanguageManager.GetString("String_Up_To_Date") + strSpace +
+                                        string.Format(GlobalSettings.CultureInfo,
+                                            LanguageManager.GetString("String_Currently_Installed_Version"),
+                                            CurrentVersion) + strSpace + string.Format(GlobalSettings.CultureInfo,
+                                            LanguageManager.GetString("String_Latest_Version"),
+                                            LanguageManager.GetString(_blnPreferNightly
+                                                ? "String_Nightly"
+                                                : "String_Stable"), strLatestVersion);
                 if (intResult < 0)
                 {
                     cmdRestart.Text = LanguageManager.GetString("Button_Up_To_Date");
@@ -402,10 +417,11 @@ namespace Chummer
             Log.Info("cmdUpdate_Click");
             if (_blnIsConnected)
                 await DownloadUpdates();
-            else if (_tskConnectionLoader?.IsCompleted != false)
+            else if (_tskConnectionLoader == null || (_tskConnectionLoader.IsCompleted && (_tskConnectionLoader.IsCanceled ||
+                _tskConnectionLoader.IsFaulted)))
             {
                 cmdUpdate.Enabled = false;
-                DownloadChangelog();
+                await DownloadChangelog();
             }
         }
 
@@ -466,50 +482,54 @@ namespace Chummer
                     if (!CreateBackupZip())
                         return;
 
-                    HashSet<string> lstFilesToDelete =
-                        new HashSet<string>(Directory.GetFiles(_strAppPath, "*", SearchOption.AllDirectories));
-                    HashSet<string> lstFilesToNotDelete = new HashSet<string>();
-                    foreach (string strFileToDelete in lstFilesToDelete)
+                    string[] astrAllFiles = Directory.GetFiles(_strAppPath, "*", SearchOption.AllDirectories);
+                    List<string> lstFilesToDelete = new List<string>(astrAllFiles.Length);
+                    foreach (string strFileToDelete in astrAllFiles)
                     {
                         string strFileName = Path.GetFileName(strFileToDelete);
+                        if (string.IsNullOrEmpty(strFileName)
+                            || strFileName.EndsWith(".old", StringComparison.OrdinalIgnoreCase)
+                            || strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase)
+                            || strFileName.StartsWith("custom_", StringComparison.OrdinalIgnoreCase)
+                            || strFileName.StartsWith("override_", StringComparison.OrdinalIgnoreCase)
+                            || strFileName.StartsWith("amend_", StringComparison.OrdinalIgnoreCase))
+                            continue;
                         string strFilePath = Path.GetDirectoryName(strFileToDelete).TrimStartOnce(_strAppPath);
+                        if (!strFilePath.StartsWith("data", StringComparison.OrdinalIgnoreCase)
+                            && !strFilePath.StartsWith("export", StringComparison.OrdinalIgnoreCase)
+                            && !strFilePath.StartsWith("lang", StringComparison.OrdinalIgnoreCase)
+                            && !strFilePath.StartsWith("saves", StringComparison.OrdinalIgnoreCase)
+                            && !strFilePath.StartsWith("sheets", StringComparison.OrdinalIgnoreCase)
+                            && !strFilePath.StartsWith("Utils", StringComparison.OrdinalIgnoreCase)
+                            && !string.IsNullOrEmpty(strFilePath.TrimEndOnce(strFileName)))
+                            continue;
                         int intSeparatorIndex = strFilePath.LastIndexOf(Path.DirectorySeparatorChar);
                         string strTopLevelFolder = intSeparatorIndex != -1
                             ? strFilePath.Substring(intSeparatorIndex + 1)
                             : string.Empty;
-                        if ((!strFilePath.StartsWith("data", StringComparison.OrdinalIgnoreCase)
-                             && !strFilePath.StartsWith("export", StringComparison.OrdinalIgnoreCase)
-                             && !strFilePath.StartsWith("lang", StringComparison.OrdinalIgnoreCase)
-                             && !strFilePath.StartsWith("sheets", StringComparison.OrdinalIgnoreCase)
-                             && !strFilePath.StartsWith("saves", StringComparison.OrdinalIgnoreCase)
-                             && !strFilePath.StartsWith("Utils", StringComparison.OrdinalIgnoreCase)
-                             && !string.IsNullOrEmpty(strFilePath.TrimEndOnce(strFileName)))
-                            || strFileName?.EndsWith(".old", StringComparison.OrdinalIgnoreCase) != false
-                            || strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase)
-                            || strFileName.StartsWith("custom_", StringComparison.OrdinalIgnoreCase)
-                            || strFileName.StartsWith("override_", StringComparison.OrdinalIgnoreCase)
-                            || strFileName.StartsWith("amend_", StringComparison.OrdinalIgnoreCase)
-                            || (strFilePath.Contains("sheets")
-                                && strTopLevelFolder != "de-de"
-                                && strTopLevelFolder != "fr-fr"
-                                && strTopLevelFolder != "ja-jp"
-                                && strTopLevelFolder != "pt-br"
-                                && strTopLevelFolder != "zh-cn")
-                            || (strTopLevelFolder == "lang"
-                                && strFileName != "de-de.xml"
-                                && strFileName != "fr-fr.xml"
-                                && strFileName != "ja-jp.xml"
-                                && strFileName != "pt-br.xml"
-                                && strFileName != "zh-cn.xml"
-                                && strFileName != "de-de_data.xml"
-                                && strFileName != "fr-fr_data.xml"
-                                && strFileName != "ja-jp_data.xml"
-                                && strFileName != "pt-br_data.xml"
-                                && strFileName != "zh-cn_data.xml"))
-                            lstFilesToNotDelete.Add(strFileToDelete);
+                        if (strFilePath.Contains("sheets", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "sheets", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "de-de", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "fr-fr", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "ja-jp", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "pt-br", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strTopLevelFolder, "zh-cn", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        if (string.Equals(strTopLevelFolder, "lang", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "en-us.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "de-de.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "fr-fr.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "ja-jp.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "pt-br.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "zh-cn.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "de-de_data.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "fr-fr_data.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "ja-jp_data.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "pt-br_data.xml", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(strFileName, "zh-cn_data.xml", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        lstFilesToDelete.Add(strFileToDelete);
                     }
-
-                    lstFilesToDelete.RemoveWhere(x => lstFilesToNotDelete.Contains(x));
 
                     InstallUpdateFromZip(_strTempPath, lstFilesToDelete);
                 }
@@ -531,12 +551,15 @@ namespace Chummer
                     if (!CreateBackupZip())
                         return;
 
-                    HashSet<string> setFilesToDelete =
-                        new HashSet<string>(Directory.GetFiles(_strAppPath, "*", SearchOption.AllDirectories));
-                    HashSet<string> setFilesToNotDelete = new HashSet<string>();
-                    foreach (string strFileToDelete in setFilesToDelete)
+                    string[] astrAllFiles = Directory.GetFiles(_strAppPath, "*", SearchOption.AllDirectories);
+                    List<string> lstFilesToDelete = new List<string>(astrAllFiles.Length);
+                    foreach (string strFileToDelete in astrAllFiles)
                     {
                         string strFileName = Path.GetFileName(strFileToDelete);
+                        if (string.IsNullOrEmpty(strFileName)
+                            || strFileName.EndsWith(".old", StringComparison.OrdinalIgnoreCase)
+                            || strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase))
+                            continue;
                         string strFilePath = Path.GetDirectoryName(strFileToDelete).TrimStartOnce(_strAppPath);
                         if (!strFilePath.StartsWith("customdata", StringComparison.OrdinalIgnoreCase)
                             && !strFilePath.StartsWith("data", StringComparison.OrdinalIgnoreCase)
@@ -546,15 +569,12 @@ namespace Chummer
                             && !strFilePath.StartsWith("settings", StringComparison.OrdinalIgnoreCase)
                             && !strFilePath.StartsWith("sheets", StringComparison.OrdinalIgnoreCase)
                             && !strFilePath.StartsWith("Utils", StringComparison.OrdinalIgnoreCase)
-                            && !string.IsNullOrEmpty(strFilePath.TrimEndOnce(strFileName))
-                            || strFileName?.EndsWith(".old", StringComparison.OrdinalIgnoreCase) != false
-                            || strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase))
-                            setFilesToNotDelete.Add(strFileToDelete);
+                            && !string.IsNullOrEmpty(strFilePath.TrimEndOnce(strFileName)))
+                            continue;
+                        lstFilesToDelete.Add(strFileToDelete);
                     }
 
-                    setFilesToDelete.RemoveWhere(x => setFilesToNotDelete.Contains(x));
-
-                    InstallUpdateFromZip(_strTempPath, setFilesToDelete);
+                    InstallUpdateFromZip(_strTempPath, lstFilesToDelete);
                 }
             }
         }
@@ -643,17 +663,21 @@ namespace Chummer
                     if (!Utils.SafeDeleteFile(strFileToDelete))
                         lstBlocked.Add(strFileToDelete);
                 }
-                
+
                 if (lstBlocked.Count > 0)
                 {
                     Utils.BreakIfDebug();
-                    StringBuilder sbdOutput = new StringBuilder(LanguageManager.GetString("Message_Files_Cannot_Be_Removed"));
-                    foreach (string strFile in lstBlocked)
-                    {
-                        sbdOutput.Append(Environment.NewLine + strFile);
-                    }
                     if (!SilentMode)
-                        Program.MainForm.ShowMessageBox(this, sbdOutput.ToString(), null, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    {
+                        StringBuilder sbdOutput =
+                            new StringBuilder(LanguageManager.GetString("Message_Files_Cannot_Be_Removed"));
+                        foreach (string strFile in lstBlocked)
+                        {
+                            sbdOutput.Append(Environment.NewLine + strFile);
+                        }
+                        Program.MainForm.ShowMessageBox(this, sbdOutput.ToString(), null, MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
                 }
                 Utils.RestartApplication();
             }
@@ -667,12 +691,15 @@ namespace Chummer
                     }
                     catch (IOException)
                     {
+                        // Swallow this
                     }
                     catch (NotSupportedException)
                     {
+                        // Swallow this
                     }
                     catch (UnauthorizedAccessException)
                     {
+                        // Swallow this
                     }
                 }
             }
@@ -683,11 +710,10 @@ namespace Chummer
             if (!Uri.TryCreate(_strDownloadFile, UriKind.Absolute, out Uri uriDownloadFileAddress))
                 return;
             Log.Debug("DownloadUpdates");
-            await cmdUpdate.DoThreadSafeAsync(() => cmdUpdate.Enabled = false);
-            await cmdRestart.DoThreadSafeAsync(() => cmdRestart.Enabled = false);
-            await cmdCleanReinstall.DoThreadSafeAsync(() => cmdCleanReinstall.Enabled = false);
-            if (File.Exists(_strTempPath))
-                File.Delete(_strTempPath);
+            await Task.WhenAll(cmdUpdate.DoThreadSafeAsync(() => cmdUpdate.Enabled = false),
+                cmdRestart.DoThreadSafeAsync(() => cmdRestart.Enabled = false),
+                cmdCleanReinstall.DoThreadSafeAsync(() => cmdCleanReinstall.Enabled = false));
+            Utils.SafeDeleteFile(_strTempPath, !SilentMode);
             try
             {
                 await _clientDownloader.DownloadFileTaskAsync(uriDownloadFileAddress, _strTempPath);
@@ -702,21 +728,21 @@ namespace Chummer
                     strException = strException.Substring(0, intNewLineLocation);
                 // Show the warning even if we're in silent mode, because the user should still know that the update check could not be performed
                 if (!SilentMode)
-                    Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Warning_Update_CouldNotConnectException"), strException), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Warning_Update_CouldNotConnectException"), strException), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 await cmdUpdate.DoThreadSafeAsync(() => cmdUpdate.Enabled = true);
             }
         }
 
         #region AsyncDownload Events
+
         /// <summary>
         /// Update the download progress for the file.
         /// </summary>
         private void wc_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            if (int.TryParse((e.BytesReceived * 100 / e.TotalBytesToReceive).ToString(GlobalOptions.InvariantCultureInfo), out int intTmp))
+            if (int.TryParse((e.BytesReceived * 100 / e.TotalBytesToReceive).ToString(GlobalSettings.InvariantCultureInfo), out int intTmp))
                 pgbOverallProgress.Value = intTmp;
         }
-
 
         /// <summary>
         /// The EXE file is down downloading, so replace the old file with the new one.
@@ -751,6 +777,7 @@ namespace Chummer
                 }
             }
         }
-        #endregion
+
+        #endregion AsyncDownload Events
     }
 }

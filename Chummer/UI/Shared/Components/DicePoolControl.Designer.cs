@@ -16,8 +16,6 @@ namespace Chummer.UI.Shared.Components
             if (disposing)
             {
                 components?.Dispose();
-                if (!(ParentForm is CharacterShared frmParent) || frmParent.CharacterObject != _objCharacter)
-                    _objCharacter?.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -30,7 +28,8 @@ namespace Chummer.UI.Shared.Components
         /// </summary>
         private void InitializeComponent()
         {
-            this.cmdRoll = new System.Windows.Forms.Button();
+            this.components = new System.ComponentModel.Container();
+            this.cmdRoll = new Chummer.ButtonWithToolTip(this.components);
             this.lblDicePool = new Chummer.LabelWithToolTip();
             this.flpContainer = new System.Windows.Forms.FlowLayoutPanel();
             this.flpContainer.SuspendLayout();
@@ -42,12 +41,19 @@ namespace Chummer.UI.Shared.Components
             this.cmdRoll.AutoSize = true;
             this.cmdRoll.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.cmdRoll.Image = global::Chummer.Properties.Resources.die;
+            this.cmdRoll.ImageDpi120 = null;
+            this.cmdRoll.ImageDpi144 = null;
+            this.cmdRoll.ImageDpi192 = global::Chummer.Properties.Resources.die1;
+            this.cmdRoll.ImageDpi288 = null;
+            this.cmdRoll.ImageDpi384 = null;
+            this.cmdRoll.ImageDpi96 = global::Chummer.Properties.Resources.die;
             this.cmdRoll.Location = new System.Drawing.Point(40, 0);
             this.cmdRoll.Margin = new System.Windows.Forms.Padding(3, 0, 0, 0);
             this.cmdRoll.Name = "cmdRoll";
             this.cmdRoll.Padding = new System.Windows.Forms.Padding(1);
             this.cmdRoll.Size = new System.Drawing.Size(24, 24);
             this.cmdRoll.TabIndex = 119;
+            this.cmdRoll.ToolTipText = "";
             this.cmdRoll.UseVisualStyleBackColor = true;
             this.cmdRoll.Click += new System.EventHandler(this.cmdRoll_Click);
             // 
@@ -87,7 +93,6 @@ namespace Chummer.UI.Shared.Components
             this.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
             this.Name = "DicePoolControl";
             this.Size = new System.Drawing.Size(64, 24);
-            this.Load += new System.EventHandler(this.DicePoolControl_Load);
             this.flpContainer.ResumeLayout(false);
             this.flpContainer.PerformLayout();
             this.ResumeLayout(false);
@@ -96,7 +101,7 @@ namespace Chummer.UI.Shared.Components
         }
 
         #endregion
-        private System.Windows.Forms.Button cmdRoll;
+        private ButtonWithToolTip cmdRoll;
         private LabelWithToolTip lblDicePool;
         private System.Windows.Forms.FlowLayoutPanel flpContainer;
     }

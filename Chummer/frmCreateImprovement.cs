@@ -16,15 +16,16 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
- using System.Linq;
- using System.Text;
- using System.Windows.Forms;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
 using System.Xml;
- using System.Xml.XPath;
- using Chummer.Backend.Skills;
+using System.Xml.XPath;
+using Chummer.Backend.Skills;
 
 namespace Chummer
 {
@@ -37,6 +38,7 @@ namespace Chummer
         private readonly string _strCustomGroup;
 
         #region Control Events
+
         public frmCreateImprovement(Character objCharacter, string strCustomGroup = "")
         {
             InitializeComponent();
@@ -144,26 +146,32 @@ namespace Chummer
                             lblVal.Visible = true;
                             nudVal.Visible = true;
                             break;
+
                         case "min":
                             lblMin.Visible = true;
                             nudMin.Visible = true;
                             break;
+
                         case "max":
                             lblMax.Visible = true;
                             nudMax.Visible = true;
                             break;
+
                         case "aug":
                             lblAug.Visible = true;
                             nudAug.Visible = true;
                             break;
+
                         case "applytorating":
                             chkApplyToRating.Visible = true;
                             break;
+
                         case "free":
                             chkFree.Visible = true;
                             break;
+
                         default:
-                            if (objNode.InnerText.StartsWith("Select", StringComparison.Ordinal))
+                            if (objNode.InnerText.StartsWith("Select", StringComparison.OrdinalIgnoreCase))
                             {
                                 lblSelect.Visible = true;
                                 txtTranslateSelection.Visible = true;
@@ -207,6 +215,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectAttribute":
                     {
                         List<string> lstAbbrevs = new List<string>(Backend.Attributes.AttributeSection.AttributeStrings);
@@ -217,7 +226,7 @@ namespace Chummer
                             lstAbbrevs.Remove("MAG");
                             lstAbbrevs.Remove("MAGAdept");
                         }
-                        else if (!_objCharacter.IsMysticAdept || !_objCharacter.Options.MysAdeptSecondMAGAttribute)
+                        else if (!_objCharacter.IsMysticAdept || !_objCharacter.Settings.MysAdeptSecondMAGAttribute)
                             lstAbbrevs.Remove("MAGAdept");
 
                         if (!_objCharacter.RESEnabled)
@@ -239,28 +248,77 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectEcho":
-                    using (frmSelectMetamagic frmPickMetamagic = new frmSelectMetamagic(_objCharacter, frmSelectMetamagic.Mode.Echo))
                     {
-                        frmPickMetamagic.ShowDialog(this);
-                        if (frmPickMetamagic.DialogResult == DialogResult.OK)
+                        InitiationGrade objGrade = new InitiationGrade(_objCharacter) { Grade = -1, Technomancer = true };
+                        using (frmSelectMetamagic frmPickMetamagic = new frmSelectMetamagic(_objCharacter, objGrade))
                         {
-                            txtSelect.Text = frmPickMetamagic.SelectedMetamagic;
-                            txtTranslateSelection.Text = TranslateField(_strSelect, frmPickMetamagic.SelectedMetamagic);
+                            frmPickMetamagic.ShowDialog(this);
+                            if (frmPickMetamagic.DialogResult == DialogResult.OK)
+                            {
+                                string strSelectedId = frmPickMetamagic.SelectedMetamagic;
+                                if (!string.IsNullOrEmpty(strSelectedId))
+                                {
+                                    string strEchoName = _objCharacter.LoadDataXPath("echoes.xml")
+                                                                             .SelectSingleNode(
+                                                                                 "/chummer/echoes/echo[id = " + strSelectedId.CleanXPath() + "]/name")?.Value;
+                                    if (!string.IsNullOrEmpty(strEchoName))
+                                    {
+                                        txtSelect.Text = strEchoName;
+                                        txtTranslateSelection.Text = TranslateField(_strSelect, strEchoName);
+                                    }
+                                    else
+                                    {
+                                        txtSelect.Text = string.Empty;
+                                        txtTranslateSelection.Text = string.Empty;
+                                    }
+                                }
+                                else
+                                {
+                                    txtSelect.Text = string.Empty;
+                                    txtTranslateSelection.Text = string.Empty;
+                                }
+                            }
                         }
                     }
                     break;
+
                 case "SelectMetamagic":
-                    using (frmSelectMetamagic frmPickMetamagic = new frmSelectMetamagic(_objCharacter, frmSelectMetamagic.Mode.Metamagic))
                     {
-                        frmPickMetamagic.ShowDialog(this);
-                        if (frmPickMetamagic.DialogResult == DialogResult.OK)
+                        InitiationGrade objGrade = new InitiationGrade(_objCharacter) { Grade = -1 };
+                        using (frmSelectMetamagic frmPickMetamagic = new frmSelectMetamagic(_objCharacter, objGrade))
                         {
-                            txtSelect.Text = frmPickMetamagic.SelectedMetamagic;
-                            txtTranslateSelection.Text = TranslateField(_strSelect, frmPickMetamagic.SelectedMetamagic);
+                            frmPickMetamagic.ShowDialog(this);
+                            if (frmPickMetamagic.DialogResult == DialogResult.OK)
+                            {
+                                string strSelectedId = frmPickMetamagic.SelectedMetamagic;
+                                if (!string.IsNullOrEmpty(strSelectedId))
+                                {
+                                    string strEchoName = _objCharacter.LoadDataXPath("metamagic.xml")
+                                                                      .SelectSingleNode(
+                                                                          "/chummer/metamagics/metamagic[id = " + strSelectedId.CleanXPath() + "]/name")?.Value;
+                                    if (!string.IsNullOrEmpty(strEchoName))
+                                    {
+                                        txtSelect.Text = strEchoName;
+                                        txtTranslateSelection.Text = TranslateField(_strSelect, strEchoName);
+                                    }
+                                    else
+                                    {
+                                        txtSelect.Text = string.Empty;
+                                        txtTranslateSelection.Text = string.Empty;
+                                    }
+                                }
+                                else
+                                {
+                                    txtSelect.Text = string.Empty;
+                                    txtTranslateSelection.Text = string.Empty;
+                                }
+                            }
                         }
                     }
                     break;
+
                 case "SelectMentalAttribute":
                     using (frmSelectAttribute frmPickAttribute = new frmSelectAttribute(Backend.Attributes.AttributeSection.MentalAttributes.ToArray()))
                     {
@@ -274,6 +332,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectPhysicalAttribute":
                     using (frmSelectAttribute frmPickAttribute = new frmSelectAttribute(Backend.Attributes.AttributeSection.PhysicalAttributes.ToArray()))
                     {
@@ -287,6 +346,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectSpecialAttribute":
                     {
                         List<string> lstAbbrevs = new List<string>(Backend.Attributes.AttributeSection.AttributeStrings);
@@ -298,7 +358,7 @@ namespace Chummer
                             lstAbbrevs.Remove("MAG");
                             lstAbbrevs.Remove("MAGAdept");
                         }
-                        else if (!_objCharacter.IsMysticAdept || !_objCharacter.Options.MysAdeptSecondMAGAttribute)
+                        else if (!_objCharacter.IsMysticAdept || !_objCharacter.Settings.MysAdeptSecondMAGAttribute)
                             lstAbbrevs.Remove("MAGAdept");
 
                         if (!_objCharacter.RESEnabled)
@@ -321,6 +381,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectSkill":
                     using (frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter))
                     {
@@ -334,6 +395,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectKnowSkill":
                     {
                         List<ListItem> lstDropdownItems = new List<ListItem>(_objCharacter.SkillsSection.KnowledgeSkills.Count);
@@ -381,6 +443,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectSkillCategory":
                     using (frmSelectSkillCategory frmPickSkillCategory = new frmSelectSkillCategory(_objCharacter))
                     {
@@ -394,6 +457,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectSkillGroup":
                     using (frmSelectSkillGroup frmPickSkillGroup = new frmSelectSkillGroup(_objCharacter))
                     {
@@ -407,6 +471,32 @@ namespace Chummer
                         }
                     }
                     break;
+
+                case "SelectComplexForm":
+                    List<ListItem> lstComplexForms = new List<ListItem>();
+                    foreach (XPathNavigator xmlSpell in _objCharacter.LoadDataXPath("complexforms.xml").Select("/chummer/complexforms/complexform"))
+                    {
+                        string strName = xmlSpell.SelectSingleNode("name")?.Value;
+                        if (!string.IsNullOrEmpty(strName))
+                            lstComplexForms.Add(new ListItem(strName, xmlSpell.SelectSingleNode("translate")?.Value ?? strName));
+                    }
+
+                    using (frmSelectItem selectComplexForm = new frmSelectItem
+                    {
+                        Description = LanguageManager.GetString("Title_SelectComplexForm")
+                    })
+                    {
+                        selectComplexForm.SetDropdownItemsMode(lstComplexForms);
+                        selectComplexForm.ShowDialog(this);
+
+                        if (selectComplexForm.DialogResult == DialogResult.OK)
+                        {
+                            txtSelect.Text = selectComplexForm.SelectedName;
+                            txtTranslateSelection.Text = TranslateField(_strSelect, selectComplexForm.SelectedName);
+                        }
+                    }
+                    break;
+
                 case "SelectSpell":
                     List<ListItem> lstSpells = new List<ListItem>();
                     foreach (XPathNavigator xmlSpell in _objCharacter.LoadDataXPath("spells.xml").Select("/chummer/spells/spell"))
@@ -431,6 +521,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectWeaponCategory":
                     using (frmSelectWeaponCategory frmPickWeaponCategory = new frmSelectWeaponCategory(_objCharacter))
                     {
@@ -444,6 +535,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectSpellCategory":
                     using (frmSelectSpellCategory frmPickSpellCategory = new frmSelectSpellCategory(_objCharacter))
                     {
@@ -457,6 +549,7 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case "SelectAdeptPower":
                     using (frmSelectPower frmPickPower = new frmSelectPower(_objCharacter))
                     {
@@ -472,9 +565,11 @@ namespace Chummer
                     break;
             }
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Methods
+
         /// <summary>
         /// Accept the values on the Form and create the required XML data.
         /// </summary>
@@ -529,11 +624,11 @@ namespace Chummer
                         }
                         // ReSharper disable once PossibleNullReferenceException
                         string strXml = objFetchNode["xml"].InnerText
-                            .Replace("{val}", nudVal.Value.ToString(GlobalOptions.InvariantCultureInfo))
-                            .Replace("{min}", nudMin.Value.ToString(GlobalOptions.InvariantCultureInfo))
-                            .Replace("{max}", nudMax.Value.ToString(GlobalOptions.InvariantCultureInfo))
-                            .Replace("{aug}", nudAug.Value.ToString(GlobalOptions.InvariantCultureInfo))
-                            .Replace("{free}", chkFree.Checked.ToString(GlobalOptions.InvariantCultureInfo).ToLowerInvariant())
+                            .Replace("{val}", nudVal.Value.ToString(GlobalSettings.InvariantCultureInfo))
+                            .Replace("{min}", nudMin.Value.ToString(GlobalSettings.InvariantCultureInfo))
+                            .Replace("{max}", nudMax.Value.ToString(GlobalSettings.InvariantCultureInfo))
+                            .Replace("{aug}", nudAug.Value.ToString(GlobalSettings.InvariantCultureInfo))
+                            .Replace("{free}", chkFree.Checked.ToString(GlobalSettings.InvariantCultureInfo).ToLowerInvariant())
                             .Replace("{select}", txtSelect.Text)
                             .Replace("{applytorating}", strRating);
                         objWriter.WriteRaw(strXml);
@@ -549,7 +644,7 @@ namespace Chummer
                         objStream.Position = 0;
 
                         // Read it back in as an XmlDocument.
-                        using (XmlReader objXmlReader = XmlReader.Create(objReader, GlobalOptions.SafeXmlReaderSettings))
+                        using (XmlReader objXmlReader = XmlReader.Create(objReader, GlobalSettings.SafeXmlReaderSettings))
                             objBonusXml.Load(objXmlReader);
                     }
                 }
@@ -559,7 +654,7 @@ namespace Chummer
             XmlNode objNode = objBonusXml.SelectSingleNode("/bonus");
 
             // Pass it to the Improvement Manager so that it can be added to the character.
-            string strGuid = Guid.NewGuid().ToString("D", GlobalOptions.InvariantCultureInfo);
+            string strGuid = Guid.NewGuid().ToString("D", GlobalSettings.InvariantCultureInfo);
             ImprovementManager.CreateImprovements(_objCharacter, Improvement.ImprovementSource.Custom, strGuid, objNode, 1, txtName.Text);
 
             // If an Improvement was passed in, remove it from the character.
@@ -585,7 +680,7 @@ namespace Chummer
                 objImprovement.CustomGroup = _strCustomGroup;
                 NewImprovement = objImprovement;
             }
-            else {Utils.BreakIfDebug();}
+            else { Utils.BreakIfDebug(); }
 
             DialogResult = DialogResult.OK;
         }
@@ -610,9 +705,7 @@ namespace Chummer
                     : LanguageManager.GetString("String_Attribute" + strToTranslate + "Short");
 
                 case "SelectSkill":
-                    if (strToTranslate.Contains("Exotic Melee Weapon") ||
-                        strToTranslate.Contains("Exotic Ranged Weapon") ||
-                        strToTranslate.Contains("Pilot Exotic Vehicle"))
+                    if (ExoticSkill.IsExoticSkillName(strToTranslate))
                     {
                         string[] astrToTranslateParts = strToTranslate.Split('(', StringSplitOptions.RemoveEmptyEntries);
                         astrToTranslateParts[0] = astrToTranslateParts[0].Trim();
@@ -653,11 +746,20 @@ namespace Chummer
                     objXmlNode = _objCharacter.LoadDataXPath("powers.xml").SelectSingleNode("/chummer/powers/power[id = " + strToTranslate.CleanXPath() + " or name = " + strToTranslate.CleanXPath() + "]");
                     return objXmlNode?.SelectSingleNode("translate")?.Value ?? objXmlNode?.SelectSingleNode("name")?.Value ?? strToTranslate;
 
+                case "SelectMetamagic":
+                    objXmlNode = _objCharacter.LoadDataXPath("metamagic.xml").SelectSingleNode("/chummer/metamagics/metamagic[name = " + strToTranslate.CleanXPath() + "]");
+                    return objXmlNode?.SelectSingleNode("translate")?.Value ?? objXmlNode?.SelectSingleNode("name")?.Value ?? strToTranslate;
+
+                case "SelectEcho":
+                    objXmlNode = _objCharacter.LoadDataXPath("echoes.xml").SelectSingleNode("/chummer/echoes/echo[name = " + strToTranslate.CleanXPath() + "]");
+                    return objXmlNode?.SelectSingleNode("translate")?.Value ?? objXmlNode?.SelectSingleNode("name")?.Value ?? strToTranslate;
+
                 default:
                     return strToTranslate;
             }
         }
-        #endregion
+
+        #endregion Methods
 
         #region Properties
 
@@ -668,6 +770,6 @@ namespace Chummer
         /// </summary>
         public Improvement EditImprovementObject { get; set; }
 
-        #endregion
+        #endregion Properties
     }
 }

@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Concurrent;
 using System.Drawing;
@@ -41,6 +42,7 @@ namespace Chummer
         // The setting for whether stuff uses dark mode or light mode is accessible purely through a specific registry key
         // So we save that key for accessing both at startup and should the setting be changed while Chummer is running
         private static readonly RegistryKey s_ObjPersonalizeKey;
+
         // While events that trigger on changes to a registry value are possible, they're a PITA in C#.
         // Checking for dark mode on a timer interval is less elegant, but also easier to set up, track, and debug.
         private static readonly Timer s_TmrDarkModeCheckerTimer;
@@ -56,21 +58,25 @@ namespace Chummer
             }
             catch (ObjectDisposedException)
             {
+                //swallow this
             }
             catch (System.Security.SecurityException)
             {
+                //swallow this
             }
 
             s_TmrDarkModeCheckerTimer = new Timer { Interval = 5000 }; // Poll registry every 5 seconds
             s_TmrDarkModeCheckerTimer.Tick += TmrDarkModeCheckerTimerOnTick;
-            switch (GlobalOptions.ColorModeSetting)
+            switch (GlobalSettings.ColorModeSetting)
             {
                 case ColorMode.Automatic:
                     AutoApplyLightDarkMode();
                     break;
+
                 case ColorMode.Light:
                     IsLightMode = true;
                     break;
+
                 case ColorMode.Dark:
                     IsLightMode = false;
                     break;
@@ -84,7 +90,7 @@ namespace Chummer
 
         public static void AutoApplyLightDarkMode()
         {
-            if (GlobalOptions.ColorModeSetting == ColorMode.Automatic)
+            if (GlobalSettings.ColorModeSetting == ColorMode.Automatic)
             {
                 IsLightMode = !DoesRegistrySayDarkMode();
                 s_TmrDarkModeCheckerTimer.Enabled = true;
@@ -105,20 +111,20 @@ namespace Chummer
         }
 
         private static bool _blnIsLightMode = true;
+
         public static bool IsLightMode
         {
             get => _blnIsLightMode;
             set
             {
-                if (_blnIsLightMode != value)
+                if (_blnIsLightMode == value)
+                    return;
+                _blnIsLightMode = value;
+                Program.MainForm?.DoThreadSafe(() =>
                 {
-                    _blnIsLightMode = value;
-                    Program.MainForm?.DoThreadSafe(() =>
-                    {
-                        using (new CursorWait(Program.MainForm))
-                            Program.MainForm.UpdateLightDarkMode();
-                    });
-                }
+                    using (new CursorWait(Program.MainForm))
+                        Program.MainForm.UpdateLightDarkMode();
+                });
             }
         }
 
@@ -164,14 +170,7 @@ namespace Chummer
         /// <returns>New Color object identical to <paramref name="objColor"/>, but potentially adapted to dark mode.</returns>
         public static Color GenerateCurrentModeColor(Color objColor)
         {
-            if (IsLightMode)
-            {
-                return objColor;
-            }
-            else
-            {
-                return GenerateDarkModeColor(objColor);
-            }
+            return IsLightMode ? objColor : GenerateDarkModeColor(objColor);
         }
 
         /// <summary>
@@ -181,17 +180,8 @@ namespace Chummer
         /// <returns>New Color object identical to <paramref name="objColor"/>, but potentially adapted to light mode.</returns>
         public static Color GenerateModeIndependentColor(Color objColor)
         {
-            if (IsLightMode)
-            {
-                return objColor;
-            }
-            else
-            {
-                return GenerateInverseDarkModeColor(objColor);
-            }
+            return IsLightMode ? objColor : GenerateInverseDarkModeColor(objColor);
         }
-
-
 
         /// <summary>
         /// Returns a version of a color that has its lightness dimmed down in Light mode or brightened in Dark Mode
@@ -209,13 +199,10 @@ namespace Chummer
                     s_DicDimmedColors.TryAdd(objColor, objRetColor);
                 }
             }
-            else
+            else if (!s_DicBrightenedColors.TryGetValue(objColor, out objRetColor))
             {
-                if (!s_DicBrightenedColors.TryGetValue(objColor, out objRetColor))
-                {
-                    objRetColor = GetBrightenedVersion(objColor);
-                    s_DicBrightenedColors.TryAdd(objColor, objRetColor);
-                }
+                objRetColor = GetBrightenedVersion(objColor);
+                s_DicBrightenedColors.TryAdd(objColor, objRetColor);
             }
 
             return objRetColor;
@@ -232,7 +219,6 @@ namespace Chummer
         {
             return GenerateDarkModeColor(GenerateInverseDarkModeColor(objColor));
         }
-
 
         public static Color WindowText => IsLightMode ? WindowTextLight : WindowTextDark;
         private static Color WindowTextLight => SystemColors.WindowText;
@@ -334,6 +320,7 @@ namespace Chummer
         }
 
         #region Color Inversion Methods
+
         /// <summary>
         /// Converts a color to the version it would have in Dark Mode.
         /// Lightness is inverted and then increased nonlinearly.
@@ -381,7 +368,7 @@ namespace Chummer
                 // x^2 - 10x + 10n = 0
                 // x = (10 +/- sqrt(100 - 40n))/2 = 5 +/- sqrt(25 - 10n)
                 // Because saturation cannot be greater than 1, positive result is unreal, therefore: x = 5 - sqrt(25 - 10n)
-                fltNewSaturationHsv = Math.Min((float) (5.0 - Math.Sqrt(25.0 - 10.0 * fltSaturationHsv)), 1.0f);
+                fltNewSaturationHsv = Math.Min((float)(5.0 - Math.Sqrt(25.0 - 10.0 * fltSaturationHsv)), 1.0f);
                 Color objColorIntermediate = FromHsv(fltHue, fltNewSaturationHsv, fltValue);
                 fltLightness = objColorIntermediate.GetBrightness(); // It's called Brightness, but it's actually Lightness
                 fltValue = fltLightness + objColorIntermediate.GetSaturation() * Math.Min(fltLightness, 1 - fltLightness);
@@ -391,7 +378,7 @@ namespace Chummer
             // y^2 + 4y - 4m = 0
             // y = (-4 +/- sqrt(16 + 16m))/2 = -2 +/- sqrt(4 + 4m) = -2 +/- 2*sqrt(1 + m)
             // Because value cannot be greater than 1, negative result is unreal, therefore: y = -2 + 2*sqrt(1 + m)
-            float fltNewValue = Math.Min((float) (2 * Math.Sqrt(1 + fltValue) - 2), 1.0f);
+            float fltNewValue = Math.Min((float)(2 * Math.Sqrt(1 + fltValue) - 2), 1.0f);
             // Now convert to Lightness so we can flip it
             float fltNewLightness = fltNewValue * (1 - fltNewSaturationHsv / 2.0f);
             float fltNewSaturationHsl = fltNewLightness == 0
@@ -421,7 +408,6 @@ namespace Chummer
             return FromHsva(fltHue, fltBrightness, fltSaturation, objColor.A);
         }
 
-
         private static void ApplyColorsRecursively(Control objControl, bool blnLightMode)
         {
             void ApplyButtonStyle()
@@ -448,12 +434,14 @@ namespace Chummer
                         objColumn.DefaultCellStyle.BackColor = blnLightMode ? ControlLight : ControlDark;
                     }
                     break;
+
                 case SplitContainer objSplitControl:
                     objSplitControl.ForeColor = blnLightMode ? SplitterColorLight : SplitterColorDark;
                     objSplitControl.BackColor = blnLightMode ? SplitterColorLight : SplitterColorDark;
                     ApplyColorsRecursively(objSplitControl.Panel1, blnLightMode);
                     ApplyColorsRecursively(objSplitControl.Panel2, blnLightMode);
                     break;
+
                 case TreeView treControl:
                     treControl.ForeColor = blnLightMode ? WindowTextLight : WindowTextDark;
                     treControl.BackColor = blnLightMode ? WindowLight : WindowDark;
@@ -461,6 +449,7 @@ namespace Chummer
                     foreach (TreeNode objNode in treControl.Nodes)
                         ApplyColorsRecursively(objNode, blnLightMode);
                     break;
+
                 case TextBox txtControl:
                     txtControl.ForeColor = txtControl.ForeColor == ErrorColor
                         ? ErrorColor
@@ -469,6 +458,7 @@ namespace Chummer
                         ? blnLightMode ? ControlLight : ControlDark
                         : blnLightMode ? WindowLight : WindowDark;
                     break;
+
                 case ListView objListView:
                     objControl.ForeColor = blnLightMode ? WindowTextLight : WindowTextDark;
                     objControl.BackColor = blnLightMode ? WindowLight : WindowDark;
@@ -499,51 +489,60 @@ namespace Chummer
                         }
                     }
                     break;
+
                 case ListBox _:
                 case ComboBox _:
                 case TableCell _:
                     objControl.ForeColor = blnLightMode ? WindowTextLight : WindowTextDark;
                     objControl.BackColor = blnLightMode ? WindowLight : WindowDark;
                     break;
+
                 case GroupBox _:
                     objControl.ForeColor = blnLightMode ? ControlTextLight : ControlTextDark;
                     objControl.BackColor = blnLightMode ? ControlLight : ControlDark;
                     break;
+
                 case ContactControl _:
                 case PetControl _:
                 case SkillControl2 _:
                 case KnowledgeSkillControl _:
                     // These controls have colors that are always data-bound
                     break;
+
                 case RichTextBox _:
                     // Rtf TextBox is special because we don't want any color changes, otherwise it will mess up the saved Rtf text
                     return;
+
                 case CheckBox chkControl:
-                    if (chkControl.Appearance != Appearance.Button)
+                    if (chkControl.Appearance == Appearance.Button || chkControl is DpiFriendlyCheckBoxDisguisedAsButton)
                     {
-                        if (chkControl is ColorableCheckBox chkControlColored)
-                        {
-                            chkControlColored.DefaultColorScheme = blnLightMode;
-                            if (blnLightMode) // Disabled case for Light mode already handled by the switch above
-                                chkControlColored.ForeColor = ControlTextLight;
-                            else
-                                chkControlColored.ForeColor = chkControlColored.Enabled ? ControlTextDark : GrayText;
-                            break;
-                        }
-                        goto default;
+                        ApplyButtonStyle();
+                        break;
                     }
-                    ApplyButtonStyle();
-                    break;
+
+                    if (chkControl is ColorableCheckBox chkControlColored)
+                    {
+                        chkControlColored.DefaultColorScheme = blnLightMode;
+                        if (blnLightMode) // Disabled case for Light mode already handled by the switch above
+                            chkControlColored.ForeColor = ControlTextLight;
+                        else
+                            chkControlColored.ForeColor = chkControlColored.Enabled ? ControlTextDark : GrayText;
+                        break;
+                    }
+                    goto default;
+
                 case Button cmdControl:
                     if (cmdControl.FlatStyle == FlatStyle.Flat)
                         goto default;
                     ApplyButtonStyle();
                     break;
+
                 case HeaderCell _:
                     // Header cells should use inverted colors
                     objControl.ForeColor = blnLightMode ? ControlLightestLight : ControlLightestDark;
                     objControl.BackColor = blnLightMode ? ControlTextLight : ControlTextDark;
                     return;
+
                 case TableLayoutPanel tlpControl:
                     if (tlpControl.BorderStyle != BorderStyle.None)
                         tlpControl.BorderStyle = blnLightMode ? BorderStyle.FixedSingle : BorderStyle.Fixed3D;
@@ -631,7 +630,8 @@ namespace Chummer
             foreach (TreeNode nodNodeChild in nodNode.Nodes)
                 ApplyColorsRecursively(nodNodeChild, blnLightMode);
         }
-        #endregion
+
+        #endregion Color Inversion Methods
 
         #region Color Utility Methods
 
@@ -682,22 +682,27 @@ namespace Chummer
                     dblRed += dblChroma;
                     dblBlue += dblMinorChroma;
                     break;
+
                 case 4:
                     dblRed += dblMinorChroma;
                     dblBlue += dblChroma;
                     break;
+
                 case 3:
                     dblGreen += dblMinorChroma;
                     dblBlue += dblChroma;
                     break;
+
                 case 2:
                     dblGreen += dblChroma;
                     dblBlue += dblMinorChroma;
                     break;
+
                 case 1:
                     dblRed += dblMinorChroma;
                     dblGreen += dblChroma;
                     break;
+
                 default:
                     dblRed += dblChroma;
                     dblGreen += dblMinorChroma;
@@ -757,22 +762,27 @@ namespace Chummer
                     dblRed += dblChroma;
                     dblBlue += dblMinorChroma;
                     break;
+
                 case 4:
                     dblRed += dblMinorChroma;
                     dblBlue += dblChroma;
                     break;
+
                 case 3:
                     dblGreen += dblMinorChroma;
                     dblBlue += dblChroma;
                     break;
+
                 case 2:
                     dblGreen += dblChroma;
                     dblBlue += dblMinorChroma;
                     break;
+
                 case 1:
                     dblRed += dblMinorChroma;
                     dblGreen += dblChroma;
                     break;
+
                 default:
                     dblRed += dblChroma;
                     dblGreen += dblMinorChroma;
@@ -784,6 +794,7 @@ namespace Chummer
                 Convert.ToByte(dblGreen * 255.0),
                 Convert.ToByte(dblBlue * 255.0));
         }
-        #endregion
+
+        #endregion Color Utility Methods
     }
 }

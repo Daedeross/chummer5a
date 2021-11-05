@@ -16,12 +16,13 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
- using System.IO;
+
+using System;
+using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
- using Chummer.Backend.Equipment;
+using Chummer.Backend.Equipment;
 
 namespace Chummer
 {
@@ -32,6 +33,7 @@ namespace Chummer
         private readonly string _strType;
 
         #region Control Events
+
         public frmCreateCyberwareSuite(Character objCharacter, Improvement.ImprovementSource objSource = Improvement.ImprovementSource.Cyberware)
         {
             InitializeComponent();
@@ -69,7 +71,7 @@ namespace Chummer
             // Make sure the file name starts with custom and ends with _cyberware.xml.
             if (!txtFileName.Text.StartsWith("custom_", StringComparison.OrdinalIgnoreCase) || !txtFileName.Text.EndsWith('_' + _strType + ".xml", StringComparison.OrdinalIgnoreCase))
             {
-                Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_InvalidFileName"), _strType),
+                Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_InvalidFileName"), _strType),
                     LanguageManager.GetString("MessageTitle_CyberwareSuite_InvalidFileName"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -79,7 +81,7 @@ namespace Chummer
             string strName = txtName.Text;
             if (_objCharacter.LoadDataXPath(_strType + ".xml").SelectSingleNode("/chummer/suites/suite[name = " + strName.CleanXPath() + "]") != null)
             {
-                Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_DuplicateName"), strName),
+                Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_DuplicateName"), strName),
                     LanguageManager.GetString("MessageTitle_CyberwareSuite_DuplicateName"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -176,7 +178,7 @@ namespace Chummer
                             objWriter.WriteStartElement(_strType);
                             objWriter.WriteElementString("name", objCyberware.Name);
                             if (objCyberware.Rating > 0)
-                                objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                             // Write out child items.
                             if (objCyberware.Children.Count > 0)
                             {
@@ -190,7 +192,7 @@ namespace Chummer
                                         objWriter.WriteStartElement(_strType);
                                         objWriter.WriteElementString("name", objChild.Name);
                                         if (objChild.Rating > 0)
-                                            objWriter.WriteElementString("rating", objChild.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                            objWriter.WriteElementString("rating", objChild.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                                         // </cyberware>
                                         objWriter.WriteEndElement();
                                     }
@@ -216,7 +218,7 @@ namespace Chummer
                 }
             }
 
-            Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_SuiteCreated"), txtName.Text),
+            Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_CyberwareSuite_SuiteCreated"), txtName.Text),
                 LanguageManager.GetString("MessageTitle_CyberwareSuite_SuiteCreated"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             DialogResult = DialogResult.OK;
         }
@@ -233,6 +235,7 @@ namespace Chummer
             txtFileName.Left = txtName.Left;
             txtFileName.Width = txtName.Width;
         }
-        #endregion
+
+        #endregion Control Events
     }
 }

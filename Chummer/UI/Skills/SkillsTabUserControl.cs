@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -23,13 +24,11 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.Xml;
 using System.Xml.XPath;
+using Chummer.Backend.Attributes;
 using Chummer.Backend.Skills;
 using Chummer.UI.Shared;
-using Chummer.Backend.Attributes;
 
 namespace Chummer.UI.Skills
 {
@@ -58,18 +57,19 @@ namespace Chummer.UI.Skills
 
         private void UpdateKnoSkillRemaining()
         {
-            StringBuilder sbdText = new StringBuilder(_objCharacter.SkillsSection.KnowledgeSkillPointsRemain.ToString(GlobalOptions.CultureInfo))
-                .Append(LanguageManager.GetString("String_Of"))
-                .Append(_objCharacter.SkillsSection.KnowledgeSkillPoints.ToString(GlobalOptions.CultureInfo));
+            string strText =
+                _objCharacter.SkillsSection.KnowledgeSkillPointsRemain.ToString(GlobalSettings.CultureInfo) +
+                LanguageManager.GetString("String_Of") +
+                _objCharacter.SkillsSection.KnowledgeSkillPoints.ToString(GlobalSettings.CultureInfo);
             int intSkillPointsSpentOnKnoSkills = _objCharacter.SkillsSection.SkillPointsSpentOnKnoskills;
             if (intSkillPointsSpentOnKnoSkills != 0)
-                sbdText.AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_PlusSkillPointsSpent"), intSkillPointsSpentOnKnoSkills);
-            lblKnowledgeSkillPoints.Text = sbdText.ToString();
+                strText += string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_PlusSkillPointsSpent"), intSkillPointsSpentOnKnoSkills);
+            lblKnowledgeSkillPoints.Text = strText;
         }
 
         private Character _objCharacter;
         private List<Tuple<string, Predicate<Skill>>> _lstDropDownActiveSkills;
-        private readonly List<Tuple<string, IComparer<Skill>>>  _sortList;
+        private readonly List<Tuple<string, IComparer<Skill>>> _sortList;
         private bool _blnActiveSkillSearchMode;
         private bool _blnKnowledgeSkillSearchMode;
         private List<Tuple<string, Predicate<KnowledgeSkill>>> _lstDropDownKnowledgeSkills;
@@ -219,12 +219,12 @@ namespace Chummer.UI.Skills
 
             if (!_objCharacter.Created)
             {
-                lblGroupsSp.DoDatabinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
-                lblActiveSp.DoDatabinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
-                lblBuyWithKarma.DoDatabinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
+                lblGroupsSp.DoOneWayDataBinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
+                lblActiveSp.DoOneWayDataBinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
+                lblBuyWithKarma.DoOneWayDataBinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
 
-                lblKnoSp.DoDatabinding("Visible", _objCharacter.SkillsSection, nameof(SkillsSection.HasKnowledgePoints));
-                lblKnoBwk.DoDatabinding("Visible", _objCharacter.SkillsSection, nameof(SkillsSection.HasKnowledgePoints));
+                lblKnoSp.DoOneWayDataBinding("Visible", _objCharacter.SkillsSection, nameof(SkillsSection.HasKnowledgePoints));
+                lblKnoBwk.DoOneWayDataBinding("Visible", _objCharacter.SkillsSection, nameof(SkillsSection.HasKnowledgePoints));
                 UpdateKnoSkillRemaining();
             }
             else
@@ -454,7 +454,7 @@ namespace Chummer.UI.Skills
                         int intReturn = y.AttributeModifiers.CompareTo(x.AttributeModifiers);
                         if (intReturn == 0)
                         {
-                            intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalOptions.CultureInfo);
+                            intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalSettings.CultureInfo);
                             if (intReturn == 0)
                                 intReturn = SkillsSection.CompareSkills(x, y);
                         }
@@ -463,7 +463,7 @@ namespace Chummer.UI.Skills
                 new Tuple<string, IComparer<Skill>>(LanguageManager.GetString("Skill_SortAttributeName"),
                     new SkillSorter((x, y) =>
                     {
-                        int intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalOptions.CultureInfo);
+                        int intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalSettings.CultureInfo);
                         if (intReturn == 0)
                             intReturn = SkillsSection.CompareSkills(x, y);
                         return intReturn;
@@ -481,7 +481,7 @@ namespace Chummer.UI.Skills
                 new Tuple<string, IComparer<Skill>>(LanguageManager.GetString("Skill_SortCategory"),
                     new SkillSorter((x, y) =>
                     {
-                        int intReturn = string.Compare(x.DisplayCategory(GlobalOptions.Language), y.DisplayCategory(GlobalOptions.Language), false, GlobalOptions.CultureInfo);
+                        int intReturn = string.Compare(x.DisplayCategory(GlobalSettings.Language), y.DisplayCategory(GlobalSettings.Language), false, GlobalSettings.CultureInfo);
                         if (intReturn == 0)
                             intReturn = SkillsSection.CompareSkills(x, y);
                         return intReturn;
@@ -516,7 +516,7 @@ namespace Chummer.UI.Skills
             string strColon = LanguageManager.GetString("String_Colon");
 
             string strCategory = LanguageManager.GetString("Label_Category");
-            foreach (XPathNavigator xmlCategoryNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Options.EnabledCustomDataDirectoryPaths)
+            foreach (XPathNavigator xmlCategoryNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Settings.EnabledCustomDataDirectoryPaths)
                 .Select("/chummer/categories/category[@type = \"active\"]"))
             {
                 string strName = xmlCategoryNode.Value;
@@ -529,14 +529,14 @@ namespace Chummer.UI.Skills
             string strAttributeLabel = LanguageManager.GetString("String_ExpenseAttribute");
             foreach (string strAttribute in AttributeSection.AttributeStrings)
             {
-                string strAttributeShort = LanguageManager.GetString("String_Attribute" + strAttribute + "Short", GlobalOptions.Language, false);
+                string strAttributeShort = LanguageManager.GetString("String_Attribute" + strAttribute + "Short", GlobalSettings.Language, false);
                 if (!string.IsNullOrEmpty(strAttributeShort))
                     ret.Add(new Tuple<string, Predicate<Skill>>(strAttributeLabel + strColon + strSpace + strAttributeShort,
                         skill => skill.Attribute == strAttribute));
             }
 
             string strSkillGroupLabel = LanguageManager.GetString("String_ExpenseSkillGroup");
-            foreach (XPathNavigator xmlSkillGroupNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Options.EnabledCustomDataDirectoryPaths)
+            foreach (XPathNavigator xmlSkillGroupNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Settings.EnabledCustomDataDirectoryPaths)
                 .Select("/chummer/skillgroups/name"))
             {
                 string strName = xmlSkillGroupNode.Value;
@@ -585,7 +585,7 @@ namespace Chummer.UI.Skills
                         int intReturn = y.AttributeModifiers.CompareTo(x.AttributeModifiers);
                         if (intReturn == 0)
                         {
-                            intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalOptions.CultureInfo);
+                            intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalSettings.CultureInfo);
                             if (intReturn == 0)
                                 intReturn = SkillsSection.CompareSkills(x, y);
                         }
@@ -594,7 +594,7 @@ namespace Chummer.UI.Skills
                 new Tuple<string, IComparer<KnowledgeSkill>>(LanguageManager.GetString("Skill_SortAttributeName"),
                     new KnowledgeSkillSorter((x, y) =>
                     {
-                        int intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalOptions.CultureInfo);
+                        int intReturn = string.Compare(x.DisplayAttribute, y.DisplayAttribute, false, GlobalSettings.CultureInfo);
                         if (intReturn == 0)
                             intReturn = SkillsSection.CompareSkills(x, y);
                         return intReturn;
@@ -602,7 +602,7 @@ namespace Chummer.UI.Skills
                 new Tuple<string, IComparer<KnowledgeSkill>>(LanguageManager.GetString("Skill_SortCategory"),
                     new KnowledgeSkillSorter((x, y) =>
                     {
-                        int intReturn = string.Compare(x.DisplayCategory(GlobalOptions.Language), y.DisplayCategory(GlobalOptions.Language), false, GlobalOptions.CultureInfo);
+                        int intReturn = string.Compare(x.DisplayCategory(GlobalSettings.Language), y.DisplayCategory(GlobalSettings.Language), false, GlobalSettings.CultureInfo);
                         if (intReturn == 0)
                             intReturn = SkillsSection.CompareSkills(x, y);
                         return intReturn;
@@ -634,7 +634,7 @@ namespace Chummer.UI.Skills
             string strColon = LanguageManager.GetString("String_Colon");
 
             string strCategory = LanguageManager.GetString("Label_Category");
-            foreach (XPathNavigator xmlCategoryNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Options.EnabledCustomDataDirectoryPaths)
+            foreach (XPathNavigator xmlCategoryNode in XmlManager.LoadXPath("skills.xml", objCharacter?.Settings.EnabledCustomDataDirectoryPaths)
                 .Select("/chummer/categories/category[@type = \"knowledge\"]"))
             {
                 string strName = xmlCategoryNode.Value;
@@ -647,7 +647,7 @@ namespace Chummer.UI.Skills
             string strAttributeLabel = LanguageManager.GetString("String_ExpenseAttribute");
             foreach (string strAttribute in AttributeSection.AttributeStrings)
             {
-                string strAttributeShort = LanguageManager.GetString("String_Attribute" + strAttribute + "Short", GlobalOptions.Language, false);
+                string strAttributeShort = LanguageManager.GetString("String_Attribute" + strAttribute + "Short", GlobalSettings.Language, false);
                 if (!string.IsNullOrEmpty(strAttributeShort))
                     ret.Add(new Tuple<string, Predicate<KnowledgeSkill>>(strAttributeLabel + strColon + strSpace + strAttributeShort,
                         skill => skill.Attribute == strAttribute));
@@ -707,7 +707,7 @@ namespace Chummer.UI.Skills
             if (_blnActiveSkillSearchMode)
             {
                 _lstActiveSkills.SuspendLayout();
-                _lstActiveSkills.Filter(skill => GlobalOptions.CultureInfo.CompareInfo.IndexOf(skill.CurrentDisplayName, cboDisplayFilter.Text, CompareOptions.IgnoreCase) >= 0, true);
+                _lstActiveSkills.Filter(skill => GlobalSettings.CultureInfo.CompareInfo.IndexOf(skill.CurrentDisplayName, cboDisplayFilter.Text, CompareOptions.IgnoreCase) >= 0, true);
                 _lstActiveSkills.ResumeLayout();
             }
         }
@@ -725,30 +725,25 @@ namespace Chummer.UI.Skills
         private void btnExotic_Click(object sender, EventArgs e)
         {
             ExoticSkill objSkill;
-            XmlDocument xmlSkillsDocument = _objCharacter.LoadData("skills.xml");
             using (frmSelectExoticSkill frmPickExoticSkill = new frmSelectExoticSkill(_objCharacter))
             {
                 frmPickExoticSkill.ShowDialog(this);
 
-                if (frmPickExoticSkill.DialogResult == DialogResult.Cancel)
+                if (frmPickExoticSkill.DialogResult != DialogResult.OK)
                     return;
 
-                XmlNode xmlSkillNode = xmlSkillsDocument.SelectSingleNode("/chummer/skills/skill[name = " + frmPickExoticSkill.SelectedExoticSkill.CleanXPath() + "]");
-
-                objSkill = new ExoticSkill(_objCharacter, xmlSkillNode)
-                {
-                    Specific = frmPickExoticSkill.SelectedExoticSkillSpecialisation
-                };
+                objSkill = _objCharacter.SkillsSection.AddExoticSkill(frmPickExoticSkill.SelectedExoticSkill,
+                    frmPickExoticSkill.SelectedExoticSkillSpecialisation);
             }
 
             // Karma check needs to come after the skill is created to make sure bonus-based modifiers (e.g. JoAT) get applied properly (since they can potentially trigger off of the specific exotic skill target)
             if (_objCharacter.Created && objSkill.UpgradeKarmaCost > _objCharacter.Karma)
             {
                 Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_NotEnoughKarma"));
+                _objCharacter.SkillsSection.Skills.Remove(objSkill);
                 return;
             }
             objSkill.Upgrade();
-            _objCharacter.SkillsSection.Skills.Add(objSkill);
         }
 
         private void btnKnowledge_Click(object sender, EventArgs e)
@@ -766,22 +761,27 @@ namespace Chummer.UI.Skills
                         return;
                     KnowledgeSkill skill = new KnowledgeSkill(_objCharacter)
                     {
-                        WriteableName = form.SelectedItem
+                        WritableName = form.SelectedItem
                     };
 
                     if (_objCharacter.SkillsSection.HasAvailableNativeLanguageSlots && (skill.IsLanguage || string.IsNullOrEmpty(skill.Type)))
                     {
                         DialogResult eDialogResult = Program.MainForm.ShowMessageBox(this,
-                            string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_NewNativeLanguageSkill"),
-                                1 + ImprovementManager.ValueOf(_objCharacter, Improvement.ImprovementType.NativeLanguageLimit), skill.WriteableName),
+                            string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_NewNativeLanguageSkill"),
+                                1 + ImprovementManager.ValueOf(_objCharacter, Improvement.ImprovementType.NativeLanguageLimit), skill.WritableName),
                             LanguageManager.GetString("Tip_Skill_NativeLanguage"), MessageBoxButtons.YesNoCancel);
-                        if (eDialogResult == DialogResult.Cancel)
-                            return;
-                        if (eDialogResult == DialogResult.Yes)
+                        switch (eDialogResult)
                         {
-                            if (!skill.IsLanguage)
-                                skill.Type = "Language";
-                            skill.IsNativeLanguage = true;
+                            case DialogResult.Cancel:
+                                return;
+
+                            case DialogResult.Yes:
+                                {
+                                    if (!skill.IsLanguage)
+                                        skill.Type = "Language";
+                                    skill.IsNativeLanguage = true;
+                                    break;
+                                }
                         }
                     }
 
@@ -841,7 +841,7 @@ namespace Chummer.UI.Skills
             if (_blnKnowledgeSkillSearchMode)
             {
                 _lstKnowledgeSkills.SuspendLayout();
-                _lstKnowledgeSkills.Filter(skill => GlobalOptions.CultureInfo.CompareInfo.IndexOf(skill.CurrentDisplayName, cboDisplayFilterKnowledge.Text, CompareOptions.IgnoreCase) >= 0, true);
+                _lstKnowledgeSkills.Filter(skill => GlobalSettings.CultureInfo.CompareInfo.IndexOf(skill.CurrentDisplayName, cboDisplayFilterKnowledge.Text, CompareOptions.IgnoreCase) >= 0, true);
                 _lstKnowledgeSkills.ResumeLayout();
             }
         }

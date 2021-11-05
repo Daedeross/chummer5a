@@ -16,27 +16,30 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
- using System.Text;
+using System.Text;
 using System.Windows.Forms;
 using System.Xml;
- using Chummer.Backend.Equipment;
+using Chummer.Annotations;
+using Chummer.Backend.Equipment;
 
 namespace Chummer
 {
     public partial class frmCreatePACKSKit : Form
     {
-        private readonly Character _objCharacter;
+        [NotNull] private readonly Character _objCharacter;
 
         #region Control Events
+
         public frmCreatePACKSKit(Character objCharacter)
         {
+            _objCharacter = objCharacter ?? throw new ArgumentNullException(nameof(objCharacter));
             InitializeComponent();
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
-            _objCharacter = objCharacter;
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
@@ -64,10 +67,10 @@ namespace Chummer
             // See if a Kit with this name already exists for the Custom category.
             // This was originally done without the XmlManager, but because amends and overrides and toggling custom data directories can change names, we need to use it.
             string strName = txtName.Text;
-            if (XmlManager.LoadXPath("packs.xml", _objCharacter?.Options.EnabledCustomDataDirectoryPaths)
+            if (XmlManager.LoadXPath("packs.xml", _objCharacter.Settings.EnabledCustomDataDirectoryPaths)
                 .SelectSingleNode("/chummer/packs/pack[name = " + strName.CleanXPath() + " and category = \"Custom\"]") != null)
             {
-                Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo,LanguageManager.GetString("Message_CreatePACKSKit_DuplicateName"), strName),
+                Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_CreatePACKSKit_DuplicateName"), strName),
                     LanguageManager.GetString("MessageTitle_CreatePACKSKit_DuplicateName"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -145,26 +148,26 @@ namespace Chummer
                         int intRES = _objCharacter.RES.Value - (_objCharacter.RES.MetatypeMinimum - 1);
                         // <attributes>
                         objWriter.WriteStartElement("attributes");
-                        objWriter.WriteElementString("bod", intBOD.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("agi", intAGI.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("rea", intREA.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("str", intSTR.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("cha", intCHA.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("int", intINT.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("log", intLOG.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("wil", intWIL.ToString(GlobalOptions.InvariantCultureInfo));
-                        objWriter.WriteElementString("edg", intEDG.ToString(GlobalOptions.InvariantCultureInfo));
+                        objWriter.WriteElementString("bod", intBOD.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("agi", intAGI.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("rea", intREA.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("str", intSTR.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("cha", intCHA.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("int", intINT.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("log", intLOG.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("wil", intWIL.ToString(GlobalSettings.InvariantCultureInfo));
+                        objWriter.WriteElementString("edg", intEDG.ToString(GlobalSettings.InvariantCultureInfo));
                         if (_objCharacter.MAGEnabled)
                         {
-                            objWriter.WriteElementString("mag", intMAG.ToString(GlobalOptions.InvariantCultureInfo));
-                            if (_objCharacter.Options.MysAdeptSecondMAGAttribute && _objCharacter.IsMysticAdept)
-                                objWriter.WriteElementString("magadept", intMAGAdept.ToString(GlobalOptions.InvariantCultureInfo));
+                            objWriter.WriteElementString("mag", intMAG.ToString(GlobalSettings.InvariantCultureInfo));
+                            if (_objCharacter.Settings.MysAdeptSecondMAGAttribute && _objCharacter.IsMysticAdept)
+                                objWriter.WriteElementString("magadept", intMAGAdept.ToString(GlobalSettings.InvariantCultureInfo));
                         }
 
                         if (_objCharacter.RESEnabled)
-                            objWriter.WriteElementString("res", intRES.ToString(GlobalOptions.InvariantCultureInfo));
+                            objWriter.WriteElementString("res", intRES.ToString(GlobalSettings.InvariantCultureInfo));
                         if (_objCharacter.DEPEnabled)
-                            objWriter.WriteElementString("dep", intDEP.ToString(GlobalOptions.InvariantCultureInfo));
+                            objWriter.WriteElementString("dep", intDEP.ToString(GlobalSettings.InvariantCultureInfo));
                         // </attributes>
                         objWriter.WriteEndElement();
                     }
@@ -177,10 +180,17 @@ namespace Chummer
                         // Determine if Positive or Negative Qualities exist.
                         foreach (Quality objQuality in _objCharacter.Qualities)
                         {
-                            if (objQuality.Type == QualityType.Positive)
-                                blnPositive = true;
-                            if (objQuality.Type == QualityType.Negative)
-                                blnNegative = true;
+                            switch (objQuality.Type)
+                            {
+                                case QualityType.Positive:
+                                    blnPositive = true;
+                                    break;
+
+                                case QualityType.Negative:
+                                    blnNegative = true;
+                                    break;
+                            }
+
                             if (blnPositive && blnNegative)
                                 break;
                         }
@@ -240,7 +250,7 @@ namespace Chummer
                         decimal decNuyenBP = _objCharacter.NuyenBP;
                         if (!_objCharacter.EffectiveBuildMethodUsesPriorityTables)
                             decNuyenBP /= 2.0m;
-                        objWriter.WriteElementString("nuyenbp", decNuyenBP.ToString(GlobalOptions.InvariantCultureInfo));
+                        objWriter.WriteElementString("nuyenbp", decNuyenBP.ToString(GlobalSettings.InvariantCultureInfo));
                     }
 
                     /* TODO: Add support for active and knowledge skills and skill groups
@@ -293,7 +303,7 @@ namespace Chummer
                             // <skill>
                             objWriter.WriteStartElement("skill");
                             objWriter.WriteElementString("name", objSkill.Name);
-                            objWriter.WriteElementString("rating", objSkill.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                            objWriter.WriteElementString("rating", objSkill.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                             if (!string.IsNullOrEmpty(objSkill.Specialization))
                                 objWriter.WriteElementString("spec", objSkill.Specialization);
                             objWriter.WriteElementString("category", objSkill.SkillCategory);
@@ -384,10 +394,17 @@ namespace Chummer
                         bool blnBioware = false;
                         foreach (Cyberware objCharacterCyberware in _objCharacter.Cyberware)
                         {
-                            if (objCharacterCyberware.SourceType == Improvement.ImprovementSource.Bioware)
-                                blnBioware = true;
-                            if (objCharacterCyberware.SourceType == Improvement.ImprovementSource.Cyberware)
-                                blnCyberware = true;
+                            switch (objCharacterCyberware.SourceType)
+                            {
+                                case Improvement.ImprovementSource.Bioware:
+                                    blnBioware = true;
+                                    break;
+
+                                case Improvement.ImprovementSource.Cyberware:
+                                    blnCyberware = true;
+                                    break;
+                            }
+
                             if (blnCyberware && blnBioware)
                                 break;
                         }
@@ -404,7 +421,7 @@ namespace Chummer
                                     objWriter.WriteStartElement("cyberware");
                                     objWriter.WriteElementString("name", objCyberware.Name);
                                     if (objCyberware.Rating > 0)
-                                        objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                        objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                                     objWriter.WriteElementString("grade", objCyberware.Grade.Name);
                                     if (objCyberware.Children.Count > 0)
                                     {
@@ -418,10 +435,10 @@ namespace Chummer
                                                 objWriter.WriteStartElement("cyberware");
                                                 objWriter.WriteElementString("name", objChildCyberware.Name);
                                                 if (objChildCyberware.Rating > 0)
-                                                    objWriter.WriteElementString("rating", objChildCyberware.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                                    objWriter.WriteElementString("rating", objChildCyberware.Rating.ToString(GlobalSettings.InvariantCultureInfo));
 
-                                                if (objChildCyberware.Gear.Count > 0)
-                                                    WriteGear(objWriter, objChildCyberware.Gear);
+                                                if (objChildCyberware.GearChildren.Count > 0)
+                                                    WriteGear(objWriter, objChildCyberware.GearChildren);
                                                 // </cyberware>
                                                 objWriter.WriteEndElement();
                                             }
@@ -431,8 +448,8 @@ namespace Chummer
                                         objWriter.WriteEndElement();
                                     }
 
-                                    if (objCyberware.Gear.Count > 0)
-                                        WriteGear(objWriter, objCyberware.Gear);
+                                    if (objCyberware.GearChildren.Count > 0)
+                                        WriteGear(objWriter, objCyberware.GearChildren);
 
                                     // </cyberware>
                                     objWriter.WriteEndElement();
@@ -455,11 +472,11 @@ namespace Chummer
                                     objWriter.WriteStartElement("bioware");
                                     objWriter.WriteElementString("name", objCyberware.Name);
                                     if (objCyberware.Rating > 0)
-                                        objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                        objWriter.WriteElementString("rating", objCyberware.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                                     objWriter.WriteElementString("grade", objCyberware.Grade.ToString());
 
-                                    if (objCyberware.Gear.Count > 0)
-                                        WriteGear(objWriter, objCyberware.Gear);
+                                    if (objCyberware.GearChildren.Count > 0)
+                                        WriteGear(objWriter, objCyberware.GearChildren);
                                     // </bioware>
                                     objWriter.WriteEndElement();
                                 }
@@ -480,13 +497,13 @@ namespace Chummer
                             // <lifestyle>
                             objWriter.WriteStartElement("lifestyle");
                             objWriter.WriteElementString("name", objLifestyle.Name);
-                            objWriter.WriteElementString("months", objLifestyle.Increments.ToString(GlobalOptions.InvariantCultureInfo));
+                            objWriter.WriteElementString("months", objLifestyle.Increments.ToString(GlobalSettings.InvariantCultureInfo));
                             if (!string.IsNullOrEmpty(objLifestyle.BaseLifestyle))
                             {
                                 // This is an Advanced Lifestyle, so write out its properties.
-                                objWriter.WriteElementString("cost", objLifestyle.Cost.ToString(_objCharacter.Options.NuyenFormat, GlobalOptions.CultureInfo));
-                                objWriter.WriteElementString("dice", objLifestyle.Dice.ToString(GlobalOptions.InvariantCultureInfo));
-                                objWriter.WriteElementString("multiplier", objLifestyle.Multiplier.ToString(_objCharacter.Options.NuyenFormat, GlobalOptions.CultureInfo));
+                                objWriter.WriteElementString("cost", objLifestyle.Cost.ToString(_objCharacter.Settings.NuyenFormat, GlobalSettings.CultureInfo));
+                                objWriter.WriteElementString("dice", objLifestyle.Dice.ToString(GlobalSettings.InvariantCultureInfo));
+                                objWriter.WriteElementString("multiplier", objLifestyle.Multiplier.ToString(_objCharacter.Settings.NuyenFormat, GlobalSettings.CultureInfo));
                                 objWriter.WriteElementString("baselifestyle", objLifestyle.BaseLifestyle);
                                 if (objLifestyle.LifestyleQualities.Count > 0)
                                 {
@@ -527,7 +544,7 @@ namespace Chummer
                                     objWriter.WriteStartElement("mod");
                                     objWriter.WriteElementString("name", objMod.Name);
                                     if (objMod.Rating > 0)
-                                        objWriter.WriteElementString("rating", objMod.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                        objWriter.WriteElementString("rating", objMod.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                                     // </mod>
                                     objWriter.WriteEndElement();
                                 }
@@ -536,8 +553,8 @@ namespace Chummer
                                 objWriter.WriteEndElement();
                             }
 
-                            if (objArmor.Gear.Count > 0)
-                                WriteGear(objWriter, objArmor.Gear);
+                            if (objArmor.GearChildren.Count > 0)
+                                WriteGear(objWriter, objArmor.GearChildren);
 
                             // </armor>
                             objWriter.WriteEndElement();
@@ -577,8 +594,8 @@ namespace Chummer
                                             objWriter.WriteElementString("mount", objAccessory.Mount);
                                             objWriter.WriteElementString("extramount", objAccessory.ExtraMount);
 
-                                            if (objAccessory.Gear.Count > 0)
-                                                WriteGear(objWriter, objAccessory.Gear);
+                                            if (objAccessory.GearChildren.Count > 0)
+                                                WriteGear(objWriter, objAccessory.GearChildren);
 
                                             // </accessory>
                                             objWriter.WriteEndElement();
@@ -638,7 +655,7 @@ namespace Chummer
                                         objWriter.WriteStartElement("mod");
                                         objWriter.WriteElementString("name", objVehicleMod.Name);
                                         if (objVehicleMod.Rating > 0)
-                                            objWriter.WriteElementString("rating", objVehicleMod.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                                            objWriter.WriteElementString("rating", objVehicleMod.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                                         // </mod>
                                         objWriter.WriteEndElement();
 
@@ -712,9 +729,9 @@ namespace Chummer
                             }
 
                             // Gear.
-                            if (objVehicle.Gear.Count > 0)
+                            if (objVehicle.GearChildren.Count > 0)
                             {
-                                WriteGear(objWriter, objVehicle.Gear);
+                                WriteGear(objWriter, objVehicle.GearChildren);
                             }
 
                             // </vehicle>
@@ -736,8 +753,7 @@ namespace Chummer
                 }
             }
 
-
-            Program.MainForm.ShowMessageBox(this, string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_CreatePACKSKit_SuiteCreated"), txtName.Text),
+            Program.MainForm.ShowMessageBox(this, string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_CreatePACKSKit_SuiteCreated"), txtName.Text),
                 LanguageManager.GetString("MessageTitle_CreatePACKSKit_SuiteCreated"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             DialogResult = DialogResult.OK;
         }
@@ -746,15 +762,17 @@ namespace Chummer
         {
             DialogResult = DialogResult.Cancel;
         }
-#endregion
 
-#region Methods
+        #endregion Control Events
+
+        #region Methods
+
         /// <summary>
         /// Recursively write out all Gear information since these can be nested pretty deep.
         /// </summary>
         /// <param name="objWriter">XmlWriter to use.</param>
         /// <param name="lstGear">List of Gear to write.</param>
-        private void WriteGear(XmlWriter objWriter, IEnumerable<Gear> lstGear)
+        private static void WriteGear(XmlWriter objWriter, IEnumerable<Gear> lstGear)
         {
             // <gears>
             objWriter.WriteStartElement("gears");
@@ -771,9 +789,9 @@ namespace Chummer
                 objWriter.WriteEndElement();
                 objWriter.WriteElementString("category", objGear.Category);
                 if (objGear.Rating > 0)
-                    objWriter.WriteElementString("rating", objGear.Rating.ToString(GlobalOptions.InvariantCultureInfo));
+                    objWriter.WriteElementString("rating", objGear.Rating.ToString(GlobalSettings.InvariantCultureInfo));
                 if (objGear.Quantity != 1)
-                    objWriter.WriteElementString("qty", objGear.Quantity.ToString(GlobalOptions.InvariantCultureInfo));
+                    objWriter.WriteElementString("qty", objGear.Quantity.ToString(GlobalSettings.InvariantCultureInfo));
                 if (objGear.Children.Count > 0)
                     WriteGear(objWriter, objGear.Children);
                 // </gear>
@@ -782,6 +800,7 @@ namespace Chummer
             // </gears>
             objWriter.WriteEndElement();
         }
-#endregion
+
+        #endregion Methods
     }
 }

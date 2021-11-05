@@ -16,57 +16,62 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
+using System.ComponentModel;
 using System.Windows.Forms;
 
 namespace Chummer
 {
-    public sealed class ButtonWithToolTip : Button
+    public sealed class ButtonWithToolTip : DpiFriendlyImagedButton
     {
         private readonly int _intToolTipWrap;
 
-        private ToolTip _tt;
-        public ToolTip ToolTipObject
-        {
-            get => _tt;
-            private set
-            {
-                if (_tt != value)
-                {
-                    _tt?.Hide(this);
-                    _tt = value;
-                }
-            }
-        }
+        private readonly ToolTip _objToolTip;
+
+        public ToolTip ToolTipObject => _objToolTip;
 
         private string _strToolTipText = string.Empty;
+
         public string ToolTipText
         {
             get => _strToolTipText;
             set
             {
                 value = _intToolTipWrap > 0 ? value.WordWrap(_intToolTipWrap) : value.WordWrap();
-                if (_strToolTipText != value)
-                {
-                    _strToolTipText = value;
-                    _tt.SetToolTip(this, value);
-                }
+                if (_strToolTipText == value)
+                    return;
+                _strToolTipText = value;
+                _objToolTip.SetToolTip(this, value.CleanForHtml());
             }
         }
 
-        public ButtonWithToolTip() : this(ToolTipFactory.ToolTip) { }
+        public ButtonWithToolTip() : this(ToolTipFactory.ToolTip)
+        {
+        }
 
         public ButtonWithToolTip(ToolTip objToolTip, int intToolTipWrap = -1)
         {
-            ToolTipObject = objToolTip;
+            _objToolTip = objToolTip;
+            _intToolTipWrap = intToolTipWrap;
+            DoubleBuffered = true;
+        }
+
+        public ButtonWithToolTip(IContainer container) : this(container, ToolTipFactory.ToolTip)
+        {
+        }
+
+        public ButtonWithToolTip(IContainer container, ToolTip objToolTip, int intToolTipWrap = -1) : base(container)
+        {
+            _objToolTip = objToolTip;
             _intToolTipWrap = intToolTipWrap;
             DoubleBuffered = true;
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && _tt != null && _tt != ToolTipFactory.ToolTip)
+            if (disposing && _objToolTip != null && _objToolTip != ToolTipFactory.ToolTip)
             {
-                _tt.Dispose();
+                _objToolTip.Dispose();
             }
             base.Dispose(disposing);
         }

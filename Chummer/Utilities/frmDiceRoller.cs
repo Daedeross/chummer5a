@@ -16,11 +16,12 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
- using System.Text;
- using System.Windows.Forms;
+using System.Text;
+using System.Windows.Forms;
 
 namespace Chummer
 {
@@ -30,6 +31,7 @@ namespace Chummer
         private readonly List<DiceRollerListViewItem> _lstResults = new List<DiceRollerListViewItem>(40);
 
         #region Control Events
+
         public frmDiceRoller(frmChummerMain frmMainForm, IEnumerable<Quality> lstQualities = null, int intDice = 1)
         {
             InitializeComponent();
@@ -72,20 +74,20 @@ namespace Chummer
             int intTarget = 5;
             // If Cinematic Gameplay is turned on, Hits occur on 4, 5, or 6 instead.
             if (chkCinematicGameplay.Checked)
-                intTarget -= 4;
+                intTarget = 4;
             switch (cboMethod.SelectedValue.ToString())
             {
                 case "Large":
-                {
-                    intTarget -= 1;
-                    break;
-                }
+                    {
+                        intTarget = 3;
+                        break;
+                    }
                 case "ReallyLarge":
-                {
-                    intTarget = 1;
-                    intGlitchMin = 7;
-                    break;
-                }
+                    {
+                        intTarget = 1;
+                        intGlitchMin = 7;
+                        break;
+                    }
             }
 
             for (int intCounter = 1; intCounter <= nudDice.Value; intCounter++)
@@ -95,13 +97,13 @@ namespace Chummer
                     int intResult;
                     do
                     {
-                        intResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                        intResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                         lstRandom.Add(intResult);
                     } while (intResult == 6);
                 }
                 else
                 {
-                    int intResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                    int intResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                     lstRandom.Add(intResult);
                 }
             }
@@ -131,7 +133,7 @@ namespace Chummer
                     || (intGlitchCount == intGlitchThreshold - 1
                         && (nudDice.ValueAsInt & 1) == 0)))
             {
-                int intBubbleDieResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                int intBubbleDieResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                 DiceRollerListViewItem lviCur = new DiceRollerListViewItem(intBubbleDieResult, intTarget, intGlitchMin, true);
                 if (lviCur.IsGlitch)
                     intGlitchCount += 1;
@@ -148,7 +150,7 @@ namespace Chummer
                     {
                         sbdResults.Append(LanguageManager.GetString(intHitCount >= nudThreshold.Value ? "String_DiceRoller_Success" : "String_DiceRoller_Failure") + strSpace + '(');
                     }
-                    sbdResults.AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Glitch"), intHitCount);
+                    sbdResults.AppendFormat(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Glitch"), intHitCount);
                     if (nudThreshold.Value > 0)
                         sbdResults.Append(')');
                 }
@@ -158,14 +160,14 @@ namespace Chummer
             else if (nudThreshold.Value > 0)
             {
                 sbdResults.Append(LanguageManager.GetString(intHitCount >= nudThreshold.Value ? "String_DiceRoller_Success" : "String_DiceRoller_Failure")
-                                  + strSpace + '(' + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount + ')'));
+                                  + strSpace + '(' + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount + ')'));
             }
             else
-                sbdResults.AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount);
+                sbdResults.AppendFormat(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount);
 
             sbdResults.Append(Environment.NewLine + Environment.NewLine +
                               LanguageManager.GetString("Label_DiceRoller_Sum") + strSpace +
-                              _lstResults.Sum(x => x.Result).ToString(GlobalOptions.CultureInfo));
+                              _lstResults.Sum(x => x.Result).ToString(GlobalSettings.CultureInfo));
             lblResults.Text = sbdResults.ToString();
 
             lstResults.BeginUpdate();
@@ -207,20 +209,20 @@ namespace Chummer
             int intTarget = 5;
             // If Cinematic Gameplay is turned on, Hits occur on 4, 5, or 6 instead.
             if (chkCinematicGameplay.Checked)
-                intTarget -= 4;
+                intTarget = 4;
             switch (cboMethod.SelectedValue.ToString())
             {
                 case "Large":
-                {
-                    intTarget -= 1;
-                    break;
-                }
+                    {
+                        intTarget = 3;
+                        break;
+                    }
                 case "ReallyLarge":
-                {
-                    intTarget = 1;
-                    intGlitchMin = 7;
-                    break;
-                }
+                    {
+                        intTarget = 1;
+                        intGlitchMin = 7;
+                        break;
+                    }
             }
 
             foreach (DiceRollerListViewItem objItem in _lstResults)
@@ -250,13 +252,13 @@ namespace Chummer
                     int intLoopResult;
                     do
                     {
-                        intLoopResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                        intLoopResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                         lstRandom.Add(intLoopResult);
                     } while (intLoopResult == 6);
                 }
                 else
                 {
-                    int intLoopResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                    int intLoopResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                     lstRandom.Add(intLoopResult);
                 }
             }
@@ -282,7 +284,7 @@ namespace Chummer
                     || (intGlitchCount == intGlitchThreshold - 1
                         && (nudDice.ValueAsInt & 1) == 0)))
             {
-                int intBubbleDieResult = GlobalOptions.RandomGenerator.NextD6ModuloBiasRemoved();
+                int intBubbleDieResult = GlobalSettings.RandomGenerator.NextD6ModuloBiasRemoved();
                 DiceRollerListViewItem lviCur = new DiceRollerListViewItem(intBubbleDieResult, intTarget, intGlitchMin, true);
                 if (lviCur.IsGlitch)
                     intGlitchCount += 1;
@@ -300,7 +302,7 @@ namespace Chummer
                         sbdResults.Append(LanguageManager.GetString(intHitCount >= nudThreshold.Value ? "String_DiceRoller_Success" : "String_DiceRoller_Failure")
                                           + strSpace + '(');
                     }
-                    sbdResults.AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Glitch"), intHitCount);
+                    sbdResults.AppendFormat(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Glitch"), intHitCount);
                     if (nudThreshold.Value > 0)
                         sbdResults.Append(')');
                 }
@@ -310,14 +312,14 @@ namespace Chummer
             else if (nudThreshold.Value > 0)
             {
                 sbdResults.Append(LanguageManager.GetString(intHitCount >= nudThreshold.Value ? "String_DiceRoller_Success" : "String_DiceRoller_Failure")
-                                  + strSpace + '(' + string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount) + ')');
+                                  + strSpace + '(' + string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount) + ')');
             }
             else
-                sbdResults.AppendFormat(GlobalOptions.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount);
+                sbdResults.AppendFormat(GlobalSettings.CultureInfo, LanguageManager.GetString("String_DiceRoller_Hits"), intHitCount);
 
             sbdResults.Append(Environment.NewLine + Environment.NewLine +
                               LanguageManager.GetString("Label_DiceRoller_Sum") + strSpace +
-                              _lstResults.Sum(x => x.Result).ToString(GlobalOptions.CultureInfo));
+                              _lstResults.Sum(x => x.Result).ToString(GlobalSettings.CultureInfo));
             lblResults.Text = sbdResults.ToString();
 
             lstResults.BeginUpdate();
@@ -328,9 +330,11 @@ namespace Chummer
             }
             lstResults.EndUpdate();
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Number of dice to roll.
         /// </summary>
@@ -359,7 +363,7 @@ namespace Chummer
                 }
             }
         }
-        #endregion
 
+        #endregion Properties
     }
 }

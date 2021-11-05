@@ -17,12 +17,17 @@
  *  https://github.com/chummer5a/chummer5a
  */
 
+using System.Collections.Generic;
+using System.Text;
 using Chummer.Backend.Equipment;
 
 namespace Chummer
 {
     public interface IHasGear
     {
-        TaggedObservableCollection<Gear> Gear { get; }
+        TaggedObservableCollection<Gear> GearChildren { get; }
+
+        //TODO: Make this dynamically update without having to validate the character.
+        void CheckRestrictedGear(IDictionary<int, int> dicRestrictedGearLimits, StringBuilder sbdAvailItems, StringBuilder sbdRestrictedItems, ref int intRestrictedCount);
     }
 }

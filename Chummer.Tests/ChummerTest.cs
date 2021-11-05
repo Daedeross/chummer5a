@@ -16,9 +16,10 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
-using System.Drawing;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
@@ -51,7 +52,7 @@ namespace Chummer.Tests
             {
                 Directory.Delete(objOldDir.FullName, true);
             }
-            TestPath = Path.Combine(strPath, "TestRun-" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm", GlobalOptions.InvariantCultureInfo));
+            TestPath = Path.Combine(strPath, "TestRun-" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm", GlobalSettings.InvariantCultureInfo));
             TestPathInfo = Directory.CreateDirectory(TestPath);
             TestFiles = objPathInfo.GetFiles("*.chum5"); //Getting Text files
         }
@@ -60,7 +61,6 @@ namespace Chummer.Tests
         private DirectoryInfo TestPathInfo { get; }
 
         private FileInfo[] TestFiles { get; }
-
 
         // Test methods have a number in their name so that by default they execute in the order of fastest to slowest
         [TestMethod]
@@ -80,7 +80,6 @@ namespace Chummer.Tests
             Color objColorRedInvertDarkInvertDark = ColorManager.GenerateDarkModeColor(objColorRedInvertDarkInvert);
             Assert.IsTrue(objColorRedInvertDark == objColorRedInvertDarkInvertDark);
         }
-
 
         // Test methods have a number in their name so that by default they execute in the order of fastest to slowest
         [TestMethod]
@@ -112,7 +111,6 @@ namespace Chummer.Tests
             }
             Program.MainForm = frmOldMainForm;
         }
-
 
         // Test methods have a number in their name so that by default they execute in the order of fastest to slowest
         [TestMethod]
@@ -244,7 +242,7 @@ namespace Chummer.Tests
                         try
                         {
                             using (CharacterShared frmCharacterForm = objCharacter.Created
-                                ? (CharacterShared) new frmCareer(objCharacter)
+                                ? (CharacterShared)new frmCareer(objCharacter)
                                 : new frmCreate(objCharacter))
                             {
                                 frmCharacterForm.MdiParent = frmTestForm;
@@ -316,7 +314,7 @@ namespace Chummer.Tests
         /// <summary>
         /// Tests saving a given character.
         /// </summary>
-        private void SaveCharacter(Character c, string path)
+        private static void SaveCharacter(Character c, string path)
         {
             Debug.WriteLine("Unit test initialized for: SaveCharacter()");
             Assert.IsNotNull(c);

@@ -28,7 +28,7 @@ namespace ChummerHub.Client.Backend
 {
     public static class StaticUtils
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
 
         public static Type GetListType(object someList)
         {
@@ -351,10 +351,9 @@ namespace ChummerHub.Client.Backend
                 ServicePointManager.ServerCertificateValidationCallback += delegate { return true; };
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
                 Uri baseUri = new Uri(Settings.Default.SINnerUrl);
-                ServiceClientCredentials credentials = null;
                 try
                 {
-                    credentials = new MyCredentials();
+                    _ = new MyCredentials();
                 }
                 catch (Exception e)
                 {
@@ -425,7 +424,7 @@ namespace ChummerHub.Client.Backend
 
     public class Utils
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
 
         public Utils()
         {
@@ -461,38 +460,13 @@ namespace ChummerHub.Client.Backend
                 {
                     response = await myGetSINnersFunction();
                 }
-                catch(SerializationException e)
+                catch(ArgumentException e)
                 {
-                    if (e.Content.Contains("Log in - ChummerHub"))
-                    {
-                        TreeNode node = new TreeNode("Online, not logged in")
-                        {
-                            ToolTipText = "Please log in (Options -> Plugins -> Sinners (Cloud) -> Login"
-                        };
-                        Log.Warn(e, "Online, not logged in");
-                        await PluginHandler.MainForm.DoThreadSafeAsync(() =>
-                        {
-                            MyTreeNodeList.Add(node);
-                        });
-                    }
-                    else
-                    {
-                        string msg = "Could not load response from SINners:" + Environment.NewLine;
-                        msg += e.Message;
-                        if (e.InnerException != null)
-                        {
-                            msg += Environment.NewLine + e.InnerException.Message;
-                        }
-                        Log.Error(e, msg);
-                        await PluginHandler.MainForm.DoThreadSafeAsync(() =>
-                        {
-                            MyTreeNodeList.Add(new TreeNode
-                            {
-                                ToolTipText = msg
-                            });
-                        });
-                    }
-                    return MyTreeNodeList;
+                    return await ApiExceptionHandling(e, e.Message);
+                }
+                catch(SerializationException apie)
+                {
+                    return await ApiExceptionHandling(apie, apie.Content);
                 }
                 if (response == null || response.CallSuccess == false)
                 {
@@ -539,6 +513,46 @@ namespace ChummerHub.Client.Backend
                 Log.Error(ex);
                 throw;
             }
+
+            async Task<ICollection<TreeNode>> ApiExceptionHandling(Exception se, string content)
+            {
+                if (content.Contains("Log in - ChummerHub") || content == "User not logged in.")
+                {
+                    TreeNode node = new TreeNode("Online, not logged in")
+                    {
+                        ToolTipText = "Please log in (Options -> Plugins -> Sinners (Cloud) -> Login",
+                        Tag = new Action(() =>
+                        {
+                            using (new CursorWait(Program.MainForm))
+                                using (frmGlobalSettings frmOptions = new frmGlobalSettings("tabPlugins"))
+                                    frmOptions.ShowDialog(Program.MainForm);
+                        })
+                    };
+                    Log.Warn(se, "Online, not logged in");
+                    await PluginHandler.MainForm.DoThreadSafeAsync(() =>
+                    {
+                        MyTreeNodeList.Add(node);
+                    });
+                }
+                else
+                {
+                    string msg = "Could not load response from SINners:" + Environment.NewLine;
+                    msg += se.Message;
+                    if (se.InnerException != null)
+                    {
+                        msg += Environment.NewLine + se.InnerException.Message;
+                    }
+                    Log.Error(se, msg);
+                    await PluginHandler.MainForm.DoThreadSafeAsync(() =>
+                    {
+                        MyTreeNodeList.Add(new TreeNode
+                        {
+                            ToolTipText = msg
+                        });
+                    });
+                }
+                return MyTreeNodeList;
+            }
         }
 
         public static ResultBase HandleError(Exception e)
@@ -551,28 +565,29 @@ namespace ChummerHub.Client.Backend
             };
             if (!string.IsNullOrEmpty(rb.ErrorText) || rb.MyException != null)
             {
-                using (var frmSIN = new frmSINnerResponse
+                PluginHandler.MainForm.DoThreadSafe(() =>
                 {
-                    TopMost = true
-                })
-                {
-                    frmSIN.SINnerResponseUI.Result = rb;
-                    if (rb.MyException != null)
+                    using (var frmSIN = new frmSINnerResponse
                     {
-                        Log.Info(rb.MyException, "The SINners WebService had a problem. This was it's response: ");
-                        frmSIN.SINnerResponseUI.Result.ErrorText =
-                            "This is NOT an exception from Chummer itself, but from the SINners WebService. This error happend \"in the cloud\": " +
-                            rb.ErrorText;
-                    }
-                    else
+                        TopMost = true
+                    })
                     {
-                        Log.Error(e, "Response from SINners WebService: ");
-                    }
-                    PluginHandler.MainForm.DoThreadSafe(() =>
-                    {
+                        frmSIN.SINnerResponseUI.Result = rb;
+                        if (rb.MyException != null)
+                        {
+                            Log.Info(rb.MyException, "The SINners WebService had a problem. This was it's response: ");
+                            frmSIN.SINnerResponseUI.Result.ErrorText =
+                                "This is NOT an exception from Chummer itself, but from the SINners WebService. This error happend \"in the cloud\": " +
+                                rb.ErrorText;
+                        }
+                        else
+                        {
+                            Log.Error(e, " Response from SINners WebService: ");
+                        }
+
                         frmSIN.ShowDialog(PluginHandler.MainForm);
-                    });
-                }
+                    }
+                });
             }
             return rb;
         }
@@ -589,7 +604,7 @@ namespace ChummerHub.Client.Backend
 
         public static object GetPropValue(object src, string propName)
         {
-            return src.GetType().GetProperty(propName).GetValue(src, null);
+            return src.GetType().GetProperty(propName)?.GetValue(src, null);
         }
 
         private static async Task<object> ShowErrorResponseFormCoreAsync(bool blnSync, object objResultBase, Exception e = null)
@@ -600,16 +615,21 @@ namespace ChummerHub.Client.Backend
             ResultBase rb = null;
             try
             {
-                rb = new ResultBase();
-                rb.ErrorText = (string) GetPropValue(objResultBase, "ErrorText");
-                rb.MyException = (Exception)GetPropValue(objResultBase, "MyException");
-                rb.CallSuccess = (bool)GetPropValue(objResultBase, "CallSuccess");
+                rb = new ResultBase
+                {
+                    ErrorText = (string) GetPropValue(objResultBase, "ErrorText"),
+                    MyException = (Exception) GetPropValue(objResultBase, "MyException"),
+                    CallSuccess = (bool) GetPropValue(objResultBase, "CallSuccess")
+                };
             }
             catch(Exception ex)
             {
-                rb = new ResultBase();
-                rb.ErrorText = "Could not cast " + objResultBase + " to Resultbase." + Environment.NewLine + Environment.NewLine + ex.Message;
-                rb.MyException = ex;
+                rb = new ResultBase
+                {
+                    ErrorText = "Could not cast " + objResultBase + " to Resultbase." + Environment.NewLine +
+                                Environment.NewLine + ex.Message,
+                    MyException = ex
+                };
                 Log.Warn(ex);
             }
             if (string.IsNullOrEmpty(rb.ErrorText) && rb.MyException == null)
@@ -655,13 +675,13 @@ namespace ChummerHub.Client.Backend
                 TreeNode objListNode;
                 try
                 {
-                    //list.SiNner.DownloadedFromSINnersTime = DateTime.Now;
                     objListNode = GetCharacterRosterTreeNodeRecursive(parentlist);
                     if (objListNode.Nodes.Count > 0)
                     {
                         bFoundOneChummer = true;
                         objListNode.Tag = PluginHandler.MyPluginHandlerInstance;
                     }
+
                 }
                 catch (Exception e)
                 {
@@ -676,7 +696,6 @@ namespace ChummerHub.Client.Backend
                     };
                     bBreak = true;
                 }
-
                 if (bBreak || objListNode.Nodes.Count > 0)
                 {
                     yield return objListNode;
@@ -711,7 +730,7 @@ namespace ChummerHub.Client.Backend
             string strReturn;
             if (!string.IsNullOrEmpty(objCache.ErrorText))
             {
-                strReturn = Path.GetFileNameWithoutExtension(objCache.FileName) + LanguageManager.GetString("String_Space", GlobalOptions.Language) + '(' + LanguageManager.GetString("String_Error", GlobalOptions.Language) + ')';
+                strReturn = Path.GetFileNameWithoutExtension(objCache.FileName) + LanguageManager.GetString("String_Space", GlobalSettings.Language) + '(' + LanguageManager.GetString("String_Error", GlobalSettings.Language) + ')';
             }
             else
             {
@@ -720,7 +739,7 @@ namespace ChummerHub.Client.Backend
                 {
                     strReturn = objCache.CharacterName;
                     if (string.IsNullOrEmpty(strReturn))
-                        strReturn = LanguageManager.GetString("String_UnnamedCharacter", GlobalOptions.Language);
+                        strReturn = LanguageManager.GetString("String_UnnamedCharacter", GlobalSettings.Language);
                 }
                 strReturn += " (online)";
             }
@@ -745,6 +764,15 @@ namespace ChummerHub.Client.Backend
                 Name = ssg.Groupname,
                 Tag = ssg
             };
+            if (ssg.MyMembers.Count == 0 && ssg.MySINSearchGroups.Count == 0)
+            {
+                string emptystring = LanguageManager.GetString("String_Empty", GlobalSettings.Language);
+                TreeNode empty = new TreeNode()
+                {
+                    Text = emptystring
+                };
+                objListNode.Nodes.Add(empty);
+            }
             foreach (var member in ssg.MyMembers.OrderBy(a => a.Display))
             {
                 var sinner = member.MySINner;
@@ -780,7 +808,9 @@ namespace ChummerHub.Client.Backend
                                       Environment.NewLine + Environment.NewLine
                                       + "Open the character locally, make sure to have \"online mode\"" +
                                       Environment.NewLine
-                                      + "selected in option->plugins->sinner and press the \"save\" symbol.";
+                                      + "selected in option->plugins->sinner and press the \"save\" symbol." +
+                                      Environment.NewLine + Environment.NewLine
+                                      + "You can delete this entry by selecting it and pressing the \"del\" key.";
 
                     Log.Warn(objCache.ErrorText);
                 }
@@ -795,8 +825,8 @@ namespace ChummerHub.Client.Backend
                 {
                     memberNode.ForeColor = Color.Red;
                     memberNode.ToolTipText += Environment.NewLine + Environment.NewLine +
-                                               LanguageManager.GetString("String_Error", GlobalOptions.Language)
-                                               + LanguageManager.GetString("String_Colon", GlobalOptions.Language) +
+                                               LanguageManager.GetString("String_Error", GlobalSettings.Language)
+                                               + LanguageManager.GetString("String_Colon", GlobalSettings.Language) +
                                                Environment.NewLine + objCache.ErrorText;
                 }
             }
@@ -839,6 +869,66 @@ namespace ChummerHub.Client.Backend
             return objListNode;
         }
 
+        private static async Task<SINnerGroup> CreateGroup(SINnerGroup mygroup)
+        {
+            try
+            {
+                var client = StaticUtils.GetClient();
+                await client.PostGroupAsync(null,mygroup);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                Program.MainForm.ShowMessageBox(ex.Message);
+                throw;
+            }
+            return null;
+        }
+
+        internal static async Task<SINnerGroup> CreateGroupOnClickAsync(SINnerGroup group = null, string groupname = "")
+        {
+            try
+            {
+                if (group == null)
+                {
+                    group = new SINnerGroup(null)
+                    {
+                        Groupname = groupname,
+                        IsPublic = false
+                    };
+                }
+
+               
+
+                using (frmSINnerGroupEdit ge = new frmSINnerGroupEdit(group, false))
+                {
+                    var result = ge.ShowDialog(Program.MainForm);
+                    if (result == DialogResult.OK)
+                    {
+                        group = ge.MySINnerGroupCreate.MyGroup;
+                        try
+                        {
+                            using (new CursorWait(Program.MainForm))
+                            {
+                                var a = await CreateGroup(ge.MySINnerGroupCreate.MyGroup);
+                                return a;
+                                
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            Program.MainForm.ShowMessageBox(exception.Message);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                Program.MainForm.ShowMessageBox(ex.ToString());
+            }
+            return null;
+        }
 
         public static byte[] ReadFully(Stream input)
         {
@@ -899,11 +989,15 @@ namespace ChummerHub.Client.Backend
                 throw new ArgumentNullException(nameof(objCache));
             objCache.MyPluginDataDic.Add("SINnerId", sinner.Id);
             objCache.OnMyDoubleClick = null;
-            objCache.OnMyDoubleClick += (sender, e) => OnMyDoubleClick(sinner, objCache);
+            objCache.OnMyDoubleClick += OnObjCacheOnMyDoubleClick;
+            async void OnObjCacheOnMyDoubleClick(object sender, EventArgs e) => await OnMyDoubleClick(sinner, objCache);
             objCache.OnMyAfterSelect = null;
-            objCache.OnMyAfterSelect += (sender, treeViewEventArgs) => OnMyAfterSelect(sinner, objCache, treeViewEventArgs);
+            objCache.OnMyAfterSelect += OnObjCacheOnMyAfterSelect;
+            async void OnObjCacheOnMyAfterSelect(object sender, TreeViewEventArgs treeViewEventArgs) => await OnMyAfterSelect(sinner, objCache, treeViewEventArgs);
             objCache.OnMyKeyDown = null;
-            objCache.OnMyKeyDown += async (sender, args) =>
+            objCache.OnMyKeyDown += OnObjCacheOnMyKeyDown;
+
+            async void OnObjCacheOnMyKeyDown(object sender, Tuple<KeyEventArgs, TreeNode> args)
             {
                 try
                 {
@@ -916,12 +1010,13 @@ namespace ChummerHub.Client.Backend
                             {
                                 await client.DeleteAsync(sinner.Id.Value).ConfigureAwait(false);
                             }
+
                             objCache.ErrorText = "deleted!";
-                            await PluginHandler.MainForm.CharacterRoster.LoadCharacters(false, false, false);
+                            await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodes(PluginHandler.MyPluginHandlerInstance);
                         }
                     }
                 }
-                catch(HttpOperationException e)
+                catch (HttpOperationException e)
                 {
                     objCache.ErrorText = e.Message;
                     objCache.ErrorText += Environment.NewLine + e.Response.Content;
@@ -932,10 +1027,12 @@ namespace ChummerHub.Client.Backend
                     objCache.ErrorText = e.Message;
                     Log.Error(e);
                 }
-            };
+            }
 
             objCache.OnMyContextMenuDeleteClick = null;
-            objCache.OnMyContextMenuDeleteClick += async (sender, args) =>
+            objCache.OnMyContextMenuDeleteClick += OnObjCacheOnMyContextMenuDeleteClick;
+
+            async void OnObjCacheOnMyContextMenuDeleteClick(object sender, EventArgs args)
             {
                 try
                 {
@@ -950,7 +1047,7 @@ namespace ChummerHub.Client.Backend
                         if (result.CallSuccess)
                         {
                             objCache.ErrorText = "deleted!";
-                            await PluginHandler.MainForm.CharacterRoster.LoadCharacters(false, false, false);
+                            await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodes(PluginHandler.MyPluginHandlerInstance);
                         }
                     }
                 }
@@ -959,17 +1056,16 @@ namespace ChummerHub.Client.Backend
                     objCache.ErrorText = ex.Message;
                     objCache.ErrorText += Environment.NewLine + ex.Response.Content;
                     Log.Error(ex, objCache.ErrorText);
-
                 }
                 catch (Exception ex)
                 {
                     objCache.ErrorText = ex.Message;
                     Log.Error(ex);
                 }
-            };
+            }
         }
 
-        private static async void OnMyAfterSelect(SINner sinner, CharacterCache objCache, TreeViewEventArgs treeViewEventArgs)
+        private static async Task OnMyAfterSelect(SINner sinner, CharacterCache objCache, TreeViewEventArgs treeViewEventArgs)
         {
             using (new CursorWait(PluginHandler.MainForm, true))
             {
@@ -1011,7 +1107,7 @@ namespace ChummerHub.Client.Backend
             }
         }
 
-        private static async void OnMyDoubleClick(SINner sinner, CharacterCache objCache)
+        private static async Task OnMyDoubleClick(SINner sinner, CharacterCache objCache)
         {
             string filepath = await DownloadFileTask(sinner, objCache);
             PluginHandler.MySINnerLoading = sinner;
@@ -1165,7 +1261,7 @@ namespace ChummerHub.Client.Backend
                     await client.PostSINAsync(uploadInfoObject);
                 }
                 Log.Info("Post of " + (ce.MySINnerFile.Id != null
-                    ? ce.MySINnerFile.Id.Value.ToString("D", GlobalOptions.InvariantCultureInfo)
+                    ? ce.MySINnerFile.Id.Value.ToString("D", GlobalSettings.InvariantCultureInfo)
                     : string.Empty) + " finished.");
             }
             catch (Exception ex)
@@ -1233,7 +1329,7 @@ namespace ChummerHub.Client.Backend
                                 }
                                 using (new CursorWait(PluginHandler.MainForm, true))
                                 {
-                                    await PluginHandler.MainForm.CharacterRoster.LoadCharacters(false, false, false);
+                                    await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodes(PluginHandler.MyPluginHandlerInstance);
                                 }
                             }
                         }

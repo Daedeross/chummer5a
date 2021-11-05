@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Windows.Forms;
 
@@ -23,93 +24,60 @@ namespace Chummer
 {
     public sealed class ElasticComboBox : ComboBox
     {
-        private readonly ToolTip _tt;
+        private readonly int _intToolTipWrap;
+
+        private readonly ToolTip _objToolTip;
 
         private string _strToolTipText = string.Empty;
+
         public string TooltipText
         {
             get => _strToolTipText;
             set
             {
-                if (_strToolTipText != value)
-                {
-                    _strToolTipText = value;
-                    if (!string.IsNullOrEmpty(value))
-                        _tt.SetToolTip(this, value);
-                }
+                value = _intToolTipWrap > 0 ? value.WordWrap(_intToolTipWrap) : value.WordWrap();
+                if (_strToolTipText == value)
+                    return;
+                _strToolTipText = value;
+                _objToolTip.SetToolTip(this, value.CleanForHtml());
             }
         }
 
-        public ElasticComboBox() : this(null) { }
-
-        public ElasticComboBox(ToolTip objToolTip)
+        public ElasticComboBox() : this(ToolTipFactory.ToolTip)
         {
-            _tt = objToolTip ?? new ToolTip
-            {
-                AutoPopDelay = 1500,
-                InitialDelay = 400,
-                UseAnimation = true,
-                UseFading = true,
-                Active = true
-            };
+        }
+
+        public ElasticComboBox(ToolTip objToolTip, int intToolTipWrap = -1)
+        {
+            _objToolTip = objToolTip;
+            _intToolTipWrap = intToolTipWrap;
             DoubleBuffered = true;
-            MouseEnter += OnMouseEnter;
-            MouseLeave += OnMouseLeave;
             SelectedIndexChanged += ClearUnintendedHighlight;
             Resize += ClearUnintendedHighlight;
         }
-        
+
         private void ClearUnintendedHighlight(object sender, EventArgs e)
         {
             if (DropDownStyle != ComboBoxStyle.DropDownList && IsHandleCreated)
                 this.DoThreadSafe(ClearSelection);
         }
 
-        private void OnMouseEnter(object sender, EventArgs e)
+        protected override void OnDataSourceChanged(EventArgs e)
         {
-            if (!string.IsNullOrEmpty(TooltipText))
-            {
-                _tt.Show(TooltipText, Parent);
-            }
+            base.OnDataSourceChanged(e);
+            ResizeDropDown();
         }
 
-        private void OnMouseLeave(object sender, EventArgs e)
+        protected override void OnDisplayMemberChanged(EventArgs e)
         {
-            _tt.Hide(this);
+            base.OnDisplayMemberChanged(e);
+            ResizeDropDown();
         }
 
-        public new object DataSource
+        protected override void OnValueMemberChanged(EventArgs e)
         {
-            get => base.DataSource;
-            set
-            {
-                if (base.DataSource == value)
-                    return;
-                base.DataSource = value;
-                ResizeDropDown();
-            }
-        }
-        public new string DisplayMember
-        {
-            get => base.DisplayMember;
-            set
-            {
-                if (base.DisplayMember == value)
-                    return;
-                base.DisplayMember = value;
-                ResizeDropDown();
-            }
-        }
-        public new string ValueMember
-        {
-            get => base.ValueMember;
-            set
-            {
-                if (base.ValueMember == value)
-                    return;
-                base.ValueMember = value;
-                ResizeDropDown();
-            }
+            base.OnValueMemberChanged(e);
+            ResizeDropDown();
         }
 
         private void ResizeDropDown()
@@ -139,9 +107,9 @@ namespace Chummer
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && _objToolTip != null && _objToolTip != ToolTipFactory.ToolTip)
             {
-                _tt?.Dispose();
+                _objToolTip.Dispose();
             }
             base.Dispose(disposing);
         }

@@ -32,7 +32,9 @@ namespace Chummer.UI.Attributes
     {
         // ConnectionRatingChanged Event Handler.
         public delegate void ValueChangedHandler(object sender, EventArgs e);
+
         public event ValueChangedHandler ValueChanged;
+
         private readonly CharacterAttrib _objAttribute;
         private int _oldBase;
         private int _oldKarma;
@@ -52,8 +54,6 @@ namespace Chummer.UI.Attributes
             _objCharacter = attribute.CharacterObject;
 
             InitializeComponent();
-            this.UpdateLightDarkMode();
-            this.TranslateWinForm();
 
             SuspendLayout();
             _dataSource = _objCharacter.AttributeSection.GetAttributeBindingByName(AttributeName);
@@ -70,17 +70,16 @@ namespace Chummer.UI.Attributes
                     Anchor = AnchorStyles.Right,
                     AutoSize = true,
                     AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                    Image = Resources.add,
-                    Margin = new Padding(3, 0, 3, 0),
+                    Padding = new Padding(1),
                     MinimumSize = new Size(24, 24),
+                    ImageDpi96 = Resources.add,
+                    ImageDpi192 = Resources.add1,
                     Name = "cmdImproveATT",
                     UseVisualStyleBackColor = true
                 };
                 cmdImproveATT.Click += cmdImproveATT_Click;
                 cmdImproveATT.DoOneWayDataBinding("ToolTipText", _dataSource, nameof(CharacterAttrib.UpgradeToolTip));
                 cmdImproveATT.DoOneWayDataBinding("Enabled", _dataSource, nameof(CharacterAttrib.CanUpgradeCareer));
-                cmdImproveATT.UpdateLightDarkMode();
-                cmdImproveATT.TranslateWinForm();
                 flpRight.Controls.Add(cmdImproveATT);
                 if (AttributeName == "EDG")
                 {
@@ -89,16 +88,15 @@ namespace Chummer.UI.Attributes
                         Anchor = AnchorStyles.Right,
                         AutoSize = true,
                         AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                        Image = Resources.fire,
-                        Margin = new Padding(3, 0, 3, 0),
+                        Padding = new Padding(1),
                         MinimumSize = new Size(24, 24),
+                        ImageDpi96 = Resources.fire,
+                        ImageDpi192 = Resources.fire1,
                         Name = "cmdBurnEdge",
                         ToolTipText = LanguageManager.GetString("Tip_CommonBurnEdge"),
                         UseVisualStyleBackColor = true
                     };
                     cmdBurnEdge.Click += cmdBurnEdge_Click;
-                    cmdBurnEdge.UpdateLightDarkMode();
-                    cmdBurnEdge.TranslateWinForm();
                     flpRight.Controls.Add(cmdBurnEdge);
                 }
             }
@@ -116,7 +114,7 @@ namespace Chummer.UI.Attributes
                     AutoSize = true,
                     InterceptMouseWheel = NumericUpDownEx.InterceptMouseWheelMode.WhenMouseOver,
                     Margin = new Padding(3, 0, 3, 0),
-                    Maximum = new decimal(new[] {99, 0, 0, 0}),
+                    Maximum = new decimal(new[] { 99, 0, 0, 0 }),
                     MinimumSize = new Size(35, 0),
                     Name = "nudKarma"
                 };
@@ -128,33 +126,31 @@ namespace Chummer.UI.Attributes
                     AutoSize = true,
                     InterceptMouseWheel = NumericUpDownEx.InterceptMouseWheelMode.WhenMouseOver,
                     Margin = new Padding(3, 0, 3, 0),
-                    Maximum = new decimal(new[] {99, 0, 0, 0}),
+                    Maximum = new decimal(new[] { 99, 0, 0, 0 }),
                     MinimumSize = new Size(35, 0),
                     Name = "nudBase"
                 };
                 nudBase.BeforeValueIncrement += nudBase_BeforeValueIncrement;
                 nudBase.ValueChanged += nudBase_ValueChanged;
 
-                nudBase.DoDatabinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
+                nudBase.DoOneWayDataBinding("Visible", _objCharacter, nameof(Character.EffectiveBuildMethodUsesPriorityTables));
                 nudBase.DoOneWayDataBinding("Maximum", _dataSource, nameof(CharacterAttrib.PriorityMaximum));
-                nudBase.DoDatabinding("Value", _dataSource, nameof(CharacterAttrib.Base));
+                nudBase.DoDataBinding("Value", _dataSource, nameof(CharacterAttrib.Base));
                 nudBase.DoOneWayDataBinding("Enabled", _dataSource, nameof(CharacterAttrib.BaseUnlocked));
-                nudBase.InterceptMouseWheel = GlobalOptions.InterceptMode;
+                nudBase.InterceptMouseWheel = GlobalSettings.InterceptMode;
 
                 nudKarma.DoOneWayDataBinding("Maximum", _dataSource, nameof(CharacterAttrib.KarmaMaximum));
-                nudKarma.DoDatabinding("Value", _dataSource, nameof(CharacterAttrib.Karma));
-                nudKarma.InterceptMouseWheel = GlobalOptions.InterceptMode;
-
-                nudBase.UpdateLightDarkMode();
-                nudBase.TranslateWinForm();
-                nudKarma.UpdateLightDarkMode();
-                nudKarma.TranslateWinForm();
+                nudKarma.DoDataBinding("Value", _dataSource, nameof(CharacterAttrib.Karma));
+                nudKarma.InterceptMouseWheel = GlobalSettings.InterceptMode;
 
                 flpRight.Controls.Add(nudKarma);
                 flpRight.Controls.Add(nudBase);
             }
 
             ResumeLayout();
+
+            this.UpdateLightDarkMode();
+            this.TranslateWinForm();
         }
 
         private void AttributePropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -220,9 +216,9 @@ namespace Chummer.UI.Attributes
             }
         }
 
-		private void cmdImproveATT_Click(object sender, EventArgs e)
-		{
-		    CharacterAttrib attrib = _objCharacter.AttributeSection.GetAttributeByName(AttributeName);
+        private void cmdImproveATT_Click(object sender, EventArgs e)
+        {
+            CharacterAttrib attrib = _objCharacter.AttributeSection.GetAttributeByName(AttributeName);
             int intUpgradeKarmaCost = attrib.UpgradeKarmaCost;
 
             if (intUpgradeKarmaCost == -1) return; //TODO: more descriptive
@@ -232,12 +228,12 @@ namespace Chummer.UI.Attributes
                 return;
             }
 
-            string confirmstring = string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_ConfirmKarmaExpense"), attrib.DisplayNameFormatted, attrib.Value + 1, intUpgradeKarmaCost);
+            string confirmstring = string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_ConfirmKarmaExpense"), attrib.DisplayNameFormatted, attrib.Value + 1, intUpgradeKarmaCost);
             if (!CommonFunctions.ConfirmKarmaExpense(confirmstring))
                 return;
 
-		    attrib.Upgrade();
-	        ValueChanged?.Invoke(this, e);
+            attrib.Upgrade();
+            ValueChanged?.Invoke(this, e);
         }
 
         private void nudBase_ValueChanged(object sender, EventArgs e)
@@ -320,7 +316,7 @@ namespace Chummer.UI.Attributes
                 return true;
             //TODO: This should be in AttributeSection, but I can't be bothered finagling the option into working.
             //Ideally return 2 or 1, allow for an improvement type to increase or decrease the value.
-            int intMaxOtherAttributesAtMax = _objCharacter.Options.Allow2ndMaxAttribute ? 1 : 0;
+            int intMaxOtherAttributesAtMax = _objCharacter.Settings.Allow2ndMaxAttribute ? 1 : 0;
             int intNumOtherAttributeAtMax = _objCharacter.AttributeSection.AttributeList.Count(att =>
                 att.AtMetatypeMaximum && att.Abbrev != AttributeName && att.MetatypeCategory == CharacterAttrib.AttributeCategory.Standard);
 
@@ -339,7 +335,7 @@ namespace Chummer.UI.Attributes
         private void cmdBurnEdge_Click(object sender, EventArgs e)
         {
             // Edge cannot go below 1.
-            if (_objAttribute.Value == 0)
+            if (_objAttribute.Value <= 0)
             {
                 Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_CannotBurnEdge"), LanguageManager.GetString("MessageTitle_CannotBurnEdge"), MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
@@ -349,9 +345,9 @@ namespace Chummer.UI.Attributes
             if (Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_BurnEdge"), LanguageManager.GetString("MessageTitle_BurnEdge"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
                 return;
 
-			_objAttribute.Degrade(1);
-			ValueChanged?.Invoke(this, e);
-		}
+            _objAttribute.Degrade(1);
+            ValueChanged?.Invoke(this, e);
+        }
 
         private void nudBase_BeforeValueIncrement(object sender, CancelEventArgs e)
         {
@@ -387,43 +383,42 @@ namespace Chummer.UI.Attributes
         /// I'm not super pleased with how this works, but it's functional so w/e.
         /// The goal is for controls to retain the ability to display tooltips even while disabled. IT DOES NOT WORK VERY WELL.
         /// </summary>
+
         #region ButtonWithToolTip Visibility workaround
 
-        ButtonWithToolTip _activeButton;
+        private ButtonWithToolTip _activeButton;
+
         protected ButtonWithToolTip ActiveButton
         {
             get => _activeButton;
             set
             {
-                if (value == ActiveButton) return;
+                if (value == ActiveButton)
+                    return;
                 ActiveButton?.ToolTipObject.Hide(this);
                 _activeButton = value;
-                if (_activeButton?.Visible == true)
+                if (ActiveButton?.Visible == true)
                 {
-                    ActiveButton?.ToolTipObject.Show(ActiveButton?.ToolTipText, this);
+                    ActiveButton.ToolTipObject.Show(ActiveButton.ToolTipText, this);
                 }
             }
         }
 
-        protected Control FindToolTipControl(Point pt)
+        private ButtonWithToolTip FindToolTipControl(Point pt)
         {
-            foreach (Control c in Controls)
-            {
-                if (!(c is ButtonWithToolTip)) continue;
-                if (c.Bounds.Contains(pt)) return c;
-            }
-            return null;
+            return Controls.OfType<ButtonWithToolTip>().FirstOrDefault(c => c.Bounds.Contains(pt));
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
-            ActiveButton = FindToolTipControl(e.Location) as ButtonWithToolTip;
+            ActiveButton = FindToolTipControl(e.Location);
         }
 
         private void OnMouseLeave(object sender, EventArgs e)
         {
             ActiveButton = null;
         }
-#endregion
+
+        #endregion ButtonWithToolTip Visibility workaround
     }
 }

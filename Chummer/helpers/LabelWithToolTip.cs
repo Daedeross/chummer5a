@@ -16,6 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System.Windows.Forms;
 
 namespace Chummer
@@ -24,25 +25,14 @@ namespace Chummer
     {
         private readonly int _intToolTipWrap;
 
-        private ToolTip _tt;
+        private readonly ToolTip _objToolTip;
+
         // ReSharper disable once MemberCanBePrivate.Global
         // Used by databinding
-        public ToolTip ToolTipObject
-        {
-            // ReSharper disable once UnusedMember.Global
-            // Used by databinding
-            get => _tt;
-            private set
-            {
-                if (_tt != value)
-                {
-                    _tt?.Hide(this);
-                    _tt = value;
-                }
-            }
-        }
+        public ToolTip ToolTipObject => _objToolTip;
 
         private string _strToolTipText = string.Empty;
+
         public string ToolTipText
         {
             // ReSharper disable once UnusedMember.Global
@@ -50,30 +40,31 @@ namespace Chummer
             get => _strToolTipText;
             set
             {
-                value = value.WordWrap(_intToolTipWrap);
-                if (_strToolTipText != value)
-                {
-                    _strToolTipText = value;
-                    _tt.SetToolTip(this, value);
-                }
+                value = _intToolTipWrap > 0 ? value.WordWrap(_intToolTipWrap) : value.WordWrap();
+                if (_strToolTipText == value)
+                    return;
+                _strToolTipText = value;
+                _objToolTip.SetToolTip(this, value.CleanForHtml());
             }
         }
 
-        public LabelWithToolTip() : this(ToolTipFactory.ToolTip) { }
+        public LabelWithToolTip() : this(ToolTipFactory.ToolTip)
+        {
+        }
 
         // ReSharper disable once MemberCanBePrivate.Global
-        public LabelWithToolTip(ToolTip objToolTip, int intToolTipWrap = 100)
+        public LabelWithToolTip(ToolTip objToolTip, int intToolTipWrap = -1)
         {
-            ToolTipObject = objToolTip;
+            _objToolTip = objToolTip;
             _intToolTipWrap = intToolTipWrap;
             DoubleBuffered = true;
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && _tt != null && _tt != ToolTipFactory.ToolTip)
+            if (disposing && _objToolTip != null && _objToolTip != ToolTipFactory.ToolTip)
             {
-                _tt.Dispose();
+                _objToolTip.Dispose();
             }
             base.Dispose(disposing);
         }

@@ -20,14 +20,14 @@ namespace ChummerHub.Client.Sinners
 {
     public sealed class CharacterExtended : IDisposable
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         public CharacterExtended(Character character, CharacterCache myCharacterCache = null, bool blnDoSave = true)
         {
             MyCharacter = character ?? throw new ArgumentNullException(nameof(character));
             MyCharacterCache = myCharacterCache ?? new CharacterCache(MyCharacter.FileName);
             MySINnerFile = new SINner
             {
-                Language = GlobalOptions.Language,
+                Language = GlobalSettings.Language,
                 SiNnerMetaData = new SINnerMetaData
                 {
                     Id = Guid.NewGuid(),
@@ -186,7 +186,7 @@ namespace ChummerHub.Client.Sinners
                     {
                         try
                         {
-                            ResultSinnerGetSINById found;
+                            ResultSinnerGetSINById found = null;
                             using (_ = Timekeeper.StartSyncron(
                                 "Checking if already online Chummer", op_uploadChummer,
                                 CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
@@ -212,8 +212,24 @@ namespace ChummerHub.Client.Sinners
                                 }
 
                                 var client = StaticUtils.GetClient();
-                                found = await client.GetSINByIdAsync(MySINnerFile.Id.GetValueOrDefault());
-                                await Utils.ShowErrorResponseFormAsync(found);
+                                try
+                                {
+
+
+                                    found = await client.GetSINByIdAsync(MySINnerFile.Id.GetValueOrDefault());
+                                    await Utils.ShowErrorResponseFormAsync(found);
+                                }
+                                catch(ApiException ae)
+                                {
+                                    if (ae.StatusCode == 404)
+                                        found = new ResultSinnerGetSINById()
+                                        {
+                                            CallSuccess = false,
+                                            MyException = ae,
+                                            MySINner = null,
+                                            ErrorText = "SINner not found online"
+                                        };
+                                }
                             }
 
                             if (myState != null)
@@ -225,7 +241,7 @@ namespace ChummerHub.Client.Sinners
                             {
                                 if (found?.CallSuccess == true)
                                 {
-                                    if (found.MySINner.LastChange >= MyCharacter.FileLastWriteTime)
+                                    if (found.MySINner != null && found.MySINner.LastChange >= MyCharacter.FileLastWriteTime)
                                     {
                                         if (myState != null)
                                         {
@@ -246,7 +262,7 @@ namespace ChummerHub.Client.Sinners
                                     if (MySINnerFile.SiNnerMetaData.Visibility.UserRights.Count == 0)
                                     {
                                         MySINnerFile.SiNnerMetaData.Visibility.UserRights =
-                                            found.MySINner.SiNnerMetaData.Visibility.UserRights;
+                                            found.MySINner?.SiNnerMetaData.Visibility.UserRights;
                                     }
                                 }
                             }
@@ -285,8 +301,27 @@ namespace ChummerHub.Client.Sinners
                                 "Posting SINner", op_uploadChummer,
                                 CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
                             {
-                                res = await Utils.PostSINnerAsync(this);
-                                await Utils.ShowErrorResponseFormAsync(res);
+                                res = null;
+                                try
+                                {
+                                    res = await Utils.PostSINnerAsync(this);
+                                    await Utils.ShowErrorResponseFormAsync(res);
+                                }
+                                catch(ApiException ae)
+                                {
+                                    //202 is kind of a special case (and probably wrongly handled in swagger.cs)
+                                    if (ae.StatusCode == 202)
+                                    {
+                                        Log.Trace("SINner posted, next step: uploading the file!");
+                                        res = new ResultSinnerPostSIN() { CallSuccess = true };
+                                    }
+                                    else
+                                    {
+                                        throw;    
+                                    }
+                                    
+                                }
+
                             }
 
                             if (myState != null)
@@ -349,7 +384,7 @@ namespace ChummerHub.Client.Sinners
                 }
                 catch (Exception e)
                 {
-                    op_uploadChummer?.tc?.TrackException(e);
+                    op_uploadChummer?.MyTelemetryClient?.TrackException(e);
                     Utils.HandleError(e);
                     throw;
                 }
@@ -401,8 +436,7 @@ namespace ChummerHub.Client.Sinners
                     child.Text += tag.TagName;
                     if (!string.IsNullOrEmpty(tag.TagValue))
                         child.Text += ": " + tag.TagValue;
-
-                    PopulateTree(ref child, tag.Tags.ToArray(), filtertags);
+                    PopulateTree(ref child, tag.Tags?.ToArray(), filtertags);
                     root.Nodes.Add(child);
                 }
             }
@@ -559,6 +593,25 @@ namespace ChummerHub.Client.Sinners
                         UserRights = ucSINnersOptions.SINnerVisibility.UserRights
                     };
             }
+            if (!String.IsNullOrEmpty(Settings.Default.UserEmail))
+            {
+                if (MySINnerFile.SiNnerMetaData.Visibility.UserRights.Any(a => a.EMail.ToLowerInvariant() == "delete.this.and.add@your.mail"))
+                {
+                    var found = MySINnerFile.SiNnerMetaData.Visibility.UserRights.Where(a => a.EMail.ToLowerInvariant() == "delete.this.and.add@your.mail").ToList();
+                    foreach (var one in found)
+                        MySINnerFile.SiNnerMetaData.Visibility.UserRights.Remove(one);
+                }
+            }
+            if (!MySINnerFile.SiNnerMetaData.Visibility.UserRights.Any())
+            {
+                MySINnerFile.SiNnerMetaData.Visibility.UserRights.Add(new SINnerUserRight()
+                {
+                    Id = Guid.NewGuid(),
+                    CanEdit = true,
+                    EMail = Settings.Default.UserEmail
+                });
+            }
+
 
             if (MySINnerFile.SiNnerMetaData.Visibility.Id == ucSINnersOptions.SINnerVisibility.Id)
             {
@@ -582,6 +635,12 @@ namespace ChummerHub.Client.Sinners
                     ur.Id = Guid.NewGuid();
                 }
             }
+
+            if (MySINnerFile.MyGroup == null)
+                MySINnerFile.MyGroup = new SINnerGroup(null)
+                {
+                    Id = Guid.Empty
+                };
 
             var tempDir = Path.Combine(Path.GetTempPath(), "SINner", MySINnerFile.Id.Value.ToString());
             if (!Directory.Exists(tempDir))

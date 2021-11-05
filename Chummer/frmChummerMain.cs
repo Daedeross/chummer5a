@@ -16,43 +16,39 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Reflection;
+using Microsoft.ApplicationInsights.DataContracts;
+using NLog;
 using Application = System.Windows.Forms.Application;
 using DataFormats = System.Windows.Forms.DataFormats;
 using DragDropEffects = System.Windows.Forms.DragDropEffects;
 using DragEventArgs = System.Windows.Forms.DragEventArgs;
 using Path = System.IO.Path;
 using Size = System.Drawing.Size;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using System.ComponentModel;
-using System.Drawing;
-using System.Net;
-using System.Text;
-using System.Threading;
-using Microsoft.ApplicationInsights.DataContracts;
-using NLog;
 
 namespace Chummer
 {
     public sealed partial class frmChummerMain : Form
     {
-        private static readonly Logger Log = LogManager.GetCurrentClassLogger();
+        private bool _blnAbleToReceiveData;
+        private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private frmDiceRoller _frmRoller;
         private frmLoading _frmProgressBar;
         private frmUpdate _frmUpdate;
         private readonly ThreadSafeObservableCollection<Character> _lstCharacters = new ThreadSafeObservableCollection<Character>();
         private readonly ObservableCollection<CharacterShared> _lstOpenCharacterForms = new ObservableCollection<CharacterShared>();
-        private CancellationTokenSource _objVersionUpdaterCancellationTokenSource;
-        private Task _tskVersionUpdate;
-        private readonly Version _objCurrentVersion = Assembly.GetExecutingAssembly().GetName().Version;
         private readonly string _strCurrentVersion;
         private Chummy _mascotChummy;
 
@@ -70,6 +66,7 @@ namespace Chummer
         }
 
         #region Control Events
+
         public frmChummerMain(bool isUnitTest = false)
         {
             Utils.IsUnitTest = isUnitTest;
@@ -78,17 +75,17 @@ namespace Chummer
             this.UpdateLightDarkMode();
             this.TranslateWinForm();
             _strCurrentVersion =
-                string.Format(GlobalOptions.InvariantCultureInfo, "{0}.{1}.{2}", _objCurrentVersion.Major, _objCurrentVersion.Minor, _objCurrentVersion.Build);
+                string.Format(GlobalSettings.InvariantCultureInfo, "{0}.{1}.{2}", Program.CurrentVersion.Major, Program.CurrentVersion.Minor, Program.CurrentVersion.Build);
 
             //lets write that in separate lines to see where the exception is thrown
-            if (!GlobalOptions.HideMasterIndex || isUnitTest)
+            if (!GlobalSettings.HideMasterIndex || isUnitTest)
             {
                 MasterIndex = new frmMasterIndex
                 {
                     MdiParent = this
                 };
             }
-            if (!GlobalOptions.HideCharacterRoster || isUnitTest)
+            if (!GlobalSettings.HideCharacterRoster || isUnitTest)
             {
                 CharacterRoster = new frmCharacterRoster
                 {
@@ -97,7 +94,7 @@ namespace Chummer
             }
         }
 
-        private static readonly string[] s_astrPreloadFileNames =
+        private static readonly ReadOnlyCollection<string> s_PreloadFileNames = Array.AsReadOnly(new[]
         {
             "actions.xml",
             "armor.xml",
@@ -136,23 +133,36 @@ namespace Chummer
             "traditions.xml",
             "vehicles.xml",
             "weapons.xml"
-        };
+        });
 
         //Moved most of the initialization out of the constructor to allow the Mainform to be generated fast
         //in case of a commandline argument not asking for the mainform to be shown.
         private async void frmChummerMain_Load(object sender, EventArgs e)
         {
-            using (var op_frmChummerMain = Timekeeper.StartSyncron("frmChummerMain_Load", null, CustomActivity.OperationType.DependencyOperation, _strCurrentVersion))
+            using (CustomActivity opFrmChummerMain = Timekeeper.StartSyncron("frmChummerMain_Load", null, CustomActivity.OperationType.DependencyOperation, _strCurrentVersion))
             {
                 try
                 {
-                    op_frmChummerMain.MyDependencyTelemetry.Type = "loadfrmChummerMain";
-                    op_frmChummerMain.MyDependencyTelemetry.Target = _strCurrentVersion;
+                    opFrmChummerMain.MyDependencyTelemetry.Type = "loadfrmChummerMain";
+                    opFrmChummerMain.MyDependencyTelemetry.Target = _strCurrentVersion;
 
-                    if (MyStartupPVT != null)
+                    if (MyStartupPvt != null)
                     {
-                        MyStartupPVT.Duration = DateTimeOffset.UtcNow - MyStartupPVT.Timestamp;
-                        op_frmChummerMain.tc.TrackPageView(MyStartupPVT);
+                        MyStartupPvt.Duration = DateTimeOffset.UtcNow - MyStartupPvt.Timestamp;
+                        opFrmChummerMain.MyTelemetryClient.TrackPageView(MyStartupPvt);
+                    }
+
+                    NativeMethods.ChangeFilterStruct changeFilter = new NativeMethods.ChangeFilterStruct();
+                    changeFilter.size = (uint)Marshal.SizeOf(changeFilter);
+                    changeFilter.info = 0;
+                    if (NativeMethods.ChangeWindowMessageFilterEx(Handle, NativeMethods.WM_COPYDATA,
+                        NativeMethods.ChangeWindowMessageFilterExAction.Allow, ref changeFilter))
+                        _blnAbleToReceiveData = true;
+                    else
+                    {
+                        int intErrorCode = Marshal.GetLastWin32Error();
+                        Utils.BreakIfDebug();
+                        Log.Error("The error " + intErrorCode + " occurred while attempting to unblock WM_COPYDATA.");
                     }
 
                     Text = MainTitle;
@@ -166,7 +176,7 @@ namespace Chummer
                     CheckForUpdate();
 #endif
 
-                    GlobalOptions.MRUChanged += (senderInner, eInner) => this.DoThreadSafe(() => PopulateMRUToolstripMenu(senderInner, eInner));
+                    GlobalSettings.MruChanged += (senderInner, eInner) => this.DoThreadSafe(() => PopulateMruToolstripMenu(senderInner, eInner));
 
                     // Delete the old executable if it exists (created by the update process).
                     foreach (string strLoopOldFilePath in Directory.GetFiles(Utils.GetStartupPath, "*.old", SearchOption.AllDirectories))
@@ -175,46 +185,27 @@ namespace Chummer
                     }
 
                     // Populate the MRU list.
-                    PopulateMRUToolstripMenu(this, null);
+                    PopulateMruToolstripMenu(this, null);
 
                     Program.MainForm = this;
 
                     using (new CursorWait(this))
+                    using (ThreadSafeList<Character> lstCharactersToLoad = new ThreadSafeList<Character>(1))
                     {
-                        ThreadSafeList<Character> lstCharactersToLoad = new ThreadSafeList<Character>();
                         Task objCharacterLoadingTask = null;
-                        using (_frmProgressBar = CreateAndShowProgressBar(Text, (GlobalOptions.AllowEasterEggs ? 4 : 3) + s_astrPreloadFileNames.Length))
+                        using (_frmProgressBar = CreateAndShowProgressBar(Text, (GlobalSettings.AllowEasterEggs ? 4 : 3) + s_PreloadFileNames.Count))
                         {
-#if DEBUG
-                            if (!Utils.IsUnitTest && GlobalOptions.ShowCharacterCustomDataWarning &&
-                                CurrentVersion.Minor < 215)
-#else
-                            if (!Utils.IsUnitTest && GlobalOptions.ShowCharacterCustomDataWarning && CurrentVersion.Build > 0 && CurrentVersion.Minor < 215)
-#endif
-                            {
-                                if (ShowMessageBox(LanguageManager.GetString("Message_CharacterCustomDataWarning"),
-                                    LanguageManager.GetString("MessageTitle_CharacterCustomDataWarning"),
-                                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
-                                {
-                                    Application.Exit();
-                                    return;
-                                }
-
-                                GlobalOptions.ShowCharacterCustomDataWarning = false;
-                            }
-
                             // Attempt to cache all XML files that are used the most.
-                            using (_ = Timekeeper.StartSyncron("cache_load", op_frmChummerMain))
+                            using (_ = Timekeeper.StartSyncron("cache_load", opFrmChummerMain))
                             {
-                                await Task.Run(() =>
-                                    Parallel.ForEach(s_astrPreloadFileNames, x =>
-                                    {
-                                        // Load default language data first for performance reasons
-                                        if (!GlobalOptions.Language.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
-                                            XmlManager.Load(x, null, GlobalOptions.DefaultLanguage);
-                                        XmlManager.Load(x);
-                                        _frmProgressBar.PerformStep(Application.ProductName);
-                                    }));
+                                await Task.WhenAll(s_PreloadFileNames.Select(x => Task.Run(() =>
+                                {
+                                    // Load default language data first for performance reasons
+                                    if (!GlobalSettings.Language.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                                        XmlManager.Load(x, null, GlobalSettings.DefaultLanguage);
+                                    XmlManager.Load(x);
+                                    _frmProgressBar.PerformStep(Application.ProductName, frmLoading.ProgressBarTextPatterns.Initializing);
+                                })));
                                 //Timekeeper.Finish("cache_load");
                             }
 
@@ -226,79 +217,86 @@ namespace Chummer
                             // Retrieve the arguments passed to the application. If more than 1 is passed, we're being given the name of a file to open.
                             string[] strArgs = Environment.GetCommandLineArgs();
                             bool blnShowTest = false;
-                            if (!Utils.IsUnitTest && strArgs.Length > 1)
+                            if (!Utils.IsUnitTest)
                             {
-                                HashSet<string> setFilesToLoad = new HashSet<string>();
-                                try
-                                {
-                                    foreach (string strArg in strArgs)
-                                    {
-                                        if (strArg.EndsWith(Path.GetFileName(Application.ExecutablePath)))
-                                            continue;
-                                        switch (strArg)
-                                        {
-                                            case "/test":
-                                                blnShowTest = true;
-                                                break;
-                                            case "/help":
-                                            case "?":
-                                            case "/?":
-                                            {
-                                                string msg = "Commandline parameters are either " + Environment.NewLine;
-                                                msg += "\t/test" + Environment.NewLine;
-                                                msg += "\t/help" + Environment.NewLine;
-                                                msg += "\t(filename to open)" + Environment.NewLine;
-                                                msg +=
-                                                    "\t/plugin:pluginname (like \"SINners\") to trigger (with additional parameters following the symbol \":\")" +
-                                                    Environment.NewLine;
-                                                Console.WriteLine(msg);
-                                                break;
-                                            }
-                                            default:
-                                            {
-                                                if (strArg.Contains("/plugin"))
-                                                {
-                                                    Log.Info(
-                                                        "Encountered command line argument, that should already have been handled in one of the plugins: " +
-                                                        strArg);
-                                                }
-                                                else if (!strArg.StartsWith('/'))
-                                                {
-                                                    if (!File.Exists(strArg))
-                                                    {
-                                                        throw new ArgumentException(
-                                                            "Chummer started with unknown command line arguments: " +
-                                                            strArgs.Aggregate((j, k) => j + " " + k));
-                                                    }
-                                                    if (Path.GetExtension(strArg) != ".chum5")
-                                                        Utils.BreakIfDebug();
-                                                    if (setFilesToLoad.Contains(strArg))
-                                                        continue;
-                                                    setFilesToLoad.Add(strArg);
-                                                }
+                                ProcessCommandLineArguments(strArgs, out blnShowTest, out HashSet<string> setFilesToLoad, opFrmChummerMain);
 
-                                                break;
-                                            }
+                                if (Directory.Exists(Utils.GetAutosavesFolderPath))
+                                {
+                                    // Always process newest autosave if all MRUs are empty
+                                    bool blnAnyAutosaveInMru = GlobalSettings.MostRecentlyUsedCharacters.Count == 0 &&
+                                                               GlobalSettings.FavoriteCharacters.Count == 0; 
+                                    FileInfo objMostRecentAutosave = null;
+                                    List<string> lstOldAutosaves = new List<string>();
+                                    DateTime objOldAutosaveTimeThreshold =
+                                        DateTime.UtcNow.Subtract(TimeSpan.FromDays(90));
+                                    foreach (string strAutosave in Directory.EnumerateFiles(
+                                        Utils.GetAutosavesFolderPath,
+                                        "*.chum5", SearchOption.AllDirectories))
+                                    {
+                                        FileInfo objAutosave;
+                                        try
+                                        {
+                                            objAutosave = new FileInfo(strAutosave);
                                         }
+                                        catch (System.Security.SecurityException)
+                                        {
+                                            continue;
+                                        }
+                                        catch (UnauthorizedAccessException)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (objMostRecentAutosave == null || objAutosave.LastWriteTimeUtc >
+                                            objMostRecentAutosave.LastWriteTimeUtc)
+                                            objMostRecentAutosave = objAutosave;
+                                        if (GlobalSettings.MostRecentlyUsedCharacters.Any(x =>
+                                                Path.GetFileName(x) == objAutosave.Name) ||
+                                            GlobalSettings.FavoriteCharacters.Any(x =>
+                                                Path.GetFileName(x) == objAutosave.Name))
+                                            blnAnyAutosaveInMru = true;
+                                        else if (objAutosave != objMostRecentAutosave &&
+                                                 objAutosave.LastWriteTimeUtc < objOldAutosaveTimeThreshold &&
+                                                 !setFilesToLoad.Contains(strAutosave))
+                                            lstOldAutosaves.Add(strAutosave);
                                     }
-                                    
+
+                                    if (objMostRecentAutosave != null)
+                                    {
+                                        // Might have had a crash for an unsaved character, so prompt if we want to load them
+                                        if (blnAnyAutosaveInMru &&
+                                            !setFilesToLoad.Contains(objMostRecentAutosave.FullName) &&
+                                            GlobalSettings.MostRecentlyUsedCharacters.All(x =>
+                                                Path.GetFileName(x) != objMostRecentAutosave.Name) &&
+                                            GlobalSettings.FavoriteCharacters.All(x =>
+                                                Path.GetFileName(x) != objMostRecentAutosave.Name) && ShowMessageBox(
+                                                string.Format(GlobalSettings.CultureInfo,
+                                                    LanguageManager.GetString("Message_PossibleCrashAutosaveFound"),
+                                                    objMostRecentAutosave.Name,
+                                                    objMostRecentAutosave.LastWriteTimeUtc.ToLocalTime()),
+                                                LanguageManager.GetString("MessageTitle_AutosaveFound"),
+                                                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                                            setFilesToLoad.Add(objMostRecentAutosave.FullName);
+                                        else if (objMostRecentAutosave.LastWriteTimeUtc < objOldAutosaveTimeThreshold)
+                                            lstOldAutosaves.Add(objMostRecentAutosave.FullName);
+                                    }
+
+                                    // Delete all old autosaves
+                                    foreach (string strOldAutosave in lstOldAutosaves)
+                                    {
+                                        Utils.SafeDeleteFile(strOldAutosave);
+                                    }
+                                }
+
+                                if (setFilesToLoad.Count > 0)
                                     objCharacterLoadingTask = Task.Run(() =>
                                         Parallel.ForEach(setFilesToLoad, x =>
                                         {
                                             Character objCharacter = LoadCharacter(x);
+                                            // ReSharper disable once AccessToDisposedClosure
                                             lstCharactersToLoad.Add(objCharacter);
                                         }));
-                                }
-                                catch (Exception ex)
-                                {
-                                    op_frmChummerMain.SetSuccess(false);
-                                    ExceptionTelemetry ext = new ExceptionTelemetry(ex)
-                                    {
-                                        SeverityLevel = SeverityLevel.Warning
-                                    };
-                                    op_frmChummerMain.tc.TrackException(ext);
-                                    Log.Warn(ex);
-                                }
                             }
 
                             _frmProgressBar.PerformStep(LanguageManager.GetString("Title_MasterIndex"));
@@ -319,7 +317,7 @@ namespace Chummer
                                 CharacterRoster.Show();
                             }
 
-                            if (GlobalOptions.AllowEasterEggs)
+                            if (GlobalSettings.AllowEasterEggs)
                             {
                                 _frmProgressBar.PerformStep(LanguageManager.GetString("String_Chummy"));
                                 _mascotChummy = new Chummy(null);
@@ -340,7 +338,7 @@ namespace Chummer
                             }
                         }
 
-                        Program.PluginLoader.CallPlugins(toolsMenu, op_frmChummerMain);
+                        Program.PluginLoader.CallPlugins(toolsMenu, opFrmChummerMain);
 
                         // Set the Tag for each ToolStrip item so it can be translated.
                         foreach (ToolStripMenuItem tssItem in menuStrip.Items.OfType<ToolStripMenuItem>())
@@ -363,12 +361,11 @@ namespace Chummer
                 }
                 catch (Exception ex)
                 {
-                    if (op_frmChummerMain != null)
+                    if (opFrmChummerMain != null)
                     {
-                        op_frmChummerMain.SetSuccess(false);
-                        op_frmChummerMain.tc.TrackException(ex);
+                        opFrmChummerMain.SetSuccess(false);
+                        opFrmChummerMain.MyTelemetryClient.TrackException(ex);
                     }
-
                     Log.Error(ex);
                     throw;
                 }
@@ -417,89 +414,66 @@ namespace Chummer
                     Location = Properties.Settings.Default.Location;
                     Size = Properties.Settings.Default.Size;
                 }
-                if (!Utils.IsUnitTest && GlobalOptions.StartupFullscreen)
+                if (!Utils.IsUnitTest && GlobalSettings.StartupFullscreen)
                     WindowState = FormWindowState.Maximized;
             }
 
             IsFinishedLoading = true;
         }
 
-        public PageViewTelemetry MyStartupPVT { get; set; }
+        public PageViewTelemetry MyStartupPvt { get; set; }
 
-        private void LstOpenCharacterFormsOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private async void LstOpenCharacterFormsOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if(CharacterRoster != null)
+            if (CharacterRoster == null)
+                return;
+            switch (e.Action)
             {
-                switch(e.Action)
-                {
-                    case NotifyCollectionChangedAction.Add:
-                        CharacterRoster.RefreshNodes();
-                        break;
-                    case NotifyCollectionChangedAction.Move:
-                    case NotifyCollectionChangedAction.Remove:
-                        {
-                            bool blnRefreshSticky = false;
-                            foreach(CharacterShared objClosedForm in e.OldItems)
-                            {
-                                if(GlobalOptions.FavoritedCharacters.Contains(objClosedForm.CharacterObject.FileName))
-                                {
-                                    blnRefreshSticky = true;
-                                    break;
-                                }
-                            }
+                case NotifyCollectionChangedAction.Add:
+                    CharacterRoster.RefreshNodeTexts();
+                    break;
 
-                            // Need a full refresh because the recents list in the character roster also shows open characters that are not in the most recently used list because of it being too full
-                            CharacterRoster.PopulateCharacterList(this, new TextEventArgs(blnRefreshSticky ? "stickymru" : "mru"));
-                        }
-                        break;
-                    case NotifyCollectionChangedAction.Replace:
-                        {
-                            bool blnRefreshSticky = false;
-                            foreach(CharacterShared objClosedForm in e.OldItems)
-                            {
-                                if(GlobalOptions.FavoritedCharacters.Contains(objClosedForm.CharacterObject.FileName))
-                                {
-                                    blnRefreshSticky = true;
-                                    break;
-                                }
-                            }
+                case NotifyCollectionChangedAction.Move:
+                case NotifyCollectionChangedAction.Remove:
+                    {
+                        // Need a full refresh because the recents list in the character roster also shows open characters that are not in the most recently used list because of it being too full
+                        await CharacterRoster.RefreshMruLists(e.OldItems.Cast<CharacterShared>().Any(objClosedForm =>
+                            GlobalSettings.FavoriteCharacters.Contains(objClosedForm.CharacterObject.FileName))
+                            ? "stickymru"
+                            : "mru");
+                    }
+                    break;
 
-                            if(!blnRefreshSticky)
-                            {
-                                foreach(CharacterShared objNewForm in e.NewItems)
-                                {
-                                    if(GlobalOptions.FavoritedCharacters.Contains(objNewForm.CharacterObject.FileName))
-                                    {
-                                        blnRefreshSticky = true;
-                                        break;
-                                    }
-                                }
-                            }
+                case NotifyCollectionChangedAction.Replace:
+                    {
+                        // Need a full refresh because the recents list in the character roster also shows open characters that are not in the most recently used list because of it being too full
+                        await CharacterRoster.RefreshMruLists(e.OldItems.Cast<CharacterShared>()
+                            .Concat(e.NewItems.Cast<CharacterShared>()).Any(objClosedForm =>
+                                GlobalSettings.FavoriteCharacters.Contains(objClosedForm.CharacterObject.FileName))
+                            ? "stickymru"
+                            : "mru");
+                    }
+                    break;
 
-                            // Need a full refresh because the recents list in the character roster also shows open characters that are not in the most recently used list because of it being too full
-                            CharacterRoster.PopulateCharacterList(this, new TextEventArgs(blnRefreshSticky ? "stickymru" : "mru"));
-                        }
-                        break;
-                    case NotifyCollectionChangedAction.Reset:
-                        CharacterRoster.PopulateCharacterList(this, null);
-                        break;
-                }
+                case NotifyCollectionChangedAction.Reset:
+                    await CharacterRoster.RefreshMruLists(string.Empty);
+                    break;
             }
         }
 
         private void LstCharactersOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs notifyCollectionChangedEventArgs)
         {
-            switch(notifyCollectionChangedEventArgs.Action)
+            switch (notifyCollectionChangedEventArgs.Action)
             {
                 case NotifyCollectionChangedAction.Add:
                     {
-                        foreach(Character objCharacter in notifyCollectionChangedEventArgs.NewItems)
+                        foreach (Character objCharacter in notifyCollectionChangedEventArgs.NewItems)
                             objCharacter.PropertyChanged += UpdateCharacterTabTitle;
                         break;
                     }
                 case NotifyCollectionChangedAction.Remove:
                     {
-                        foreach(Character objCharacter in notifyCollectionChangedEventArgs.OldItems)
+                        foreach (Character objCharacter in notifyCollectionChangedEventArgs.OldItems)
                         {
                             objCharacter.PropertyChanged -= UpdateCharacterTabTitle;
                             objCharacter.Dispose();
@@ -508,13 +482,13 @@ namespace Chummer
                     }
                 case NotifyCollectionChangedAction.Replace:
                     {
-                        foreach(Character objCharacter in notifyCollectionChangedEventArgs.OldItems)
+                        foreach (Character objCharacter in notifyCollectionChangedEventArgs.OldItems)
                         {
                             objCharacter.PropertyChanged -= UpdateCharacterTabTitle;
                             if (!notifyCollectionChangedEventArgs.NewItems.Contains(objCharacter))
                                 objCharacter.Dispose();
                         }
-                        foreach(Character objCharacter in notifyCollectionChangedEventArgs.NewItems)
+                        foreach (Character objCharacter in notifyCollectionChangedEventArgs.NewItems)
                             objCharacter.PropertyChanged += UpdateCharacterTabTitle;
                         break;
                     }
@@ -525,26 +499,33 @@ namespace Chummer
 
         public frmMasterIndex MasterIndex { get; }
 
-        private Uri UpdateLocation { get; } = new Uri(GlobalOptions.PreferNightlyBuilds
+#if !DEBUG
+        private Uri UpdateLocation { get; } = new Uri(GlobalSettings.PreferNightlyBuilds
             ? "https://api.github.com/repos/chummer5a/chummer5a/releases"
             : "https://api.github.com/repos/chummer5a/chummer5a/releases/latest");
 
+        private readonly Stopwatch _idleUpdateCheckStopWatch = Stopwatch.StartNew();
+
+        private Task _tskVersionUpdate;
+
+        private System.Threading.CancellationTokenSource _objVersionUpdaterCancellationTokenSource;
+
         private async Task DoCacheGitVersion()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            HttpWebRequest request;
+            System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+            System.Net.HttpWebRequest request;
             try
             {
-                WebRequest objTemp = WebRequest.Create(UpdateLocation);
-                request = objTemp as HttpWebRequest;
+                System.Net.WebRequest objTemp = System.Net.WebRequest.Create(UpdateLocation);
+                request = objTemp as System.Net.HttpWebRequest;
             }
-            catch(System.Security.SecurityException ex)
+            catch (System.Security.SecurityException ex)
             {
                 Utils.CachedGitVersion = null;
                 Log.Error(ex);
                 return;
             }
-            if(request == null)
+            if (request == null)
             {
                 Utils.CachedGitVersion = null;
                 return;
@@ -559,7 +540,7 @@ namespace Chummer
             try
             {
                 // Get the response.
-                using (HttpWebResponse response = await request.GetResponseAsync() as HttpWebResponse)
+                using (System.Net.HttpWebResponse response = await request.GetResponseAsync() as System.Net.HttpWebResponse)
                 {
                     if (response == null)
                     {
@@ -583,7 +564,7 @@ namespace Chummer
                             return;
 
                         // Open the stream using a StreamReader for easy access.
-                        using (StreamReader reader = new StreamReader(dataStream, Encoding.UTF8, true))
+                        using (StreamReader reader = new StreamReader(dataStream, System.Text.Encoding.UTF8, true))
                         {
                             if (_objVersionUpdaterCancellationTokenSource.IsCancellationRequested)
                                 return;
@@ -626,7 +607,7 @@ namespace Chummer
                     }
                 }
             }
-            catch (WebException ex)
+            catch (System.Net.WebException ex)
             {
                 Utils.CachedGitVersion = null;
                 Log.Error(ex);
@@ -635,36 +616,32 @@ namespace Chummer
 
         private void CheckForUpdate()
         {
-            _objVersionUpdaterCancellationTokenSource = new CancellationTokenSource();
-            _tskVersionUpdate = Task.Run(async() =>
+            _objVersionUpdaterCancellationTokenSource = new System.Threading.CancellationTokenSource();
+            _tskVersionUpdate = Task.Run(async () =>
             {
                 await DoCacheGitVersion();
                 if (_objVersionUpdaterCancellationTokenSource.IsCancellationRequested ||
                     Utils.GitUpdateAvailable <= 0)
                     return;
+                string strSpace = LanguageManager.GetString("String_Space");
+                string strNewText = Application.ProductName + strSpace + '-' + strSpace +
+                                    LanguageManager.GetString("String_Version")
+                                    + strSpace + _strCurrentVersion + strSpace + '-' + strSpace
+                                    + string.Format(GlobalSettings.CultureInfo,
+                                        LanguageManager.GetString("String_Update_Available"), Utils.CachedGitVersion);
                 await this.DoThreadSafeAsync(() =>
                 {
-                    if (GlobalOptions.AutomaticUpdate)
+                    if (GlobalSettings.AutomaticUpdate && _frmUpdate == null)
                     {
-                        if (_frmUpdate == null)
-                        {
-                            _frmUpdate = new frmUpdate();
-                            _frmUpdate.FormClosed += ResetFrmUpdate;
-                            _frmUpdate.SilentMode = true;
-                        }
+                        _frmUpdate = new frmUpdate();
+                        _frmUpdate.FormClosed += ResetFrmUpdate;
+                        _frmUpdate.SilentMode = true;
                     }
-
-                    string strSpace = LanguageManager.GetString("String_Space");
-                    Text = Application.ProductName + strSpace + '-' + strSpace +
-                           LanguageManager.GetString("String_Version")
-                           + strSpace + _strCurrentVersion + strSpace + '-' + strSpace
-                           + string.Format(GlobalOptions.CultureInfo,
-                               LanguageManager.GetString("String_Update_Available"), Utils.CachedGitVersion);
+                    Text = strNewText;
                 });
             }, _objVersionUpdaterCancellationTokenSource.Token);
         }
 
-        private readonly Stopwatch _idleUpdateCheckStopWatch = Stopwatch.StartNew();
         private void IdleUpdateCheck(object sender, EventArgs e)
         {
             // Automatically check for updates every hour
@@ -673,6 +650,7 @@ namespace Chummer
             _idleUpdateCheckStopWatch.Restart();
             CheckForUpdate();
         }
+#endif
 
         /*
         public sealed override string Text
@@ -696,38 +674,38 @@ namespace Chummer
 
         private void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            foreach(Form childForm in MdiChildren)
+            foreach (Form childForm in MdiChildren)
             {
                 if (childForm != CharacterRoster && childForm != MasterIndex)
                     childForm.Close();
             }
         }
 
-        private void mnuOptions_Click(object sender, EventArgs e)
+        private void mnuGlobalSettings_Click(object sender, EventArgs e)
         {
             using (new CursorWait(this))
-                using (frmOptions frmOptions = new frmOptions())
-                    frmOptions.ShowDialog(this);
+            using (frmGlobalSettings frmOptions = new frmGlobalSettings())
+                frmOptions.ShowDialog(this);
         }
 
-        private void mnuCharacterOptions_Click(object sender, EventArgs e)
+        private void mnuCharacterSettings_Click(object sender, EventArgs e)
         {
             using (new CursorWait(this))
-                using (frmCharacterOptions frmCharacterOptions = new frmCharacterOptions((tabForms.SelectedTab?.Tag as CharacterShared)?.CharacterObject?.Options))
-                    frmCharacterOptions.ShowDialog(this);
+            using (frmCharacterSettings frmCharacterOptions = new frmCharacterSettings((tabForms.SelectedTab?.Tag as CharacterShared)?.CharacterObject?.Settings))
+                frmCharacterOptions.ShowDialog(this);
         }
 
         private void mnuToolsUpdate_Click(object sender, EventArgs e)
         {
             // Only a single instance of the updater can be open, so either find the current instance and focus on it, or create a new one.
-            if(_frmUpdate == null)
+            if (_frmUpdate == null)
             {
                 _frmUpdate = new frmUpdate();
                 _frmUpdate.FormClosed += ResetFrmUpdate;
                 _frmUpdate.Show();
             }
             // Silent updater is running, so make it visible
-            else if(_frmUpdate.SilentMode)
+            else if (_frmUpdate.SilentMode)
             {
                 _frmUpdate.SilentMode = false;
                 _frmUpdate.Show();
@@ -764,11 +742,11 @@ namespace Chummer
             Process.Start("https://github.com/chummer5a/chummer5a/issues/");
         }
 
-		public frmPrintMultiple PrintMultipleCharactersForm { get; private set; }
+        public frmPrintMultiple PrintMultipleCharactersForm { get; private set; }
 
-		private void mnuFilePrintMultiple_Click(object sender, EventArgs e)
+        private void mnuFilePrintMultiple_Click(object sender, EventArgs e)
         {
-            if(PrintMultipleCharactersForm.IsNullOrDisposed())
+            if (PrintMultipleCharactersForm.IsNullOrDisposed())
                 PrintMultipleCharactersForm = new frmPrintMultiple();
             else
                 PrintMultipleCharactersForm.Activate();
@@ -828,7 +806,7 @@ namespace Chummer
                 return;
             string strFileName = ((ToolStripMenuItem)sender).Tag as string;
             if (!string.IsNullOrEmpty(strFileName))
-                GlobalOptions.FavoritedCharacters.Add(strFileName);
+                GlobalSettings.FavoriteCharacters.AddWithSort(strFileName);
         }
 
         private void mnuStickyMRU_MouseDown(object sender, MouseEventArgs e)
@@ -838,15 +816,15 @@ namespace Chummer
             string strFileName = ((ToolStripMenuItem)sender).Tag as string;
             if (!string.IsNullOrEmpty(strFileName))
             {
-                GlobalOptions.FavoritedCharacters.Remove(strFileName);
-                GlobalOptions.MostRecentlyUsedCharacters.Insert(0, strFileName);
+                GlobalSettings.FavoriteCharacters.Remove(strFileName);
+                GlobalSettings.MostRecentlyUsedCharacters.Insert(0, strFileName);
             }
         }
 
         private void frmChummerMain_MdiChildActivate(object sender, EventArgs e)
         {
             // If there are no child forms, hide the tab control.
-            if(ActiveMdiChild != null)
+            if (ActiveMdiChild != null)
             {
                 if (ActiveMdiChild.WindowState == FormWindowState.Minimized)
                 {
@@ -863,18 +841,18 @@ namespace Chummer
                         Parent = tabForms
                     };
 
-                    if(ActiveMdiChild is CharacterShared frmCharacterShared)
+                    if (ActiveMdiChild is CharacterShared frmCharacterShared)
                     {
                         tp.Text = frmCharacterShared.CharacterObject.CharacterName;
-                        if (GlobalOptions.AllowEasterEggs && _mascotChummy != null)
+                        if (GlobalSettings.AllowEasterEggs && _mascotChummy != null)
                         {
                             _mascotChummy.CharacterObject = frmCharacterShared.CharacterObject;
                         }
                     }
                     else
                     {
-                        string strTagText = LanguageManager.GetString(ActiveMdiChild.Tag?.ToString(), GlobalOptions.Language, false);
-                        if(!string.IsNullOrEmpty(strTagText))
+                        string strTagText = LanguageManager.GetString(ActiveMdiChild.Tag?.ToString(), GlobalSettings.Language, false);
+                        if (!string.IsNullOrEmpty(strTagText))
                             tp.Text = strTagText;
                     }
 
@@ -890,15 +868,30 @@ namespace Chummer
 
         private void ActiveMdiChild_FormClosed(object sender, FormClosedEventArgs e)
         {
-            if(sender is Form objForm)
+            if (sender is Form objForm)
             {
                 objForm.FormClosed -= ActiveMdiChild_FormClosed;
                 objForm.Dispose();
-                (objForm.Tag as TabPage)?.Dispose();
+                if (objForm.Tag is TabPage objTabPage)
+                {
+                    if (tabForms.TabCount > 1)
+                    {
+                        int intSelectTab = tabForms.TabPages.IndexOf(objTabPage);
+                        if (intSelectTab > 0)
+                        {
+                            if (intSelectTab + 1 >= tabForms.TabCount)
+                                intSelectTab -= 1;
+                            else
+                                intSelectTab += 1;
+                            tabForms.SelectedIndex = intSelectTab;
+                        }
+                    }
+                    objTabPage.Dispose();
+                }
             }
 
             // Don't show the tab control if there is only one window open.
-            if(tabForms.TabCount <= 1)
+            if (tabForms.TabCount <= 1)
                 tabForms.Visible = false;
         }
 
@@ -907,44 +900,41 @@ namespace Chummer
             (tabForms.SelectedTab?.Tag as Form)?.Select();
         }
 
-        public bool SwitchToOpenCharacter(Character objCharacter, bool blnIncludeInMRU)
+        public bool SwitchToOpenCharacter(Character objCharacter, bool blnIncludeInMru)
         {
-            if(objCharacter != null)
+            if (objCharacter == null)
+                return false;
+            Form objCharacterForm = OpenCharacterForms.FirstOrDefault(x => x.CharacterObject == objCharacter);
+            if (objCharacterForm != null)
             {
-                Form objCharacterForm = OpenCharacterForms.FirstOrDefault(x => x.CharacterObject == objCharacter);
-                if(objCharacterForm != null)
+                foreach (TabPage objTabPage in tabForms.TabPages)
                 {
-                    foreach(TabPage objTabPage in tabForms.TabPages)
-                    {
-                        if(objTabPage.Tag == objCharacterForm)
-                        {
-                            tabForms.SelectTab(objTabPage);
-                            if (_mascotChummy != null)
-                                _mascotChummy.CharacterObject = objCharacter;
-                            return true;
-                        }
-                    }
-                }
-                if(OpenCharacters.Contains(objCharacter))
-                {
-                    using (new CursorWait(this))
-                        OpenCharacter(objCharacter, blnIncludeInMRU);
+                    if (objTabPage.Tag != objCharacterForm)
+                        continue;
+                    tabForms.SelectTab(objTabPage);
+                    if (_mascotChummy != null)
+                        _mascotChummy.CharacterObject = objCharacter;
                     return true;
                 }
             }
-            return false;
+
+            if (!OpenCharacters.Contains(objCharacter))
+                return false;
+            using (new CursorWait(this))
+                OpenCharacter(objCharacter, blnIncludeInMru);
+            return true;
         }
 
         public void UpdateCharacterTabTitle(object sender, PropertyChangedEventArgs e)
         {
             // Change the TabPage's text to match the character's name (or "Unnamed Character" if they are currently unnamed).
-            if(tabForms.TabCount > 0 && e?.PropertyName == nameof(Character.CharacterName) && sender is Character objCharacter)
+            if (tabForms.TabCount > 0 && e?.PropertyName == nameof(Character.CharacterName) && sender is Character objCharacter)
             {
-                foreach(TabPage objTabPage in tabForms.TabPages)
+                foreach (TabPage objTabPage in tabForms.TabPages)
                 {
-                    if(objTabPage.Tag is CharacterShared objCharacterForm && objCharacterForm.CharacterObject == objCharacter)
+                    if (objTabPage.Tag is CharacterShared objCharacterForm && objCharacterForm.CharacterObject == objCharacter)
                     {
-                        objTabPage.DoThreadSafe(() => objTabPage.Text = objCharacter.CharacterName.Trim());
+                        objTabPage.QueueThreadSafe(() => objTabPage.Text = objCharacter.CharacterName.Trim());
                         return;
                     }
                 }
@@ -953,10 +943,10 @@ namespace Chummer
 
         private void mnuToolsDiceRoller_Click(object sender, EventArgs e)
         {
-            if(GlobalOptions.SingleDiceRoller)
+            if (GlobalSettings.SingleDiceRoller)
             {
                 // Only a single instance of the Dice Roller window is allowed, so either find the existing one and focus on it, or create a new one.
-                if(_frmRoller == null)
+                if (_frmRoller == null)
                 {
                     _frmRoller = new frmDiceRoller(this);
                     _frmRoller.Show();
@@ -977,7 +967,7 @@ namespace Chummer
         private void menuStrip_ItemAdded(object sender, ToolStripItemEventArgs e)
         {
             // Translate the items in the menu by finding their Tags in the translation file.
-            foreach(ToolStripItem tssItem in menuStrip.Items.OfType<ToolStripItem>())
+            foreach (ToolStripItem tssItem in menuStrip.Items.OfType<ToolStripItem>())
             {
                 tssItem.UpdateLightDarkMode();
                 tssItem.TranslateToolStripItemsRecursively();
@@ -987,9 +977,9 @@ namespace Chummer
         private void toolStrip_ItemAdded(object sender, ToolStripItemEventArgs e)
         {
             // ToolStrip Items.
-            foreach(ToolStrip objToolStrip in Controls.OfType<ToolStrip>())
+            foreach (ToolStrip objToolStrip in Controls.OfType<ToolStrip>())
             {
-                foreach(ToolStripItem tssItem in objToolStrip.Items.OfType<ToolStripItem>())
+                foreach (ToolStripItem tssItem in objToolStrip.Items.OfType<ToolStripItem>())
                 {
                     tssItem.UpdateLightDarkMode();
                     tssItem.TranslateToolStripItemsRecursively();
@@ -1000,9 +990,9 @@ namespace Chummer
         private void toolStrip_ItemRemoved(object sender, ToolStripItemEventArgs e)
         {
             // ToolStrip Items.
-            foreach(ToolStrip objToolStrip in Controls.OfType<ToolStrip>())
+            foreach (ToolStrip objToolStrip in Controls.OfType<ToolStrip>())
             {
-                foreach(ToolStripItem tssItem in objToolStrip.Items.OfType<ToolStripItem>())
+                foreach (ToolStripItem tssItem in objToolStrip.Items.OfType<ToolStripItem>())
                 {
                     tssItem.UpdateLightDarkMode();
                     tssItem.TranslateToolStripItemsRecursively();
@@ -1031,7 +1021,8 @@ namespace Chummer
 
                 // Array with locker instead of concurrent bag because we want to preserve order
                 Character[] lstCharacters = new Character[s.Length];
-                await Task.Run(() => Parallel.ForEach(dicIndexedStrings, x => lstCharacters[x.Key] = LoadCharacter(x.Value)));
+                await Task.WhenAll(dicIndexedStrings.Select(x =>
+                    Task.Run(() => lstCharacters[x.Key] = LoadCharacter(x.Value))));
                 OpenCharacterList(lstCharacters);
             }
         }
@@ -1045,13 +1036,15 @@ namespace Chummer
         private void mnuToolsTranslator_Click(object sender, EventArgs e)
         {
             string strTranslator = Path.Combine(Utils.GetStartupPath, "Translator.exe");
-            if(File.Exists(strTranslator))
+            if (File.Exists(strTranslator))
                 Process.Start(strTranslator);
         }
 
         private void frmChummerMain_Closing(object sender, FormClosingEventArgs e)
         {
-            _objVersionUpdaterCancellationTokenSource?.Cancel();
+#if !DEBUG
+            _objVersionUpdaterCancellationTokenSource?.Cancel(false);
+#endif
             Properties.Settings.Default.WindowState = WindowState;
             if (WindowState == FormWindowState.Normal)
             {
@@ -1090,14 +1083,12 @@ namespace Chummer
             {
                 for (int i = 0; i < tabForms.TabCount; ++i)
                 {
-                    if (!tabForms.GetTabRect(i).Contains(e.Location)) continue;
-                    if (tabForms.SelectedTab.Tag is CharacterShared)
+                    if (!tabForms.GetTabRect(i).Contains(e.Location))
+                        continue;
+                    if (tabForms.SelectedTab.Tag is CharacterShared && tabForms.SelectedIndex == i)
                     {
-                        if (tabForms.SelectedIndex == i)
-                        {
-                            mnuProcessFile.Show(this, e.Location);
-                            break;
-                        }
+                        mnuProcessFile.Show(this, e.Location);
+                        break;
                     }
                 }
             }
@@ -1141,11 +1132,12 @@ namespace Chummer
                 tabForms.ItemSize.Width * e.DeviceDpiNew / Math.Max(e.DeviceDpiOld, 1),
                 tabForms.ItemSize.Height * e.DeviceDpiNew / Math.Max(e.DeviceDpiOld, 1));
         }
-#endregion
 
-#region Methods
+        #endregion Control Events
 
-        private static bool showDevWarningAboutDebuggingOnlyOnce = true;
+        #region Methods
+
+        private static bool _blnShowDevWarningAboutDebuggingOnlyOnce = true;
 
         /// <summary>
         /// This makes sure, that the MessageBox is shown in the UI Thread.
@@ -1177,9 +1169,9 @@ namespace Chummer
 
             if (owner.InvokeRequired)
             {
-                if ((showDevWarningAboutDebuggingOnlyOnce) && (Debugger.IsAttached))
+                if ((_blnShowDevWarningAboutDebuggingOnlyOnce) && (Debugger.IsAttached))
                 {
-                    showDevWarningAboutDebuggingOnlyOnce = false;
+                    _blnShowDevWarningAboutDebuggingOnlyOnce = false;
                     //it works on my installation even in the debugger, so maybe we can ignore that...
                     //WARNING from the link above (you can edit that out if it's not causing problem):
                     //
@@ -1225,7 +1217,7 @@ namespace Chummer
         /// <returns></returns>
         public static frmLoading CreateAndShowProgressBar(string strFile = "", int intCount = 1)
         {
-            frmLoading frmReturn = new frmLoading {CharacterFile = strFile};
+            frmLoading frmReturn = new frmLoading { CharacterFile = strFile };
             if (intCount > 0)
                 frmReturn.Reset(intCount);
             frmReturn.Show();
@@ -1297,6 +1289,7 @@ namespace Chummer
         {
             using (new CursorWait(this))
             {
+                List<string> lstFilesToOpen;
                 using (OpenFileDialog openFileDialog = new OpenFileDialog
                 {
                     Filter = LanguageManager.GetString("DialogFilter_Chum5") + '|' +
@@ -1307,7 +1300,7 @@ namespace Chummer
                     if (openFileDialog.ShowDialog(this) != DialogResult.OK)
                         return;
                     //Timekeeper.Start("load_sum");
-                    List<string> lstFilesToOpen = new List<string>(openFileDialog.FileNames.Length);
+                    lstFilesToOpen = new List<string>(openFileDialog.FileNames.Length);
                     foreach (string strFile in openFileDialog.FileNames)
                     {
                         Character objLoopCharacter = OpenCharacters.FirstOrDefault(x => x.FileName == strFile);
@@ -1316,28 +1309,29 @@ namespace Chummer
                         else
                             lstFilesToOpen.Add(strFile);
                     }
-
-                    // Array instead of concurrent bag because we want to preserve order
-                    if (lstFilesToOpen.Count <= 0)
-                        return;
-                    Character[] lstCharacters = new Character[lstFilesToOpen.Count];
-                    using (_frmProgressBar = CreateAndShowProgressBar(
-                        string.Join(',' + LanguageManager.GetString("String_Space"), lstFilesToOpen.Select(Path.GetFileName)),
-                        lstFilesToOpen.Count * 35))
-                    {
-                        Dictionary<int, string> dicIndexedStrings =
-                            new Dictionary<int, string>(lstFilesToOpen.Count);
-                        for (int i = 0; i < lstFilesToOpen.Count; ++i)
-                        {
-                            dicIndexedStrings.Add(i, lstFilesToOpen[i]);
-                        }
-
-                        await Task.Run(() => Parallel.ForEach(dicIndexedStrings, x => lstCharacters[x.Key] = LoadCharacter(x.Value)));
-                    }
-                    OpenCharacterList(lstCharacters);
                 }
+
+                if (lstFilesToOpen.Count <= 0)
+                    return;
+                // Array instead of concurrent bag because we want to preserve order
+                Character[] lstCharacters = new Character[lstFilesToOpen.Count];
+                using (_frmProgressBar = CreateAndShowProgressBar(
+                    string.Join(',' + LanguageManager.GetString("String_Space"), lstFilesToOpen.Select(Path.GetFileName)),
+                    lstFilesToOpen.Count * Character.NumLoadingSections))
+                {
+                    Dictionary<int, string> dicIndexedStrings =
+                        new Dictionary<int, string>(lstFilesToOpen.Count);
+                    for (int i = 0; i < lstFilesToOpen.Count; ++i)
+                    {
+                        dicIndexedStrings.Add(i, lstFilesToOpen[i]);
+                    }
+
+                    await Task.WhenAll(dicIndexedStrings.Select(x =>
+                        Task.Run(() => lstCharacters[x.Key] = LoadCharacter(x.Value))));
+                }
+                OpenCharacterList(lstCharacters);
             }
-            
+
             //Timekeeper.Finish("load_sum");
             //Timekeeper.Log();
         }
@@ -1345,17 +1339,17 @@ namespace Chummer
         /// <summary>
         /// Opens the correct window for a single character (not thread-safe).
         /// </summary>
-        public void OpenCharacter(Character objCharacter, bool blnIncludeInMRU = true)
+        public void OpenCharacter(Character objCharacter, bool blnIncludeInMru = true)
         {
-            OpenCharacterList(objCharacter.Yield(), blnIncludeInMRU);
+            OpenCharacterList(objCharacter.Yield(), blnIncludeInMru);
         }
 
         /// <summary>
         /// Open the correct windows for a list of characters (not thread-safe).
         /// </summary>
         /// <param name="lstCharacters">Characters for which windows should be opened.</param>
-        /// <param name="blnIncludeInMRU">Added the opened characters to the Most Recently Used list.</param>
-        public void OpenCharacterList(IEnumerable<Character> lstCharacters, bool blnIncludeInMRU = true)
+        /// <param name="blnIncludeInMru">Added the opened characters to the Most Recently Used list.</param>
+        public void OpenCharacterList(IEnumerable<Character> lstCharacters, bool blnIncludeInMru = true)
         {
             if (lstCharacters == null)
                 return;
@@ -1376,6 +1370,15 @@ namespace Chummer
                     _frmProgressBar.PerformStep(objCharacter == null ? strUI : strUI + strSpace + '(' + objCharacter.CharacterName + ')');
                     if (objCharacter == null || OpenCharacterForms.Any(x => x.CharacterObject == objCharacter))
                         continue;
+                    if (Program.MyProcess.HandleCount >= (objCharacter.Created ? 8000 : 7500) && ShowMessageBox(
+                        string.Format(LanguageManager.GetString("Message_TooManyHandlesWarning"), objCharacter.CharacterName),
+                        LanguageManager.GetString("MessageTitle_TooManyHandlesWarning"),
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                    {
+                        if (OpenCharacters.All(x => x == objCharacter || !x.LinkedCharacters.Contains(objCharacter)))
+                            Program.MainForm.OpenCharacters.Remove(objCharacter);
+                        continue;
+                    }
                     //Timekeeper.Start("load_event_time");
                     // Show the character forms.
                     this.DoThreadSafe(() =>
@@ -1387,9 +1390,8 @@ namespace Chummer
                         frmNewCharacter.Show();
                         lstNewFormsToProcess.Add(frmNewCharacter);
                     });
-                    if (blnIncludeInMRU && !string.IsNullOrEmpty(objCharacter.FileName) &&
-                        File.Exists(objCharacter.FileName))
-                        GlobalOptions.MostRecentlyUsedCharacters.Insert(0, objCharacter.FileName);
+                    if (blnIncludeInMru && !string.IsNullOrEmpty(objCharacter.FileName) && File.Exists(objCharacter.FileName))
+                        GlobalSettings.MostRecentlyUsedCharacters.Insert(0, objCharacter.FileName);
 
                     UpdateCharacterTabTitle(objCharacter,
                         new PropertyChangedEventArgs(nameof(Character.CharacterName)));
@@ -1444,11 +1446,17 @@ namespace Chummer
             if (string.IsNullOrEmpty(strFileName))
                 return null;
             Character objCharacter = null;
-            if(File.Exists(strFileName) && strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase))
+            if (File.Exists(strFileName) && strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase))
             {
                 //Timekeeper.Start("loading");
                 bool blnLoadAutosave = false;
-                string strAutosavesPath = Path.Combine(Utils.GetStartupPath, "saves", "autosave");
+                string strAutosavesPath = Utils.GetAutosavesFolderPath;
+                if (string.IsNullOrEmpty(strNewName) && !blnClearFileName)
+                {
+                    objCharacter = OpenCharacters.FirstOrDefault(x => x.FileName == strFileName);
+                    if (objCharacter != null)
+                        return objCharacter;
+                }
                 objCharacter = new Character
                 {
                     FileName = strFileName
@@ -1488,7 +1496,7 @@ namespace Chummer
                         }
                     }
                     if (blnLoadAutosave && ShowMessageBox(
-                        string.Format(GlobalOptions.CultureInfo,
+                        string.Format(GlobalSettings.CultureInfo,
                             LanguageManager.GetString("Message_AutosaveFound"),
                             Path.GetFileName(strFileName),
                             File.GetLastWriteTimeUtc(objCharacter.FileName).ToLocalTime(),
@@ -1543,10 +1551,13 @@ namespace Chummer
                 // Restore original filename if we loaded from an autosave
                 if (blnLoadAutosave)
                     objCharacter.FileName = strFileName;
+                // Clear out file name if the character's file is in the autosaves folder because we do not want them to be manually saving there.
+                if (objCharacter.FileName.StartsWith(strAutosavesPath))
+                    objCharacter.FileName = string.Empty;
             }
-            else if(blnShowErrors)
+            else if (blnShowErrors)
             {
-                ShowMessageBox(string.Format(GlobalOptions.CultureInfo, LanguageManager.GetString("Message_FileNotFound"), strFileName),
+                ShowMessageBox(string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("Message_FileNotFound"), strFileName),
                     LanguageManager.GetString("MessageTitle_FileNotFound"), MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             return objCharacter;
@@ -1555,57 +1566,67 @@ namespace Chummer
         /// <summary>
         /// Populate the MRU items.
         /// </summary>
-        public void PopulateMRUToolstripMenu(object sender, TextEventArgs e)
+        public void PopulateMruToolstripMenu(object sender, TextEventArgs e)
         {
             SuspendLayout();
-            mnuFileMRUSeparator.Visible = GlobalOptions.FavoritedCharacters.Count > 0
-                                          || GlobalOptions.MostRecentlyUsedCharacters.Count > 0;
+            mnuFileMRUSeparator.Visible = GlobalSettings.FavoriteCharacters.Count > 0
+                                          || GlobalSettings.MostRecentlyUsedCharacters.Count > 0;
 
-            if(e?.Text != "mru")
+            if (e?.Text != "mru")
             {
-                for(int i = 0; i < GlobalOptions.MaxMruSize; ++i)
+                for (int i = 0; i < GlobalSettings.MaxMruSize; ++i)
                 {
                     ToolStripMenuItem objItem;
-                    switch(i)
+                    switch (i)
                     {
                         case 0:
                             objItem = mnuStickyMRU0;
                             break;
+
                         case 1:
                             objItem = mnuStickyMRU1;
                             break;
+
                         case 2:
                             objItem = mnuStickyMRU2;
                             break;
+
                         case 3:
                             objItem = mnuStickyMRU3;
                             break;
+
                         case 4:
                             objItem = mnuStickyMRU4;
                             break;
+
                         case 5:
                             objItem = mnuStickyMRU5;
                             break;
+
                         case 6:
                             objItem = mnuStickyMRU6;
                             break;
+
                         case 7:
                             objItem = mnuStickyMRU7;
                             break;
+
                         case 8:
                             objItem = mnuStickyMRU8;
                             break;
+
                         case 9:
                             objItem = mnuStickyMRU9;
                             break;
+
                         default:
                             continue;
                     }
 
-                    if(i < GlobalOptions.FavoritedCharacters.Count)
+                    if (i < GlobalSettings.FavoriteCharacters.Count)
                     {
-                        objItem.Text = GlobalOptions.FavoritedCharacters[i];
-                        objItem.Tag = GlobalOptions.FavoritedCharacters[i];
+                        objItem.Text = GlobalSettings.FavoriteCharacters[i];
+                        objItem.Tag = GlobalSettings.FavoriteCharacters[i];
                         objItem.Visible = true;
                     }
                     else
@@ -1628,47 +1649,57 @@ namespace Chummer
 
             string strSpace = LanguageManager.GetString("String_Space");
             int i2 = 0;
-            for(int i = 0; i < GlobalOptions.MaxMruSize; ++i)
+            for (int i = 0; i < GlobalSettings.MaxMruSize; ++i)
             {
-                if (i2 >= GlobalOptions.MostRecentlyUsedCharacters.Count ||
-                    i >= GlobalOptions.MostRecentlyUsedCharacters.Count)
+                if (i2 >= GlobalSettings.MostRecentlyUsedCharacters.Count ||
+                    i >= GlobalSettings.MostRecentlyUsedCharacters.Count)
                     continue;
-                string strFile = GlobalOptions.MostRecentlyUsedCharacters[i];
-                if (GlobalOptions.FavoritedCharacters.Contains(strFile))
+                string strFile = GlobalSettings.MostRecentlyUsedCharacters[i];
+                if (GlobalSettings.FavoriteCharacters.Contains(strFile))
                     continue;
                 ToolStripMenuItem objItem;
-                switch(i2)
+                switch (i2)
                 {
                     case 0:
                         objItem = mnuMRU0;
                         break;
+
                     case 1:
                         objItem = mnuMRU1;
                         break;
+
                     case 2:
                         objItem = mnuMRU2;
                         break;
+
                     case 3:
                         objItem = mnuMRU3;
                         break;
+
                     case 4:
                         objItem = mnuMRU4;
                         break;
+
                     case 5:
                         objItem = mnuMRU5;
                         break;
+
                     case 6:
                         objItem = mnuMRU6;
                         break;
+
                     case 7:
                         objItem = mnuMRU7;
                         break;
+
                     case 8:
                         objItem = mnuMRU8;
                         break;
+
                     case 9:
                         objItem = mnuMRU9;
                         break;
+
                     default:
                         continue;
                 }
@@ -1678,11 +1709,11 @@ namespace Chummer
                     // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                     && i2 >= 0)
                 {
-                    string strNumAsString = (i2 + 1).ToString(GlobalOptions.CultureInfo);
+                    string strNumAsString = (i2 + 1).ToString(GlobalSettings.CultureInfo);
                     objItem.Text = strNumAsString.Insert(strNumAsString.Length - 1, "&") + strSpace + strFile;
                 }
                 else
-                    objItem.Text = (i2 + 1).ToString(GlobalOptions.CultureInfo) + strSpace + strFile;
+                    objItem.Text = (i2 + 1).ToString(GlobalSettings.CultureInfo) + strSpace + strFile;
                 objItem.Tag = strFile;
                 objItem.Visible = true;
 
@@ -1694,7 +1725,7 @@ namespace Chummer
 
         public void OpenDiceRollerWithPool(Character objCharacter = null, int intDice = 0)
         {
-            if (GlobalOptions.SingleDiceRoller)
+            if (GlobalSettings.SingleDiceRoller)
             {
                 if (_frmRoller == null)
                 {
@@ -1717,16 +1748,210 @@ namespace Chummer
 
         private void mnuClearUnpinnedItems_Click(object sender, EventArgs e)
         {
-            GlobalOptions.MostRecentlyUsedCharacters.Clear();
+            GlobalSettings.MostRecentlyUsedCharacters.Clear();
         }
 
         private void mnuRestart_Click(object sender, EventArgs e)
         {
             Utils.RestartApplication(string.Empty, "Message_Options_Restart");
         }
-#endregion
 
-#region Application Properties
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == NativeMethods.WM_SHOWME)
+                ShowMe();
+            else if (m.Msg == NativeMethods.WM_COPYDATA && _blnAbleToReceiveData)
+            {
+                ThreadSafeList<Character> lstCharactersToLoad = new ThreadSafeList<Character>();
+                Task objCharacterLoadingTask = null;
+
+                using (_frmProgressBar = CreateAndShowProgressBar())
+                using (new CursorWait(this))
+                {
+                    // Extract the file name
+                    NativeMethods.CopyDataStruct objReceivedData = (NativeMethods.CopyDataStruct)Marshal.PtrToStructure(m.LParam, typeof(NativeMethods.CopyDataStruct));
+                    if (objReceivedData.dwData == Program.CommandLineArgsDataTypeId)
+                    {
+                        string strParam = Marshal.PtrToStringUni(objReceivedData.lpData);
+                        string[] strArgs = strParam.Split("<>", StringSplitOptions.RemoveEmptyEntries);
+
+                        ProcessCommandLineArguments(strArgs, out bool blnShowTest, out HashSet<string> setFilesToLoad);
+
+                        if (Directory.Exists(Utils.GetAutosavesFolderPath))
+                        {
+                            // Always process newest autosave if all MRUs are empty
+                            bool blnAnyAutosaveInMru = GlobalSettings.MostRecentlyUsedCharacters.Count == 0 &&
+                                                       GlobalSettings.FavoriteCharacters.Count == 0;
+                            FileInfo objMostRecentAutosave = null;
+                            foreach (string strAutosave in Directory.EnumerateFiles(
+                                Utils.GetAutosavesFolderPath,
+                                "*.chum5", SearchOption.AllDirectories))
+                            {
+                                FileInfo objAutosave;
+                                try
+                                {
+                                    objAutosave = new FileInfo(strAutosave);
+                                }
+                                catch (System.Security.SecurityException)
+                                {
+                                    continue;
+                                }
+                                catch (UnauthorizedAccessException)
+                                {
+                                    continue;
+                                }
+
+                                if (objMostRecentAutosave == null || objAutosave.LastWriteTimeUtc >
+                                    objMostRecentAutosave.LastWriteTimeUtc)
+                                    objMostRecentAutosave = objAutosave;
+                                if (GlobalSettings.MostRecentlyUsedCharacters.Any(x =>
+                                        Path.GetFileName(x) == objAutosave.Name) ||
+                                    GlobalSettings.FavoriteCharacters.Any(x =>
+                                        Path.GetFileName(x) == objAutosave.Name))
+                                    blnAnyAutosaveInMru = true;
+                            }
+
+                            // Might have had a crash for an unsaved character, so prompt if we want to load them
+                            if (objMostRecentAutosave != null
+                                && blnAnyAutosaveInMru
+                                && !setFilesToLoad.Contains(objMostRecentAutosave.FullName)
+                                && GlobalSettings.MostRecentlyUsedCharacters.All(
+                                    x => Path.GetFileName(x) != objMostRecentAutosave.Name)
+                                && GlobalSettings.FavoriteCharacters.All(
+                                    x => Path.GetFileName(x) != objMostRecentAutosave.Name)
+                                && ShowMessageBox(string.Format(GlobalSettings.CultureInfo,
+                                                                LanguageManager.GetString(
+                                                                    "Message_PossibleCrashAutosaveFound"),
+                                                                objMostRecentAutosave.Name,
+                                                                objMostRecentAutosave.LastWriteTimeUtc.ToLocalTime()),
+                                                  LanguageManager.GetString("MessageTitle_AutosaveFound"),
+                                                  MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                            {
+                                setFilesToLoad.Add(objMostRecentAutosave.FullName);
+                            }
+                        }
+
+                        if (setFilesToLoad.Count > 0)
+                            objCharacterLoadingTask = Task.Run(() =>
+                                Parallel.ForEach(setFilesToLoad, x =>
+                                {
+                                    Character objCharacter = LoadCharacter(x);
+                                    lstCharactersToLoad.Add(objCharacter);
+                                }));
+
+                        _frmProgressBar.PerformStep();
+
+                        if (blnShowTest)
+                        {
+                            frmTest frmTestData = new frmTest();
+                            frmTestData.Show();
+                        }
+                    }
+                }
+                Task.Run(async () =>
+                {
+                    if (objCharacterLoadingTask?.IsCompleted == false)
+                        await objCharacterLoadingTask;
+                    if (lstCharactersToLoad.Count > 0)
+                        OpenCharacterList(lstCharactersToLoad);
+                    lstCharactersToLoad.Dispose();
+                });
+            }
+            base.WndProc(ref m);
+        }
+
+        private void ShowMe()
+        {
+            if (WindowState == FormWindowState.Minimized)
+                WindowState = FormWindowState.Normal;
+            // get our current "TopMost" value (ours will always be false though)
+            bool blnOldTopMost = TopMost;
+            // make our form jump to the top of everything
+            TopMost = true;
+            // set it back to whatever it was
+            TopMost = blnOldTopMost;
+        }
+
+        private static void ProcessCommandLineArguments(string[] strArgs, out bool blnShowTest, out HashSet<string> setFilesToLoad, CustomActivity opLoadActivity = null)
+        {
+            blnShowTest = false;
+            setFilesToLoad = new HashSet<string>(strArgs.Length);
+            if (strArgs.Length <= 0)
+                return;
+            try
+            {
+                foreach (string strArg in strArgs)
+                {
+                    if (strArg.EndsWith(Path.GetFileName(Application.ExecutablePath)))
+                        continue;
+                    switch (strArg)
+                    {
+                        case "/test":
+                            blnShowTest = true;
+                            break;
+
+                        case "/help":
+                        case "?":
+                        case "/?":
+                            {
+                                string msg = "Commandline parameters are either " +
+                                             Environment.NewLine + "\t/test" + Environment.NewLine +
+                                             "\t/help" + Environment.NewLine +
+                                             "\t(filename to open)" +
+                                             Environment.NewLine +
+                                             "\t/plugin:pluginname (like \"SINners\") to trigger (with additional parameters following the symbol \":\")" +
+                                             Environment.NewLine;
+                                Console.WriteLine(msg);
+                                break;
+                            }
+                        default:
+                            {
+                                if (strArg.Contains("/plugin"))
+                                {
+                                    Log.Info(
+                                        "Encountered command line argument, that should already have been handled in one of the plugins: " +
+                                        strArg);
+                                }
+                                else if (!strArg.StartsWith('/'))
+                                {
+                                    if (!File.Exists(strArg))
+                                    {
+                                        throw new ArgumentException(
+                                            "Chummer started with unknown command line arguments: " +
+                                            strArgs.Aggregate((j, k) => j + " " + k));
+                                    }
+
+                                    if (Path.GetExtension(strArg) != ".chum5")
+                                        Utils.BreakIfDebug();
+                                    if (setFilesToLoad.Contains(strArg))
+                                        continue;
+                                    setFilesToLoad.Add(strArg);
+                                }
+
+                                break;
+                            }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (opLoadActivity != null)
+                {
+                    opLoadActivity.SetSuccess(false);
+                    ExceptionTelemetry ext = new ExceptionTelemetry(ex)
+                    {
+                        SeverityLevel = SeverityLevel.Warning
+                    };
+                    opLoadActivity.MyTelemetryClient.TrackException(ext);
+                }
+                Log.Warn(ex);
+            }
+        }
+
+        #endregion Methods
+
+        #region Application Properties
+
         /// <summary>
         /// The frmDiceRoller window being used by the application.
         /// </summary>
@@ -1740,12 +1965,11 @@ namespace Chummer
 
         public ObservableCollection<CharacterShared> OpenCharacterForms => _lstOpenCharacterForms;
 
-        public Version CurrentVersion => _objCurrentVersion;
-
         /// <summary>
         /// Set to True at the end of the OnLoad method. Useful for unit testing because the load method is executed asynchronously, so form might end up getting closed before it fully loads.
         /// </summary>
         public bool IsFinishedLoading { get; private set; }
-#endregion
+
+        #endregion Application Properties
     }
 }

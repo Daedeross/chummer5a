@@ -16,10 +16,11 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+
+using System;
 using System.Collections.Generic;
- using System.Windows.Forms;
- using System.Xml.XPath;
+using System.Windows.Forms;
+using System.Xml.XPath;
 
 namespace Chummer
 {
@@ -37,6 +38,7 @@ namespace Chummer
         //private bool _blnBiowireEnabled = false;
 
         #region Control Events
+
         public frmSelectComplexForm(Character objCharacter)
         {
             InitializeComponent();
@@ -51,7 +53,7 @@ namespace Chummer
             if (_objCharacter.MetavariantGuid != Guid.Empty)
             {
                 XPathNavigator xmlMetavariantNode = _xmlOptionalComplexFormNode.SelectSingleNode("metavariants/metavariant[id = "
-                                                                                                 + _objCharacter.MetavariantGuid.ToString("D", GlobalOptions.InvariantCultureInfo).CleanXPath()
+                                                                                                 + _objCharacter.MetavariantGuid.ToString("D", GlobalSettings.InvariantCultureInfo).CleanXPath()
                                                                                                  + "]");
                 if (xmlMetavariantNode != null)
                     _xmlOptionalComplexFormNode = xmlMetavariantNode;
@@ -89,12 +91,15 @@ namespace Chummer
                 case "P":
                     lblDuration.Text = LanguageManager.GetString("String_SpellDurationPermanent");
                     break;
+
                 case "S":
                     lblDuration.Text = LanguageManager.GetString("String_SpellDurationSustained");
                     break;
+
                 case "Special":
                     lblDuration.Text = LanguageManager.GetString("String_SpellDurationSpecial");
                     break;
+
                 default:
                     lblDuration.Text = LanguageManager.GetString("String_SpellDurationInstant");
                     break;
@@ -105,33 +110,40 @@ namespace Chummer
                 case "Persona":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetPersona");
                     break;
+
                 case "Device":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetDevice");
                     break;
+
                 case "File":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetFile");
                     break;
+
                 case "Self":
                     lblTarget.Text = LanguageManager.GetString("String_SpellRangeSelf");
                     break;
+
                 case "Sprite":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetSprite");
                     break;
+
                 case "Host":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetHost");
                     break;
+
                 case "IC":
                     lblTarget.Text = LanguageManager.GetString("String_ComplexFormTargetIC");
                     break;
+
                 default:
                     lblTarget.Text = LanguageManager.GetString("String_None");
                     break;
             }
 
-            string strFV = xmlComplexForm.SelectSingleNode("fv")?.Value.Replace('/', '÷') ?? string.Empty;
-            if (!GlobalOptions.Language.Equals(GlobalOptions.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            string strFv = xmlComplexForm.SelectSingleNode("fv")?.Value.Replace('/', '÷') ?? string.Empty;
+            if (!GlobalSettings.Language.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
             {
-                strFV = strFV.CheapReplace("L", () => LanguageManager.GetString("String_ComplexFormLevel"))
+                strFv = strFv.CheapReplace("L", () => LanguageManager.GetString("String_ComplexFormLevel"))
                     .CheapReplace("Overflow damage", () => LanguageManager.GetString("String_SpellOverflowDamage"))
                     .CheapReplace("Damage Value", () => LanguageManager.GetString("String_SpellDamageValue"))
                     .CheapReplace("Toxin DV", () => LanguageManager.GetString("String_SpellToxinDV"))
@@ -139,15 +151,15 @@ namespace Chummer
                     .CheapReplace("Radiation Power", () => LanguageManager.GetString("String_SpellRadiationPower"));
             }
 
-            lblFV.Text = strFV;
+            lblFV.Text = strFv;
 
             string strSource = xmlComplexForm.SelectSingleNode("source")?.Value ??
                                LanguageManager.GetString("String_Unknown");
             string strPage = xmlComplexForm.SelectSingleNode("altpage")?.Value ??
                              xmlComplexForm.SelectSingleNode("page")?.Value ??
                              LanguageManager.GetString("String_Unknown");
-            SourceString objSource = new SourceString(strSource, strPage, GlobalOptions.Language,
-                GlobalOptions.CultureInfo, _objCharacter);
+            SourceString objSource = new SourceString(strSource, strPage, GlobalSettings.Language,
+                GlobalSettings.CultureInfo, _objCharacter);
             lblSource.Text = objSource.ToString();
             lblSource.SetToolTip(objSource.LanguageBookTooltip);
             lblDurationLabel.Visible = !string.IsNullOrEmpty(lblDuration.Text);
@@ -159,12 +171,6 @@ namespace Chummer
         }
 
         private void cmdOK_Click(object sender, EventArgs e)
-        {
-            _blnAddAgain = false;
-            AcceptForm();
-        }
-
-        private void lstComplexForms_DoubleClick(object sender, EventArgs e)
         {
             _blnAddAgain = false;
             AcceptForm();
@@ -188,26 +194,30 @@ namespace Chummer
 
         private void txtSearch_KeyDown(object sender, KeyEventArgs e)
         {
-            if (lstComplexForms.SelectedIndex == -1)
+            if (lstComplexForms.SelectedIndex == -1 && lstComplexForms.Items.Count > 0)
             {
-                if (lstComplexForms.Items.Count > 0)
-                    lstComplexForms.SelectedIndex = 0;
+                lstComplexForms.SelectedIndex = 0;
             }
-            if (e.KeyCode == Keys.Down)
+            switch (e.KeyCode)
             {
-                int intNewIndex = lstComplexForms.SelectedIndex + 1;
-                if (intNewIndex >= lstComplexForms.Items.Count)
-                    intNewIndex = 0;
-                if (lstComplexForms.Items.Count > 0)
-                    lstComplexForms.SelectedIndex = intNewIndex;
-            }
-            if (e.KeyCode == Keys.Up)
-            {
-                int intNewIndex = lstComplexForms.SelectedIndex - 1;
-                if (intNewIndex <= 0)
-                    intNewIndex = lstComplexForms.Items.Count - 1;
-                if (lstComplexForms.Items.Count > 0)
-                    lstComplexForms.SelectedIndex = intNewIndex;
+                case Keys.Down:
+                    {
+                        int intNewIndex = lstComplexForms.SelectedIndex + 1;
+                        if (intNewIndex >= lstComplexForms.Items.Count)
+                            intNewIndex = 0;
+                        if (lstComplexForms.Items.Count > 0)
+                            lstComplexForms.SelectedIndex = intNewIndex;
+                        break;
+                    }
+                case Keys.Up:
+                    {
+                        int intNewIndex = lstComplexForms.SelectedIndex - 1;
+                        if (intNewIndex <= 0)
+                            intNewIndex = lstComplexForms.Items.Count - 1;
+                        if (lstComplexForms.Items.Count > 0)
+                            lstComplexForms.SelectedIndex = intNewIndex;
+                        break;
+                    }
             }
         }
 
@@ -216,9 +226,11 @@ namespace Chummer
             if (e.KeyCode == Keys.Up)
                 txtSearch.Select(txtSearch.Text.Length, 0);
         }
-        #endregion
+
+        #endregion Control Events
 
         #region Properties
+
         /// <summary>
         /// Whether or not the user wants to add another item after this one.
         /// </summary>
@@ -229,15 +241,16 @@ namespace Chummer
         /// </summary>
         public string SelectedComplexForm => _strSelectedComplexForm;
 
-        #endregion
+        #endregion Properties
 
         #region Methods
+
         private void BuildComplexFormList()
         {
             if (_blnLoading)
                 return;
 
-            string strFilter = '(' + _objCharacter.Options.BookXPath() + ')';
+            string strFilter = '(' + _objCharacter.Settings.BookXPath() + ')';
             if (!string.IsNullOrEmpty(txtSearch.Text))
                 strFilter += " and " + CommonFunctions.GenerateSearchXPath(txtSearch.Text);
             // Populate the Complex Form list.
@@ -253,11 +266,8 @@ namespace Chummer
 
                 string strName = xmlComplexForm.SelectSingleNode("name")?.Value ?? LanguageManager.GetString("String_Unknown");
                 // If this is a Sprite with Optional Complex Forms, see if this Complex Form is allowed.
-                if (_xmlOptionalComplexFormNode?.SelectSingleNode("complexform") != null)
-                {
-                    if (_xmlOptionalComplexFormNode.SelectSingleNode("complexform[. = " + strName.CleanXPath() + "]") == null)
-                        continue;
-                }
+                if (_xmlOptionalComplexFormNode?.SelectSingleNode("complexform") != null && _xmlOptionalComplexFormNode.SelectSingleNode("complexform[. = " + strName.CleanXPath() + "]") == null)
+                    continue;
 
                 lstComplexFormItems.Add(new ListItem(strId, xmlComplexForm.SelectSingleNode("translate")?.Value ?? strName));
             }
@@ -292,6 +302,7 @@ namespace Chummer
         {
             CommonFunctions.OpenPdfFromControl(sender, e);
         }
-        #endregion
+
+        #endregion Methods
     }
 }
