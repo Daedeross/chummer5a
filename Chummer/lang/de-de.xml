@@ -50,6 +50,10 @@
             <key>String_Space</key>
             <text xml:space="preserve"> </text>
         </string>
+      <string>
+        <key>String_NuyenSymbol</key>
+        <text>¥</text>
+      </string>
         <string>
             <key>String_Remaining</key>
             <text>verbleibend</text>
@@ -1357,7 +1361,7 @@
         </string>
         <string>
             <key>Message_AttributeMaximum</key>
-            <text>Sie können bei der Charakter-Erschaffung nicht mehr als ein Attribut auf das natürliche Maximum steigern.</text>
+            <text>Sie können bei der Charakter-Erschaffung nicht mehr als {0} Attribut/e auf das natürliche Maximum steigern.</text>
         </string>
         <string>
             <key>Message_AttributeBuildPoints</key>
@@ -6029,7 +6033,7 @@
         </string>
         <string>
             <key>Button_Options_PDFTest</key>
-            <text>Test - Seite 5 öffnen</text>
+            <text>Test - Seite 3 öffnen</text>
         </string>
       <string>
         <key>Button_Options_PDFFolderScan</key>
@@ -6615,14 +6619,6 @@
         <string>
             <key>MessageTitle_Metatype_SelectSkill</key>
             <text>Wählen sie eine Fertigkeit/Fertigkeitsgruppe</text>
-        </string>
-        <string>
-            <key>Checkbox_Options_MayBuyQualities</key>
-            <text>Kann Vorteile kaufen (RC 40)</text>
-        </string>
-        <string>
-            <key>Checkbox_Options_ContactPoints</key>
-            <text>Connection-Punkte anstatt fester Anzahl von Connections (RC 40)</text>
         </string>
         <string>
             <key>Checkbox_Options_UseLogging</key>
@@ -7511,14 +7507,6 @@
             <text>Runde Essenz nur zu Anzeigezwecken, nicht für interne Berechnungen</text>
         </string>
         <string>
-            <key>Checkbox_Options_ContactMultiplier</key>
-            <text>Überschreibe Connection-Punkte Charisma Multiplikator</text>
-        </string>
-        <string>
-            <key>Checkbox_Options_KnowledgeMultiplier</key>
-            <text>Überschreibe Wissensfertigkeitenpunkte (INT+LOG) Multiplikator</text>
-        </string>
-        <string>
             <key>Checkbox_Options_SearchInCategoryOnly</key>
             <text>Suchen in Auswahlformularen ist auf die aktuelle Kategorie beschränkt</text>
         </string>
@@ -7896,7 +7884,7 @@
         </string>
         <string>
             <key>Message_KarmaNuyenExchange</key>
-            <text>Nuyen kann nur in Vielfachen von 2,000¥ getauscht werden.</text>
+            <text>Nuyen kann nur in Vielfachen von {0} getauscht werden.</text>
         </string>
         <string>
             <key>Message_MissingSourceBooks</key>

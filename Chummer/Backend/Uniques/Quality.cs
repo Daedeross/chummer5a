@@ -25,6 +25,8 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
@@ -58,7 +60,7 @@ namespace Chummer
         LifeModule = 4,
         Improvement = 5,
         MetatypeRemovedAtChargen = 6,
-        Heritage = 7,
+        Heritage = 7
     }
 
     /// <summary>
@@ -72,7 +74,7 @@ namespace Chummer
         RequiredSingle = 0x2,
         RequiredMultiple = 0x4,
         ForbiddenSingle = 0x8,
-        MetatypeRequired = 0x10,
+        MetatypeRequired = 0x10
     }
 
     /// <summary>
@@ -80,7 +82,7 @@ namespace Chummer
     /// </summary>
     [HubClassTag("SourceID", true, "Name", "Extra;Type")]
     [DebuggerDisplay("{DisplayName(GlobalSettings.InvariantCultureInfo, GlobalSettings.DefaultLanguage)}")]
-    public class Quality : IHasInternalId, IHasName, IHasXmlNode, IHasNotes, IHasSource, INotifyMultiplePropertyChanged
+    public class Quality : IHasInternalId, IHasName, IHasXmlDataNode, IHasNotes, IHasSource, INotifyMultiplePropertyChanged
     {
         private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private Guid _guiSourceID = Guid.Empty;
@@ -105,6 +107,7 @@ namespace Chummer
         private string _strSourceName = string.Empty;
         private XmlNode _nodBonus;
         private XmlNode _nodFirstLevelBonus;
+        private XmlNode _nodNaturalWeaponsNode;
         private XPathNavigator _nodDiscounts;
         private readonly Character _objCharacter;
         private Guid _guiWeaponID;
@@ -247,8 +250,8 @@ namespace Chummer
                     {
                         string strLoopID = objXmlAddWeapon.InnerText;
                         XmlNode objXmlWeapon = strLoopID.IsGuid()
-                            ? objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[id = " + strLoopID.CleanXPath() + "]")
-                            : objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = " + strLoopID.CleanXPath() + "]");
+                            ? objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[id = " + strLoopID.CleanXPath() + ']')
+                            : objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = " + strLoopID.CleanXPath() + ']');
                         if (objXmlWeapon != null)
                         {
                             int intAddWeaponRating = 0;
@@ -273,41 +276,6 @@ namespace Chummer
                         }
                     }
                 }
-            }
-
-            using (XmlNodeList xmlNaturalWeaponList = objXmlQuality.SelectNodes("naturalweapons/naturalweapon"))
-            {
-                if (xmlNaturalWeaponList?.Count > 0)
-                    foreach (XmlNode objXmlNaturalWeapon in xmlNaturalWeaponList)
-                    {
-                        Weapon objWeapon = new Weapon(_objCharacter);
-                        if (objXmlNaturalWeapon["name"] != null)
-                            objWeapon.Name = objXmlNaturalWeapon["name"].InnerText;
-                        objWeapon.Category = LanguageManager.GetString("Tab_Critter");
-                        objWeapon.RangeType = "Melee";
-                        int intDummy = 0;
-                        if (objXmlNaturalWeapon.TryGetInt32FieldQuickly("reach", ref intDummy))
-                            objWeapon.Reach = intDummy;
-                        if (objXmlNaturalWeapon["accuracy"] != null)
-                            objWeapon.Accuracy = objXmlNaturalWeapon["accuracy"].InnerText;
-                        if (objXmlNaturalWeapon["damage"] != null)
-                            objWeapon.Damage = objXmlNaturalWeapon["damage"].InnerText;
-                        if (objXmlNaturalWeapon["ap"] != null)
-                            objWeapon.AP = objXmlNaturalWeapon["ap"].InnerText;
-                        objWeapon.Mode = "0";
-                        objWeapon.RC = "0";
-                        objWeapon.Concealability = 0;
-                        objWeapon.Avail = "0";
-                        objWeapon.Cost = "0";
-                        if (objXmlNaturalWeapon["useskill"] != null)
-                            objWeapon.UseSkill = objXmlNaturalWeapon["useskill"].InnerText;
-                        if (objXmlNaturalWeapon["source"] != null)
-                            objWeapon.Source = objXmlNaturalWeapon["source"].InnerText;
-                        if (objXmlNaturalWeapon["page"] != null)
-                            objWeapon.Page = objXmlNaturalWeapon["page"].InnerText;
-
-                        _objCharacter.Weapons.Add(objWeapon);
-                    }
             }
 
             _nodDiscounts = objXmlQuality["costdiscount"]?.CreateNavigator();
@@ -340,34 +308,25 @@ namespace Chummer
                     return;
                 }
             }
+            _nodNaturalWeaponsNode = objXmlQuality["naturalweapons"];
+            // Hacky to handle the naturalweapons node as another bonus node, but it will suffice because bonus nodes can have naturalweapon nodes
+            if (_nodNaturalWeaponsNode?.ChildNodes.Count > 0)
+            {
+                ImprovementManager.ForcedValue = string.IsNullOrEmpty(strForceValue) ? Extra : strForceValue;
+                if (!ImprovementManager.CreateImprovements(_objCharacter, Improvement.ImprovementSource.Quality, InternalId, _nodNaturalWeaponsNode, 1, DisplayNameShort(GlobalSettings.Language)))
+                {
+                    _guiID = Guid.Empty;
+                    return;
+                }
+            }
+
+            // Check if the quality is already suppressed by something
+            RefreshSuppressed();
 
             if (string.IsNullOrEmpty(Notes))
             {
-                string strEnglishNameOnPage = Name;
-                string strNameOnPage = string.Empty;
-                // make sure we have something and not just an empty tag
-                if (objXmlQuality.TryGetStringFieldQuickly("nameonpage", ref strNameOnPage) && !string.IsNullOrEmpty(strNameOnPage))
-                    strEnglishNameOnPage = strNameOnPage;
-
-                string strQualityNotes = CommonFunctions.GetTextFromPdf(Source + ' ' + Page, strEnglishNameOnPage, _objCharacter);
-
-                if (string.IsNullOrEmpty(strQualityNotes) && !GlobalSettings.Language.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
-                {
-                    string strTranslatedNameOnPage = CurrentDisplayName;
-
-                    // don't check again it is not translated
-                    if (strTranslatedNameOnPage != _strName)
-                    {
-                        // if we found <altnameonpage>, and is not empty and not the same as english we must use that instead
-                        if (objXmlQuality.TryGetStringFieldQuickly("altnameonpage", ref strNameOnPage)
-                            && !string.IsNullOrEmpty(strNameOnPage) && strNameOnPage != strEnglishNameOnPage)
-                            strTranslatedNameOnPage = strNameOnPage;
-
-                        Notes = CommonFunctions.GetTextFromPdf(Source + ' ' + DisplayPage(GlobalSettings.Language), strTranslatedNameOnPage, _objCharacter);
-                    }
-                }
-                else
-                    Notes = strQualityNotes;
+                Notes = CommonFunctions.GetBookNotes(objXmlQuality, Name, CurrentDisplayName, Source, Page,
+                    DisplayPage(GlobalSettings.Language), _objCharacter);
             }
         }
 
@@ -378,7 +337,7 @@ namespace Chummer
             get
             {
                 if (_objCachedSourceDetail == default)
-                    _objCachedSourceDetail = new SourceString(Source, DisplayPage(GlobalSettings.Language),
+                    _objCachedSourceDetail = SourceString.GetSourceString(Source, DisplayPage(GlobalSettings.Language),
                         GlobalSettings.Language, GlobalSettings.CultureInfo, _objCharacter);
                 return _objCachedSourceDetail;
             }
@@ -388,7 +347,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(XmlWriter objWriter)
         {
             if (objWriter == null)
                 return;
@@ -420,11 +379,15 @@ namespace Chummer
                 objWriter.WriteRaw("<firstlevelbonus>" + _nodFirstLevelBonus.InnerXml + "</firstlevelbonus>");
             else
                 objWriter.WriteElementString("firstlevelbonus", string.Empty);
+            if (!string.IsNullOrEmpty(_nodNaturalWeaponsNode?.InnerXml))
+                objWriter.WriteRaw("<naturalweapons>" + _nodNaturalWeaponsNode.InnerXml + "</naturalweapons>");
+            else
+                objWriter.WriteElementString("naturalweapons", string.Empty);
             if (_guiWeaponID != Guid.Empty)
                 objWriter.WriteElementString("weaponguid", _guiWeaponID.ToString("D", GlobalSettings.InvariantCultureInfo));
             if (_nodDiscounts != null)
                 objWriter.WriteRaw("<costdiscount>" + _nodDiscounts.InnerXml + "</costdiscount>");
-            objWriter.WriteElementString("notes", System.Text.RegularExpressions.Regex.Replace(_strNotes, @"[\u0000-\u0008\u000B\u000C\u000E-\u001F]", ""));
+            objWriter.WriteElementString("notes", _strNotes.CleanOfInvalidUnicodeChars());
             objWriter.WriteElementString("notesColor", ColorTranslator.ToHtml(_colNotes));
             if (_eQualityType == QualityType.LifeModule)
             {
@@ -432,15 +395,6 @@ namespace Chummer
             }
 
             objWriter.WriteEndElement();
-
-            if (OriginSource != QualitySource.BuiltIn &&
-                OriginSource != QualitySource.Improvement &&
-                OriginSource != QualitySource.LifeModule &&
-                OriginSource != QualitySource.Metatype &&
-                OriginSource != QualitySource.MetatypeRemovable &&
-                OriginSource != QualitySource.MetatypeRemovedAtChargen &&
-                OriginSource != QualitySource.Heritage)
-                _objCharacter.SourceProcess(_strSource);
         }
 
         /// <summary>
@@ -456,10 +410,12 @@ namespace Chummer
                 _guiID = Guid.NewGuid();
             }
             objNode.TryGetStringFieldQuickly("name", ref _strName);
+            _objCachedMyXmlNode = null;
+            _objCachedMyXPathNode = null;
+            Lazy<XmlNode> objMyNode = new Lazy<XmlNode>(() => this.GetNode());
             if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
-                XmlNode node = GetNode(GlobalSettings.Language);
-                node?.TryGetGuidFieldQuickly("id", ref _guiSourceID);
+                objMyNode.Value?.TryGetGuidFieldQuickly("id", ref _guiSourceID);
             }
             objNode.TryGetStringFieldQuickly("extra", ref _strExtra);
             objNode.TryGetInt32FieldQuickly("bp", ref _intBP);
@@ -490,7 +446,8 @@ namespace Chummer
             objNode.TryGetStringFieldQuickly("page", ref _strPage);
             objNode.TryGetStringFieldQuickly("sourcename", ref _strSourceName);
             _nodBonus = objNode["bonus"];
-            _nodFirstLevelBonus = objNode["firstlevelbonus"] ?? GetNode()?["firstlevelbonus"];
+            _nodFirstLevelBonus = objNode["firstlevelbonus"] ?? objMyNode.Value?["firstlevelbonus"];
+            _nodNaturalWeaponsNode = objNode["naturalweapons"] ?? objMyNode.Value?["naturalweapons"];
             _nodDiscounts = objNode["costdiscount"]?.CreateNavigator();
             objNode.TryGetField("weaponguid", Guid.TryParse, out _guiWeaponID);
             objNode.TryGetMultiLineStringFieldQuickly("notes", ref _strNotes);
@@ -507,15 +464,16 @@ namespace Chummer
             {
                 case QualitySource.Selected when string.IsNullOrEmpty(_nodBonus?.InnerText)
                                                  && string.IsNullOrEmpty(_nodFirstLevelBonus?.InnerText)
+                                                 && string.IsNullOrEmpty(_nodNaturalWeaponsNode?.InnerText)
                                                  && (_eQualityType == QualityType.Positive || _eQualityType == QualityType.Negative)
-                                                 && GetNode() != null
-                                                 && ConvertToQualityType(GetNode()["category"]?.InnerText) != _eQualityType:
+                                                 && objMyNode.Value != null
+                                                 && ConvertToQualityType(objMyNode.Value["category"]?.InnerText) != _eQualityType:
                     _eQualitySource = QualitySource.MetatypeRemovedAtChargen;
                     break;
                 // Legacy shim for priority-given qualities
                 case QualitySource.Metatype when _objCharacter.LastSavedVersion <= new Version(5, 212, 71)
                                                  && _objCharacter.EffectiveBuildMethodUsesPriorityTables
-                                                 && GetNode()?["onlyprioritygiven"] != null:
+                                                 && objMyNode.Value?["onlyprioritygiven"] != null:
                     _eQualitySource = QualitySource.Heritage;
                     break;
             }
@@ -528,40 +486,51 @@ namespace Chummer
         /// <param name="intRating">Pre-calculated rating of the quality for printing.</param>
         /// <param name="objCulture">Culture in which to print.</param>
         /// <param name="strLanguageToPrint">Language in which to print</param>
-        public void Print(XmlTextWriter objWriter, int intRating, CultureInfo objCulture, string strLanguageToPrint)
+        public async ValueTask Print(XmlWriter objWriter, int intRating, CultureInfo objCulture, string strLanguageToPrint)
         {
-            if (AllowPrint && objWriter != null)
+            if (!AllowPrint || objWriter == null)
+                return;
+
+            // <quality>
+            XmlElementWriteHelper objBaseElement = await objWriter.StartElementAsync("quality");
+            try
             {
-                string strSpace = LanguageManager.GetString("String_Space", strLanguageToPrint);
+                await objWriter.WriteElementStringAsync("guid", InternalId);
+                await objWriter.WriteElementStringAsync("sourceid", SourceIDString);
+                await objWriter.WriteElementStringAsync("name", await DisplayNameShortAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("name_english", Name);
+                string strSpace = await LanguageManager.GetStringAsync("String_Space", strLanguageToPrint);
                 string strRatingString = string.Empty;
                 if (intRating > 1)
                     strRatingString = strSpace + intRating.ToString(objCulture);
                 string strSourceName = string.Empty;
                 if (!string.IsNullOrWhiteSpace(SourceName))
-                    strSourceName = strSpace + '(' + GetSourceName(strLanguageToPrint) + ')';
-                objWriter.WriteStartElement("quality");
-                objWriter.WriteElementString("guid", InternalId);
-                objWriter.WriteElementString("sourceid", SourceIDString);
-                objWriter.WriteElementString("name", DisplayNameShort(strLanguageToPrint));
-                objWriter.WriteElementString("name_english", Name);
-                objWriter.WriteElementString("extra", _objCharacter.TranslateExtra(Extra, strLanguageToPrint) + strRatingString + strSourceName);
-                objWriter.WriteElementString("bp", BP.ToString(objCulture));
+                    strSourceName = strSpace + '(' + await GetSourceNameAsync(strLanguageToPrint) + ')';
+                await objWriter.WriteElementStringAsync(
+                    "extra", await _objCharacter.TranslateExtraAsync(Extra, strLanguageToPrint) + strRatingString + strSourceName);
+                await objWriter.WriteElementStringAsync("bp", BP.ToString(objCulture));
                 string strQualityType = Type.ToString();
                 if (!strLanguageToPrint.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 {
                     strQualityType =
-                        _objCharacter.LoadDataXPath("qualities.xml", strLanguageToPrint)
-                            .SelectSingleNode("/chummer/categories/category[. = " + strQualityType.CleanXPath() + "]/@translate")
-                            ?.Value ?? strQualityType;
+                        (await _objCharacter.LoadDataXPathAsync("qualities.xml", strLanguageToPrint))
+                        .SelectSingleNode("/chummer/categories/category[. = " + strQualityType.CleanXPath()
+                                                                              + "]/@translate")
+                        ?.Value ?? strQualityType;
                 }
-                objWriter.WriteElementString("qualitytype", strQualityType);
-                objWriter.WriteElementString("qualitytype_english", Type.ToString());
-                objWriter.WriteElementString("qualitysource", OriginSource.ToString());
-                objWriter.WriteElementString("source", _objCharacter.LanguageBookShort(Source, strLanguageToPrint));
-                objWriter.WriteElementString("page", DisplayPage(strLanguageToPrint));
+
+                await objWriter.WriteElementStringAsync("qualitytype", strQualityType);
+                await objWriter.WriteElementStringAsync("qualitytype_english", Type.ToString());
+                await objWriter.WriteElementStringAsync("qualitysource", OriginSource.ToString());
+                await objWriter.WriteElementStringAsync("source", await _objCharacter.LanguageBookShortAsync(Source, strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("page", await DisplayPageAsync(strLanguageToPrint));
                 if (GlobalSettings.PrintNotes)
-                    objWriter.WriteElementString("notes", Notes);
-                objWriter.WriteEndElement();
+                    await objWriter.WriteElementStringAsync("notes", Notes);
+            }
+            finally
+            {
+                // </quality>
+                await objBaseElement.DisposeAsync();
             }
         }
 
@@ -676,7 +645,24 @@ namespace Chummer
         {
             if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Page;
-            string s = GetNode(strLanguage)?["altpage"]?.InnerText ?? Page;
+            string s = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("altpage")?.Value ?? Page;
+            return !string.IsNullOrWhiteSpace(s) ? s : Page;
+        }
+
+        /// <summary>
+        /// Sourcebook Page Number using a given language file.
+        /// Returns Page if not found or the string is empty.
+        /// </summary>
+        /// <param name="strLanguage">Language file keyword to use.</param>
+        /// <returns></returns>
+        public async ValueTask<string> DisplayPageAsync(string strLanguage)
+        {
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                return Page;
+            XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+            string s = objNode != null
+                ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("altpage"))?.Value ?? Page
+                : Page;
             return !string.IsNullOrWhiteSpace(s) ? s : Page;
         }
 
@@ -701,6 +687,14 @@ namespace Chummer
         public string GetSourceName(string strLanguage)
         {
             return _objCharacter.TranslateExtra(_strSourceName, strLanguage);
+        }
+
+        /// <summary>
+        /// Name of the Improvement that added this quality.
+        /// </summary>
+        public Task<string> GetSourceNameAsync(string strLanguage)
+        {
+            return _objCharacter.TranslateExtraAsync(_strSourceName, strLanguage);
         }
 
         /// <summary>
@@ -729,6 +723,21 @@ namespace Chummer
                 if (_nodFirstLevelBonus == value)
                     return;
                 _nodFirstLevelBonus = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Bonus node from the XML file that exists purely for legacy reasons to support the older way of adding natural weapons.
+        /// </summary>
+        public XmlNode NaturalWeaponsNode
+        {
+            get => _nodNaturalWeaponsNode;
+            set
+            {
+                if (_nodNaturalWeaponsNode == value)
+                    return;
+                _nodNaturalWeaponsNode = value;
                 OnPropertyChanged();
             }
         }
@@ -807,7 +816,19 @@ namespace Chummer
             if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Name;
 
-            return GetNode(strLanguage)?["translate"]?.InnerText ?? Name;
+            return this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("translate")?.Value ?? Name;
+        }
+
+        /// <summary>
+        /// The name of the object as it should be displayed on printouts (translated name only).
+        /// </summary>
+        public async ValueTask<string> DisplayNameShortAsync(string strLanguage)
+        {
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                return Name;
+
+            XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+            return objNode != null ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("translate"))?.Value ?? Name : Name;
         }
 
         /// <summary>
@@ -833,15 +854,52 @@ namespace Chummer
             else
             {
                 // Add a "1" to qualities that have levels, but for which we are only at level 1
-                XmlNode xmlMyLimitNode = GetNode(strLanguage)?.SelectSingleNode("limit");
-                if (xmlMyLimitNode != null && int.TryParse(xmlMyLimitNode.InnerText, out int _))
+                XPathNavigator xmlMyLimitNode = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("limit");
+                if (xmlMyLimitNode != null && int.TryParse(xmlMyLimitNode.Value, out int _))
                     strReturn += strSpace + intLevels.ToString(objCulture);
             }
 
             return strReturn;
         }
 
+        /// <summary>
+        /// The name of the object as it should be displayed in lists. Name (Extra).
+        /// If there is more than one instance of the same quality, it's: Name (Extra) Number
+        /// </summary>
+        public async ValueTask<string> DisplayNameAsync(CultureInfo objCulture, string strLanguage)
+        {
+            string strReturn = await DisplayNameShortAsync(strLanguage);
+            string strSpace = await LanguageManager.GetStringAsync("String_Space", strLanguage);
+
+            if (!string.IsNullOrEmpty(Extra))
+            {
+                // Attempt to retrieve the CharacterAttribute name.
+                strReturn += strSpace + '(' + await _objCharacter.TranslateExtraAsync(Extra, strLanguage) + ')';
+            }
+
+            int intLevels = Levels;
+            if (intLevels > 1)
+            {
+                strReturn += strSpace + intLevels.ToString(objCulture);
+            }
+            else
+            {
+                // Add a "1" to qualities that have levels, but for which we are only at level 1
+                XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+                if (objNode != null)
+                {
+                    XPathNavigator xmlMyLimitNode = await objNode.SelectSingleNodeAndCacheExpressionAsync("limit");
+                    if (xmlMyLimitNode != null && int.TryParse(xmlMyLimitNode.Value, out int _))
+                        strReturn += strSpace + intLevels.ToString(objCulture);
+                }
+            }
+
+            return strReturn;
+        }
+
         public string CurrentDisplayName => DisplayName(GlobalSettings.CultureInfo, GlobalSettings.Language);
+
+        public string CurrentDisplayNameShort => DisplayNameShort(GlobalSettings.Language);
 
         /// <summary>
         /// Returns how many instances of this quality there are in the character's quality list
@@ -935,9 +993,9 @@ namespace Chummer
                 if (_strName == "Mentor Spirit" && _objCharacter.Qualities.Any(objQuality => objQuality.Name == "The Beast's Way" || objQuality.Name == "The Spiritual Way"))
                     return false;
 
-                return !_objCharacter.Improvements.Any(imp =>
-                    imp.ImproveType == Improvement.ImprovementType.FreeQuality && (imp.ImprovedName == SourceIDString ||
-                        imp.ImprovedName == Name) && imp.Enabled) && _blnContributeToLimit;
+                return _blnContributeToLimit
+                       && ImprovementManager.GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.FreeQuality, SourceIDString).Count == 0
+                       && ImprovementManager.GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.FreeQuality, Name).Count == 0;
             }
             set
             {
@@ -994,9 +1052,10 @@ namespace Chummer
                 // The Beast's Way and the Spiritual Way get the Mentor Spirit for free.
                 if (Name == "Mentor Spirit" && _objCharacter.Qualities.Any(objQuality => objQuality.Name == "The Beast's Way" || objQuality.Name == "The Spiritual Way"))
                     return false;
-                return !_objCharacter.Improvements.Any(imp =>
-                    imp.ImproveType == Improvement.ImprovementType.FreeQuality && (imp.ImprovedName == SourceIDString ||
-                        imp.ImprovedName == Name) && imp.Enabled) && _blnContributeToBP;
+
+                return _blnContributeToBP
+                       && ImprovementManager.GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.FreeQuality, SourceIDString).Count == 0
+                       && ImprovementManager.GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.FreeQuality, Name).Count == 0;
             }
         }
 
@@ -1014,11 +1073,19 @@ namespace Chummer
                 _strCachedNotes = string.Empty;
                 if (Suppressed)
                 {
-                    _strCachedNotes += string.Format(GlobalSettings.CultureInfo, LanguageManager.GetString("String_SuppressedBy"),
-                        _objCharacter.GetObjectName(_objCharacter.Improvements.FirstOrDefault(imp =>
-                            imp.ImproveType == Improvement.ImprovementType.DisableQuality
-                            && (imp.ImprovedName == SourceIDString || imp.ImprovedName == Name) && imp.Enabled))
-                        ?? LanguageManager.GetString("String_Unknown")) + Environment.NewLine;
+                    Improvement objDisablingImprovement
+                        = ImprovementManager
+                          .GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.DisableQuality,
+                                                              SourceIDString).FirstOrDefault()
+                          ?? ImprovementManager
+                             .GetCachedImprovementListForValueOf(_objCharacter,
+                                                                 Improvement.ImprovementType.DisableQuality, Name)
+                             .FirstOrDefault();
+                    _strCachedNotes += string.Format(GlobalSettings.CultureInfo,
+                                                     LanguageManager.GetString("String_SuppressedBy"),
+                                                     _objCharacter.GetObjectName(objDisablingImprovement)
+                                                     ?? LanguageManager.GetString("String_Unknown"))
+                                       + Environment.NewLine;
                 }
                 _strCachedNotes += _strNotes;
                 return _strCachedNotes;
@@ -1050,46 +1117,79 @@ namespace Chummer
             {
                 if (_intCachedSuppressed < 0)
                 {
-                    _intCachedSuppressed = _objCharacter.Improvements.Count(imp =>
-                        imp.ImproveType == Improvement.ImprovementType.DisableQuality &&
-                        (imp.ImprovedName == SourceIDString || imp.ImprovedName == Name) && imp.Enabled);
-                    if (_intCachedSuppressed > 0)
-                    {
-                        ImprovementManager.DisableImprovements(_objCharacter, _objCharacter.Improvements.Where(imp =>
-                            imp.SourceName == SourceIDString).ToArray());
-                    }
-                    else
-                    {
-                        ImprovementManager.EnableImprovements(_objCharacter, _objCharacter.Improvements.Where(imp =>
-                            imp.SourceName == SourceIDString).ToArray());
-                    }
+                    _intCachedSuppressed = ImprovementManager
+                                           .GetCachedImprovementListForValueOf(
+                                               _objCharacter, Improvement.ImprovementType.DisableQuality, Name).Count
+                                           + ImprovementManager
+                                             .GetCachedImprovementListForValueOf(
+                                                 _objCharacter, Improvement.ImprovementType.DisableQuality,
+                                                 SourceIDString).Count;
                 }
 
                 return _intCachedSuppressed > 0;
             }
         }
 
+        private void RefreshSuppressed()
+        {
+            if (Suppressed)
+            {
+                ImprovementManager.DisableImprovements(_objCharacter, _objCharacter.Improvements.Where(imp =>
+                                                           imp.SourceName == SourceIDString && imp.Enabled));
+            }
+            else
+            {
+                ImprovementManager.EnableImprovements(_objCharacter, _objCharacter.Improvements.Where(imp =>
+                                                          imp.SourceName == SourceIDString && !imp.Enabled));
+            }
+        }
+
         private XmlNode _objCachedMyXmlNode;
         private string _strCachedXmlNodeLanguage = string.Empty;
 
-        public XmlNode GetNode()
+        public async Task<XmlNode> GetNodeCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            return GetNode(GlobalSettings.Language);
+            if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage
+                                            && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXmlNode;
+            _objCachedMyXmlNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadData("qualities.xml", strLanguage, token: token)
+                    : await _objCharacter.LoadDataAsync("qualities.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/qualities/quality[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/qualities/quality[id = "
+                                        + SourceIDString.CleanXPath()
+                                        + " or id = " + SourceIDString
+                                                        .ToUpperInvariant().CleanXPath()
+                                        + ']');
+            _strCachedXmlNodeLanguage = strLanguage;
+            return _objCachedMyXmlNode;
         }
 
-        public XmlNode GetNode(string strLanguage)
+        private XPathNavigator _objCachedMyXPathNode;
+        private string _strCachedXPathNodeLanguage = string.Empty;
+
+        public async Task<XPathNavigator> GetNodeXPathCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            if (_objCachedMyXmlNode == null || strLanguage != _strCachedXmlNodeLanguage || GlobalSettings.LiveCustomData)
-            {
-                _objCachedMyXmlNode = _objCharacter.LoadData("qualities.xml", strLanguage)
-                    .SelectSingleNode(SourceID == Guid.Empty
-                        ? "/chummer/qualities/quality[name = " + Name.CleanXPath() + ']'
-                        : string.Format(GlobalSettings.InvariantCultureInfo,
-                            "/chummer/qualities/quality[id = {0} or id = {1}]",
-                            SourceIDString.CleanXPath(), SourceIDString.ToUpperInvariant().CleanXPath()));
-                _strCachedXmlNodeLanguage = strLanguage;
-            }
-            return _objCachedMyXmlNode;
+            if (_objCachedMyXPathNode != null && strLanguage == _strCachedXPathNodeLanguage
+                                              && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXPathNode;
+            _objCachedMyXPathNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadDataXPath("qualities.xml", strLanguage, token: token)
+                    : await _objCharacter.LoadDataXPathAsync("qualities.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/qualities/quality[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/qualities/quality[id = "
+                                        + SourceIDString.CleanXPath()
+                                        + " or id = " + SourceIDString
+                                                        .ToUpperInvariant().CleanXPath()
+                                        + ']');
+            _strCachedXPathNodeLanguage = strLanguage;
+            return _objCachedMyXPathNode;
         }
 
         #endregion Properties
@@ -1207,22 +1307,32 @@ namespace Chummer
                 if (xmlOneOfNode != null)
                 {
                     //Add to set for O(N log M) runtime instead of O(N * M)
-                    HashSet<string> lstRequired = new HashSet<string>();
-                    using (XmlNodeList xmlNodeList = xmlOneOfNode.SelectNodes("quality"))
-                        if (xmlNodeList != null)
-                            foreach (XmlNode node in xmlNodeList)
-                            {
-                                lstRequired.Add(node.InnerText);
-                            }
-
-                    if (!objCharacter.Qualities.Any(quality => lstRequired.Contains(quality.Name)))
+                    using (new FetchSafelyFromPool<HashSet<string>>(Utils.StringHashSetPool,
+                                                                    out HashSet<string>
+                                                                        lstRequired))
                     {
-                        reason |= QualityFailureReasons.RequiredSingle;
+                        using (XmlNodeList xmlNodeList = xmlOneOfNode.SelectNodes("quality"))
+                        {
+                            if (xmlNodeList?.Count > 0)
+                            {
+                                foreach (XmlNode node in xmlNodeList)
+                                {
+                                    lstRequired.Add(node.InnerText);
+                                }
+                            }
+                        }
+
+                        if (!objCharacter.Qualities.Any(quality => lstRequired.Contains(quality.Name)))
+                        {
+                            reason |= QualityFailureReasons.RequiredSingle;
+                        }
                     }
 
                     reason |= QualityFailureReasons.MetatypeRequired;
                     using (XmlNodeList xmlNodeList = xmlOneOfNode.SelectNodes("metatype"))
-                        if (xmlNodeList != null)
+                    {
+                        if (xmlNodeList?.Count > 0)
+                        {
                             foreach (XmlNode objNode in xmlNodeList)
                             {
                                 if (objNode.InnerText == objCharacter.Metatype)
@@ -1231,27 +1341,33 @@ namespace Chummer
                                     break;
                                 }
                             }
+                        }
+                    }
                 }
                 XmlNode xmlAllOfNode = xmlRequiredNode["allof"];
                 if (xmlAllOfNode != null)
                 {
                     //Add to set for O(N log M) runtime instead of O(N * M)
-                    HashSet<string> lstRequired = new HashSet<string>();
-                    foreach (Quality objQuality in objCharacter.Qualities)
+                    using (new FetchSafelyFromPool<HashSet<string>>(Utils.StringHashSetPool,
+                                                                    out HashSet<string>
+                                                                        lstRequired))
                     {
-                        lstRequired.Add(objQuality.Name);
-                    }
-
-                    using (XmlNodeList xmlNodeList = xmlAllOfNode.SelectNodes("quality"))
-                    {
-                        if (xmlNodeList != null)
+                        foreach (Quality objQuality in objCharacter.Qualities)
                         {
-                            foreach (XmlNode node in xmlNodeList)
+                            lstRequired.Add(objQuality.Name);
+                        }
+
+                        using (XmlNodeList xmlNodeList = xmlAllOfNode.SelectNodes("quality"))
+                        {
+                            if (xmlNodeList?.Count > 0)
                             {
-                                if (!lstRequired.Contains(node.InnerText))
+                                foreach (XmlNode node in xmlNodeList)
                                 {
-                                    reason |= QualityFailureReasons.RequiredMultiple;
-                                    break;
+                                    if (!lstRequired.Contains(node.InnerText))
+                                    {
+                                        reason |= QualityFailureReasons.RequiredMultiple;
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -1266,26 +1382,34 @@ namespace Chummer
                 if (xmlOneOfNode != null)
                 {
                     //Add to set for O(N log M) runtime instead of O(N * M)
-                    HashSet<string> qualityForbidden = new HashSet<string>();
-                    using (XmlNodeList xmlNodeList = xmlOneOfNode.SelectNodes("quality"))
-                        if (xmlNodeList != null)
-                            foreach (XmlNode node in xmlNodeList)
-                            {
-                                qualityForbidden.Add(node.InnerText);
-                            }
-
-                    foreach (Quality quality in objCharacter.Qualities)
+                    using (new FetchSafelyFromPool<HashSet<string>>(Utils.StringHashSetPool,
+                                                                    out HashSet<string>
+                                                                        setQualityForbidden))
                     {
-                        if (qualityForbidden.Contains(quality.Name))
+                        using (XmlNodeList xmlNodeList = xmlOneOfNode.SelectNodes("quality"))
                         {
-                            reason |= QualityFailureReasons.ForbiddenSingle;
-                            conflictingQualities.Add(quality);
+                            if (xmlNodeList != null)
+                            {
+                                foreach (XmlNode node in xmlNodeList)
+                                {
+                                    setQualityForbidden.Add(node.InnerText);
+                                }
+                            }
+                        }
+
+                        foreach (Quality quality in objCharacter.Qualities)
+                        {
+                            if (setQualityForbidden.Contains(quality.Name))
+                            {
+                                reason |= QualityFailureReasons.ForbiddenSingle;
+                                conflictingQualities.Add(quality);
+                            }
                         }
                     }
                 }
             }
 
-            return conflictingQualities.Count <= 0 && reason == QualityFailureReasons.None;
+            return conflictingQualities.Count == 0 && reason == QualityFailureReasons.None;
         }
 
         /// <summary>
@@ -1298,9 +1422,9 @@ namespace Chummer
         {
             if (xmlDoc == null)
                 throw new ArgumentNullException(nameof(xmlDoc));
-            var node = xmlDoc.SelectSingleNode("//*[id = " + id.CleanXPath() + "]");
+            XmlNode node = xmlDoc.SelectSingleNode(".//*[id = " + id.CleanXPath() + ']');
             if (node == null)
-                throw new ArgumentException("Could not find node " + id + " in xmlDoc " + xmlDoc.Name + ".");
+                throw new ArgumentException("Could not find node " + id + " in xmlDoc " + xmlDoc.Name + '.');
             return GetNodeOverrideable(node);
         }
 
@@ -1309,28 +1433,25 @@ namespace Chummer
             XmlNode workNode = n.Clone();  //clone as to not mess up the acctual xml document
 
             XmlNode parentNode = n.SelectSingleNode("../..");
-            if (parentNode?["id"] != null)
+            if (parentNode?["id"] == null)
+                return workNode;
+            XmlNode sourceNode = GetNodeOverrideable(parentNode);
+            if (sourceNode == null)
+                return workNode;
+            foreach (XmlNode node in sourceNode.ChildNodes)
             {
-                XmlNode sourceNode = GetNodeOverrideable(parentNode);
-                if (sourceNode != null)
+                if (workNode[node.LocalName] == null && node.LocalName != "versions")
                 {
-                    foreach (XmlNode node in sourceNode.ChildNodes)
+                    workNode.AppendChild(node.Clone());
+                }
+                else if (node.LocalName == "bonus")
+                {
+                    XmlNode xmlBonusNode = workNode["bonus"];
+                    if (xmlBonusNode == null)
+                        continue;
+                    foreach (XmlNode childNode in node.ChildNodes)
                     {
-                        if (workNode[node.LocalName] == null && node.LocalName != "versions")
-                        {
-                            workNode.AppendChild(node.Clone());
-                        }
-                        else if (node.LocalName == "bonus")
-                        {
-                            XmlNode xmlBonusNode = workNode["bonus"];
-                            if (xmlBonusNode != null)
-                            {
-                                foreach (XmlNode childNode in node.ChildNodes)
-                                {
-                                    xmlBonusNode.AppendChild(childNode.Clone());
-                                }
-                            }
-                        }
+                        xmlBonusNode.AppendChild(childNode.Clone());
                     }
                 }
             }
@@ -1341,8 +1462,8 @@ namespace Chummer
         //A tree of dependencies. Once some of the properties are changed,
         //anything they depend on, also needs to raise OnChanged
         //This tree keeps track of dependencies
-        private static readonly DependencyGraph<string, Quality> s_QualityDependencyGraph =
-            new DependencyGraph<string, Quality>(
+        private static readonly PropertyDependencyGraph<Quality> s_QualityDependencyGraph =
+            new PropertyDependencyGraph<Quality>(
                 new DependencyGraphNode<string, Quality>(nameof(Notes),
                     new DependencyGraphNode<string, Quality>(nameof(Suppressed))
                 ),
@@ -1391,7 +1512,7 @@ namespace Chummer
                 }
                 if (intKarmaCost > _objCharacter.Karma)
                 {
-                    Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_NotEnoughKarma"), LanguageManager.GetString("MessageTitle_NotEnoughKarma"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Program.ShowMessageBox(LanguageManager.GetString("Message_NotEnoughKarma"), LanguageManager.GetString("MessageTitle_NotEnoughKarma"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                     blnAddItem = false;
                 }
 
@@ -1416,7 +1537,7 @@ namespace Chummer
                 {
                     if (intKarmaCost > _objCharacter.Karma)
                     {
-                        Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_NotEnoughKarma"), LanguageManager.GetString("MessageTitle_NotEnoughKarma"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Program.ShowMessageBox(LanguageManager.GetString("Message_NotEnoughKarma"), LanguageManager.GetString("MessageTitle_NotEnoughKarma"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                         blnAddItem = false;
                     }
 
@@ -1435,48 +1556,8 @@ namespace Chummer
                     return false;
             }
 
-            // Remove any Improvements for the old Quality.
-            ImprovementManager.RemoveImprovements(_objCharacter, Improvement.ImprovementSource.Quality, objOldQuality.InternalId);
-            _objCharacter.Qualities.Remove(objOldQuality);
-
-            // Remove any Weapons created by the old Quality if applicable.
-            if (!objOldQuality.WeaponID.IsEmptyGuid())
-            {
-                List<Weapon> lstOldWeapons = _objCharacter.Weapons.DeepWhere(x => x.Children, x => x.ParentID == objOldQuality.InternalId).ToList();
-                foreach (Weapon objWeapon in lstOldWeapons)
-                {
-                    objWeapon.DeleteWeapon();
-                    // We can remove here because lstWeapons is separate from the Weapons that were yielded through DeepWhere
-                    if (objWeapon.Parent != null)
-                        objWeapon.Parent.Children.Remove(objWeapon);
-                    else
-                        _objCharacter.Weapons.Remove(objWeapon);
-                }
-            }
-
-            foreach (Quality objOldQualityLevels in _objCharacter.Qualities.Where(x =>
-                x.SourceIDString == SourceIDString && x.Extra == Extra &&
-                x.SourceName == SourceName && x.Type == Type).ToList())
-            {
-                // Remove any Improvements for the old Quality.
-                ImprovementManager.RemoveImprovements(_objCharacter, Improvement.ImprovementSource.Quality, objOldQualityLevels.InternalId);
-                _objCharacter.Qualities.Remove(objOldQualityLevels);
-
-                // Remove any Weapons created by the old Quality if applicable.
-                if (!objOldQualityLevels.WeaponID.IsEmptyGuid())
-                {
-                    List<Weapon> lstOldWeapons = _objCharacter.Weapons.DeepWhere(x => x.Children, x => x.ParentID == objOldQualityLevels.InternalId).ToList();
-                    foreach (Weapon objWeapon in lstOldWeapons)
-                    {
-                        objWeapon.DeleteWeapon();
-                        // We can remove here because lstWeapons is separate from the Weapons that were yielded through DeepWhere
-                        if (objWeapon.Parent != null)
-                            objWeapon.Parent.Children.Remove(objWeapon);
-                        else
-                            _objCharacter.Weapons.Remove(objWeapon);
-                    }
-                }
-            }
+            // Removing the old quality from the character
+            objOldQuality.DeleteQuality(true);
 
             // Add the new Quality to the character.
             _objCharacter.Qualities.Add(this);
@@ -1517,38 +1598,125 @@ namespace Chummer
             SourceDetail.SetControl(sourceControl);
         }
 
+        public Task SetSourceDetailAsync(Control sourceControl, CancellationToken token = default)
+        {
+            if (_objCachedSourceDetail.Language != GlobalSettings.Language)
+                _objCachedSourceDetail = default;
+            return SourceDetail.SetControlAsync(sourceControl, token);
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
         public void OnPropertyChanged([CallerMemberName] string strPropertyName = null)
         {
-            OnMultiplePropertyChanged(strPropertyName);
+            this.OnMultiplePropertyChanged(strPropertyName);
         }
 
-        public void OnMultiplePropertyChanged(params string[] lstPropertyNames)
+        public void OnMultiplePropertyChanged(IReadOnlyCollection<string> lstPropertyNames)
         {
-            ICollection<string> lstNamesOfChangedProperties = null;
-            foreach (string strPropertyName in lstPropertyNames)
+            HashSet<string> setNamesOfChangedProperties = null;
+            try
             {
-                if (lstNamesOfChangedProperties == null)
-                    lstNamesOfChangedProperties = s_QualityDependencyGraph.GetWithAllDependents(this, strPropertyName);
-                else
+                foreach (string strPropertyName in lstPropertyNames)
                 {
-                    foreach (string strLoopChangedProperty in s_QualityDependencyGraph.GetWithAllDependents(
-                        this, strPropertyName))
-                        lstNamesOfChangedProperties.Add(strLoopChangedProperty);
+                    if (setNamesOfChangedProperties == null)
+                        setNamesOfChangedProperties
+                            = s_QualityDependencyGraph.GetWithAllDependents(this, strPropertyName, true);
+                    else
+                    {
+                        foreach (string strLoopChangedProperty in s_QualityDependencyGraph
+                                     .GetWithAllDependentsEnumerable(this, strPropertyName))
+                            setNamesOfChangedProperties.Add(strLoopChangedProperty);
+                    }
+                }
+
+                if (setNamesOfChangedProperties == null || setNamesOfChangedProperties.Count == 0)
+                    return;
+
+                if (lstPropertyNames.Contains(nameof(Suppressed)))
+                {
+                    _intCachedSuppressed = -1;
+                    RefreshSuppressed();
+                }
+
+                Utils.RunOnMainThread(() =>
+                {
+                    if (PropertyChanged != null)
+                    {
+                        foreach (string strPropertyToChange in setNamesOfChangedProperties)
+                        {
+                            PropertyChanged.Invoke(this, new PropertyChangedEventArgs(strPropertyToChange));
+                        }
+                    }
+                });
+            }
+            finally
+            {
+                if (setNamesOfChangedProperties != null)
+                    Utils.StringHashSetPool.Return(setNamesOfChangedProperties);
+            }
+        }
+
+        /// <summary>
+        /// Removes a quality from the character, assuming we have already gone through all the necessary UI prompts.
+        /// TODO: make Quality properly inherit from ICanRemove by also putting the UI stuff in here as well
+        /// </summary>
+        /// <returns>Nuyen cost of the actual removal (necessary for removing some stuff that adds qualities as part of their effects).</returns>
+        public decimal DeleteQuality(bool blnFullRemoval = false)
+        {
+            _objCharacter.Qualities.Remove(this);
+            if (blnFullRemoval)
+            {
+                for (int i = _objCharacter.Qualities.Count - 1; i >= 0; --i)
+                {
+                    if (i >= _objCharacter.Qualities.Count)
+                        continue;
+                    Quality objLoopQuality = _objCharacter.Qualities[i];
+                    if (objLoopQuality.SourceIDString == SourceIDString
+                        && objLoopQuality.Extra == Extra
+                        && objLoopQuality.SourceName == SourceName
+                        && objLoopQuality.Type == Type)
+                        objLoopQuality.DeleteQuality();
                 }
             }
 
-            if (lstNamesOfChangedProperties == null || lstNamesOfChangedProperties.Count == 0)
-                return;
+            // Remove the Improvements that were created by the Quality.
+            decimal decReturn = ImprovementManager.RemoveImprovements(_objCharacter, Improvement.ImprovementSource.Quality, InternalId);
 
-            if (lstPropertyNames.Contains(nameof(Suppressed)))
-                _intCachedSuppressed = -1;
-            foreach (string strPropertyToChange in lstPropertyNames)
+            // Remove any Weapons created by the Quality if applicable.
+            if (!WeaponID.IsEmptyGuid())
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(strPropertyToChange));
+                foreach (Weapon objDeleteWeapon in _objCharacter.Weapons.DeepWhere(x => x.Children, x => x.ParentID == InternalId).ToList())
+                {
+                    decReturn += objDeleteWeapon.TotalCost + objDeleteWeapon.DeleteWeapon();
+                }
+                foreach (Vehicle objVehicle in _objCharacter.Vehicles)
+                {
+                    foreach (Weapon objDeleteWeapon in objVehicle.Weapons.DeepWhere(x => x.Children, x => x.ParentID == InternalId).ToList())
+                    {
+                        decReturn += objDeleteWeapon.TotalCost + objDeleteWeapon.DeleteWeapon();
+                    }
+
+                    foreach (VehicleMod objMod in objVehicle.Mods)
+                    {
+                        foreach (Weapon objDeleteWeapon in objMod.Weapons.DeepWhere(x => x.Children, x => x.ParentID == InternalId).ToList())
+                        {
+                            decReturn += objDeleteWeapon.TotalCost + objDeleteWeapon.DeleteWeapon();
+                        }
+                    }
+
+                    foreach (WeaponMount objMount in objVehicle.WeaponMounts)
+                    {
+                        foreach (Weapon objDeleteWeapon in objMount.Weapons.DeepWhere(x => x.Children, x => x.ParentID == InternalId).ToList())
+                        {
+                            decReturn += objDeleteWeapon.TotalCost + objDeleteWeapon.DeleteWeapon();
+                        }
+                    }
+                }
             }
+
+            return decReturn;
         }
     }
 }

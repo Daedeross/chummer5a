@@ -1,5 +1,24 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SQLite;
 using System.IO;
 
@@ -129,7 +148,7 @@ namespace ChummerDataViewer.Model
 
                 using (SQLiteDataReader reader = _getKey.ExecuteReader())
                 {
-                    while (reader.Read())
+                    if (reader.Read())
                     {
                         return reader["value"].ToString();
                     }
@@ -212,7 +231,7 @@ namespace ChummerDataViewer.Model
             }
         }
 
-        private CrashReport MakeCrashReport(SQLiteDataReader reader)
+        private CrashReport MakeCrashReport(IDataRecord reader)
         {
             Guid g = reader.GetGuid(0); //Guid.Parse(reader.GetString(0)));
             long l = reader.GetInt64(1);
@@ -342,6 +361,7 @@ namespace ChummerDataViewer.Model
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion IDisposable Support

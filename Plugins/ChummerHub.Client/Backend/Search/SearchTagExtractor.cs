@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using Chummer;
 using ChummerHub.Client.Sinners;
 using ChummerHub.Client.UI;
@@ -22,33 +40,30 @@ namespace ChummerHub.Client.Backend
             if (obj == null)
                 yield break;
 
-            if (string.IsNullOrEmpty(obj as string))
+            if (string.IsNullOrEmpty(obj as string) && obj is IEnumerable islist)
             {
-                if (obj is IEnumerable islist)
+                Type listtype = StaticUtils.GetListType(islist);
+                object generic;
+                try
                 {
-                    Type listtype = StaticUtils.GetListType(islist);
-                    object generic;
+                    generic = Activator.CreateInstance(listtype, ucSINnersSearch.MySearchCharacter.MyCharacter);
+                }
+                catch (Exception)
+                {
                     try
                     {
-                        generic = Activator.CreateInstance(listtype, ucSINnersSearch.MySearchCharacter.MyCharacter);
+                        generic = Activator.CreateInstance(listtype);
                     }
-                    catch (Exception)
+                    catch(Exception e2)
                     {
-                        try
-                        {
-                            generic = Activator.CreateInstance(listtype);
-                        }
-                        catch(Exception e2)
-                        {
-                            //seriously, that gets out of hand...
-                            Trace.TraceError(e2.ToString());
-                            throw;
-                        }
+                        //seriously, that gets out of hand...
+                        Trace.TraceError(e2.ToString());
+                        throw;
                     }
-                    foreach (SearchTag tagChild in ExtractTagsFromAttributes(generic))
-                        yield return tagChild;
-                    yield break;
                 }
+                foreach (SearchTag tagChild in ExtractTagsFromAttributes(generic))
+                    yield return tagChild;
+                yield break;
             }
             foreach (PropertyInfo property in obj.GetType().GetProperties())
             {

@@ -1,11 +1,32 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
 using System.Threading;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace ChummerDataViewer.Model
 {
@@ -62,31 +83,33 @@ namespace ChummerDataViewer.Model
 
         public static byte[] Decrypt(string key, byte[] encrypted)
         {
-            byte[] buffer;
+            byte[] unencrypted;
+            byte[] nonce = GetIv(key);
             // Create the streams used for encryption.
-            AesManaged managed = null;
-            try
-            {
-                managed = new AesManaged
-                {
-                    IV = GetIv(key),
-                    Key = GetKey(key)
-                };
-                ICryptoTransform encryptor = managed.CreateDecryptor();
+            GcmBlockCipher objCipher = new GcmBlockCipher(new AesEngine());
+            objCipher.Init(true, new AeadParameters(new KeyParameter(GetKey(key)), 128, nonce, null));
 
-                MemoryStream msEncrypt = new MemoryStream();
-                // csEncrypt.Dispose() should call msEncrypt.Dispose()
-                using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+            //Decrypt Cipher Text
+            using (MemoryStream objStream = new MemoryStream(encrypted))
+            using (BinaryReader objReader = new BinaryReader(objStream))
+            {
+                byte[] cipherText = objReader.ReadBytes(encrypted.Length);
+                unencrypted = new byte[objCipher.GetOutputSize(cipherText.Length)];
+
+                try
                 {
-                    csEncrypt.Write(encrypted, 0, encrypted.Length);
-                    buffer = msEncrypt.ToArray();
+                    int len = objCipher.ProcessBytes(cipherText, 0, cipherText.Length, unencrypted, 0);
+                    objCipher.DoFinal(unencrypted, len);
+
+                }
+                catch (InvalidCipherTextException)
+                {
+                    //Return null if it doesn't authenticate
+                    return Array.Empty<byte>();
                 }
             }
-            finally
-            {
-                managed?.Dispose();
-            }
-            return buffer;
+            
+            return unencrypted;
         }
 
         private void WriteAndForget(byte[] buffer, string destinationPath, Guid guid)
@@ -146,7 +169,7 @@ namespace ChummerDataViewer.Model
             }
         }
 
-        private string Queue() => _queue.Count > 0 ? _queue.Count.ToString() + " in queue" : string.Empty;
+        private string Queue() => !_queue.IsEmpty ? _queue.Count + " in queue" : string.Empty;
 
         #region IDisposable Support
 

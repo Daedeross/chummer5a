@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -32,14 +50,23 @@ namespace ChummerHub.Client.UI
         }
 
         [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct SHSTOCKICONINFO
+        public readonly struct SHSTOCKICONINFO
         {
-            public uint cbSize;
-            public IntPtr hIcon;
-            public int iSysIconIndex;
-            public int iIcon;
+            public readonly uint cbSize;
+            public readonly IntPtr hIcon;
+            public readonly int iSysIconIndex;
+            public readonly int iIcon;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260/*MAX_PATH*/)]
-            public string szPath;
+            public readonly string szPath;
+
+            public SHSTOCKICONINFO(uint uintSize, IntPtr ptrIcon, int intSysIconIndex = 0, int intIcon = 0, string strPath = "")
+            {
+                cbSize = uintSize;
+                hIcon = ptrIcon;
+                iSysIconIndex = intSysIconIndex;
+                iIcon = intIcon;
+                szPath = strPath;
+            }
 
             public override bool Equals(object obj)
             {
@@ -72,16 +99,13 @@ namespace ChummerHub.Client.UI
         }
 
         [DllImport("Shell32.dll", SetLastError = false)]
-        public static extern int SHGetStockIconInfo(SHSTOCKICONID siid, SHGSI uFlags, ref SHSTOCKICONINFO psii);
+        private static extern int SHGetStockIconInfo(SHSTOCKICONID siid, SHGSI uFlags, ref SHSTOCKICONINFO psii);
 
         public frmSINnerPassword()
         {
             InitializeComponent();
             StartPosition = FormStartPosition.CenterScreen;
-            SHSTOCKICONINFO sii = new SHSTOCKICONINFO
-            {
-                cbSize = (uint)Marshal.SizeOf(typeof(SHSTOCKICONINFO))
-            };
+            SHSTOCKICONINFO sii = new SHSTOCKICONINFO((uint)Marshal.SizeOf(typeof(SHSTOCKICONINFO)), IntPtr.Zero);
 
             Marshal.ThrowExceptionForHR(SHGetStockIconInfo(SHSTOCKICONID.SIID_INFO,
                 SHGSI.SHGSI_ICON | SHGSI.SHGSI_LARGEICON,

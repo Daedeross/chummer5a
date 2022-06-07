@@ -25,35 +25,33 @@ using System.Linq;
 
 namespace Chummer
 {
-    public class ConcurrentHashSet<T> :
-        ISet<T>,
-        IReadOnlyCollection<T>
+    public class ConcurrentHashSet<T> : ISet<T>, IReadOnlyCollection<T>, IProducerConsumerCollection<T>
     {
-        private readonly ConcurrentDictionary<T, bool> _dicInternal;
+        protected ConcurrentDictionary<T, bool> DicInternal { get; }
 
         public ConcurrentHashSet()
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>();
+            DicInternal = new ConcurrentDictionary<T, bool>();
         }
 
         public ConcurrentHashSet(IEnumerable<T> collection)
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>(collection.Select(x => new KeyValuePair<T, bool>(x, false)));
+            DicInternal = new ConcurrentDictionary<T, bool>(collection.Select(x => new KeyValuePair<T, bool>(x, false)));
         }
 
         public ConcurrentHashSet(IEqualityComparer<T> comparer)
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>(comparer);
+            DicInternal = new ConcurrentDictionary<T, bool>(comparer);
         }
 
         public ConcurrentHashSet(IEnumerable<T> collection, IEqualityComparer<T> comparer)
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>(collection.Select(x => new KeyValuePair<T, bool>(x, false)), comparer);
+            DicInternal = new ConcurrentDictionary<T, bool>(collection.Select(x => new KeyValuePair<T, bool>(x, false)), comparer);
         }
 
         public ConcurrentHashSet(int concurrencyLevel, IEnumerable<T> collection, IEqualityComparer<T> comparer)
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>(concurrencyLevel, collection.Select(x => new KeyValuePair<T, bool>(x, false)), comparer);
+            DicInternal = new ConcurrentDictionary<T, bool>(concurrencyLevel, collection.Select(x => new KeyValuePair<T, bool>(x, false)), comparer);
         }
 
         public ConcurrentHashSet(
@@ -61,153 +59,210 @@ namespace Chummer
             int capacity,
             IEqualityComparer<T> comparer)
         {
-            _dicInternal = new ConcurrentDictionary<T, bool>(concurrencyLevel, capacity, comparer);
+            DicInternal = new ConcurrentDictionary<T, bool>(concurrencyLevel, capacity, comparer);
         }
 
+        /// <inheritdoc />
         public IEnumerator<T> GetEnumerator()
         {
-            return _dicInternal.Keys.GetEnumerator();
+            return DicInternal.Keys.GetEnumerator();
         }
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        /// <inheritdoc />
         public bool TryAdd(T item)
         {
-            return item != null && _dicInternal.TryAdd(item, false);
+            return item != null && DicInternal.TryAdd(item, false);
         }
 
+        /// <inheritdoc />
+        public bool TryTake(out T item)
+        {
+            if (!DicInternal.IsEmpty)
+            {
+                // FIFO to be compliant with how the default for BlockingCollection<T> is ConcurrentQueue
+                item = DicInternal.Keys.First();
+                if (DicInternal.TryRemove(item, out bool _))
+                    return true;
+            }
+            item = default;
+            return false;
+        }
+
+        /// <inheritdoc />
+        public T[] ToArray()
+        {
+            return DicInternal.Keys.ToArray();
+        }
+
+        /// <inheritdoc />
         void ICollection<T>.Add(T item)
         {
             if (item != null)
-                _dicInternal.TryAdd(item, false);
+                DicInternal.TryAdd(item, false);
         }
 
+        /// <inheritdoc />
         public void UnionWith(IEnumerable<T> other)
         {
             foreach (T item in other)
             {
-                _dicInternal.TryAdd(item, false);
+                DicInternal.TryAdd(item, false);
             }
         }
 
-        public void IntersectWith(IEnumerable<T> other)
+        /// <inheritdoc />
+        public virtual void IntersectWith(IEnumerable<T> other)
         {
             HashSet<T> setOther = new HashSet<T>(other);
-            foreach (T item in _dicInternal.Keys)
+            foreach (T item in DicInternal.Keys)
             {
                 if (!setOther.Contains(item))
-                    _dicInternal.TryRemove(item, out bool _);
+                    DicInternal.TryRemove(item, out bool _);
             }
         }
 
+        /// <inheritdoc />
         public void ExceptWith(IEnumerable<T> other)
         {
             foreach (T item in other)
             {
-                _dicInternal.TryRemove(item, out bool _);
+                DicInternal.TryRemove(item, out bool _);
             }
         }
 
+        /// <inheritdoc />
         public void SymmetricExceptWith(IEnumerable<T> other)
         {
             foreach (T item in other)
             {
-                if (!_dicInternal.TryAdd(item, false))
-                    _dicInternal.TryRemove(item, out bool _);
+                if (!DicInternal.TryAdd(item, false))
+                    DicInternal.TryRemove(item, out bool _);
             }
         }
 
+        /// <inheritdoc />
         public bool IsSubsetOf(IEnumerable<T> other)
         {
-            return other.Count(item => _dicInternal.ContainsKey(item)) == _dicInternal.Count;
+            return other.Count(item => DicInternal.ContainsKey(item)) == DicInternal.Count;
         }
 
+        /// <inheritdoc />
         public bool IsSupersetOf(IEnumerable<T> other)
         {
-            return other.All(item => _dicInternal.ContainsKey(item));
+            return other.All(item => DicInternal.ContainsKey(item));
         }
 
+        /// <inheritdoc />
         public bool IsProperSupersetOf(IEnumerable<T> other)
         {
             int count = 0;
             foreach (T item in other)
             {
-                if (!_dicInternal.ContainsKey(item))
+                if (!DicInternal.ContainsKey(item))
                     return false;
                 ++count;
             }
-            return count < _dicInternal.Count;
+            return count < DicInternal.Count;
         }
 
+        /// <inheritdoc />
         public bool IsProperSubsetOf(IEnumerable<T> other)
         {
             int count = 0;
             bool equals = true;
             foreach (T item in other)
             {
-                if (_dicInternal.ContainsKey(item))
+                if (DicInternal.ContainsKey(item))
                     ++count;
                 else
                     equals = false;
             }
-            return count == _dicInternal.Count && !equals;
+            return count == DicInternal.Count && !equals;
         }
 
+        /// <inheritdoc />
         public bool Overlaps(IEnumerable<T> other)
         {
-            return other.Any(item => _dicInternal.ContainsKey(item));
+            return other.Any(item => DicInternal.ContainsKey(item));
         }
 
+        /// <inheritdoc />
         public bool SetEquals(IEnumerable<T> other)
         {
             int count = 0;
             foreach (T item in other)
             {
-                if (!_dicInternal.ContainsKey(item))
+                if (!DicInternal.ContainsKey(item))
                     return false;
                 ++count;
             }
-            return count == _dicInternal.Count;
+            return count == DicInternal.Count;
         }
 
+        /// <inheritdoc />
         bool ISet<T>.Add(T item)
         {
-            return _dicInternal.TryAdd(item, false);
+            return DicInternal.TryAdd(item, false);
         }
 
+        /// <inheritdoc />
         public void Clear()
         {
-            _dicInternal.Clear();
+            DicInternal.Clear();
         }
 
+        /// <inheritdoc />
         public bool Contains(T item)
         {
-            return item != null && _dicInternal.ContainsKey(item);
+            return item != null && DicInternal.ContainsKey(item);
         }
 
+        /// <inheritdoc cref="ISet{T}.CopyTo" />
         public void CopyTo(T[] array, int arrayIndex)
         {
-            if (arrayIndex + _dicInternal.Count > array.Length)
+            if (arrayIndex + DicInternal.Count > array.Length)
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-            for (int i = 0; i < _dicInternal.Count; ++i)
+            for (int i = 0; i < DicInternal.Count; ++i)
             {
-                array[arrayIndex] = _dicInternal.Keys.ElementAt(i);
+                array[arrayIndex] = DicInternal.Keys.ElementAt(i);
                 ++arrayIndex;
             }
         }
 
+        /// <inheritdoc />
         public bool Remove(T item)
         {
-            return item != null && _dicInternal.TryRemove(item, out bool _);
+            return item != null && DicInternal.TryRemove(item, out bool _);
         }
 
-        int ICollection<T>.Count => _dicInternal.Count;
+        /// <inheritdoc />
+        public void CopyTo(Array array, int index)
+        {
+            if (index + DicInternal.Count > array.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            for (int i = 0; i < DicInternal.Count; ++i)
+            {
+                array.SetValue(DicInternal.Keys.ElementAt(i), index);
+                ++index;
+            }
+        }
 
+        /// <inheritdoc cref="ISet{T}.Count" />
+        public int Count => DicInternal.Count;
+
+        /// <inheritdoc />
+        public object SyncRoot => throw new NotSupportedException();
+
+        /// <inheritdoc />
+        public bool IsSynchronized => false;
+
+        /// <inheritdoc />
         public bool IsReadOnly => false;
-
-        int IReadOnlyCollection<T>.Count => _dicInternal.Count;
     }
 }

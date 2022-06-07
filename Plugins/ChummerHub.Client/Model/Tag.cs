@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Collections;
 using System.Diagnostics;
@@ -54,7 +72,7 @@ namespace ChummerHub.Client.Sinners
             {
                 StringBuilder sbdReturn = new StringBuilder(TagName);
                 if (!string.IsNullOrEmpty(TagValue))
-                    sbdReturn.Append(": " + TagValue);
+                    sbdReturn.Append(": ").Append(TagValue);
                 Tag tempParent = MyParentTag;
                 while (tempParent != null)
                 {
@@ -65,7 +83,7 @@ namespace ChummerHub.Client.Sinners
                     tempParent = tempParent.MyParentTag;
                 }
                 if(!string.IsNullOrEmpty(TagComment))
-                    sbdReturn.Append(" (" + TagComment + ")");
+                    sbdReturn.Append(" (").Append(TagComment).Append(')');
                 return sbdReturn.ToString();
             }
         }
@@ -94,7 +112,7 @@ namespace ChummerHub.Client.Sinners
         {
             SiNnerId = id;
             if (Tags != null && Tags.Count > 0)
-                foreach(var childtag in Tags)
+                foreach(Tag childtag in Tags)
                     childtag.SetSinnerIdRecursive(id);
         }
 
@@ -143,16 +161,16 @@ namespace ChummerHub.Client.Sinners
             if (objItem == null || objAttribute == null)
                 return;
             Type objItemType = objItem.GetType();
-            StringBuilder sbdPropertyValues = new StringBuilder();
+            StringBuilder sbdPropertyValues = new StringBuilder(byte.MaxValue);
             foreach (string strProperty in objAttribute.ListCommentProperties)
             {
-                System.Reflection.PropertyInfo objProperty = objItemType.GetProperties().FirstOrDefault(p => p.Name == strProperty);
+                System.Reflection.PropertyInfo objProperty = objItemType.GetProperties().Find(p => p.Name == strProperty);
                 if (objProperty == null)
                     throw new ArgumentOutOfRangeException("Could not find property " + strProperty + " on instance of type " + objItemType + ".");
 
                 string strPropertyValue = objProperty.GetValue(objItem)?.ToString();
                 if (!string.IsNullOrEmpty(strPropertyValue))
-                    sbdPropertyValues.Append(strPropertyValue + " ");
+                    sbdPropertyValues.Append(strPropertyValue).Append(' ');
             }
             if (sbdPropertyValues.Length > 0)
                 sbdPropertyValues.Remove(sbdPropertyValues.Length - 1, 1); // Remove trailing whitespace

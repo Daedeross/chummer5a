@@ -21,8 +21,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
-using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -54,7 +54,9 @@ namespace Chummer
             _objCharacter = objCharacter;
         }
 
+        /// <summary>
         /// Create an Initiation Grade from an XmlNode.
+        /// </summary>
         /// <param name="intGrade">Grade number.</param>
         /// <param name="blnTechnomancer">Whether or not the character is a Technomancer.</param>
         /// <param name="blnGroup">Whether or not a Group was used.</param>
@@ -72,7 +74,7 @@ namespace Chummer
             //To handle this, we ceiling the CyberwareEssence value up, as a non-zero loss of Essence removes a point of Resonance, and cut the submersion grade in half.
             //Whichever value is lower becomes the value of the improvement.
             if (intGrade > 0 && blnTechnomancer && _objCharacter.RESEnabled && !_objCharacter.Settings.SpecialKarmaCostBasedOnShownValue
-                && _objCharacter.Improvements.Any(x => x.ImproveType == Improvement.ImprovementType.CyberadeptDaemon && x.Enabled))
+                && ImprovementManager.GetCachedImprovementListForValueOf(_objCharacter, Improvement.ImprovementType.CyberadeptDaemon).Count > 0)
             {
                 decimal decNonCyberwareEssence = _objCharacter.BiowareEssence + _objCharacter.EssenceHole;
                 int intResonanceRecovered = Math.Min(intGrade.DivAwayFromZero(2), (int)(
@@ -85,8 +87,7 @@ namespace Chummer
                     // +1 compared to normal because this Grade's effect has not been processed yet.
                     : Math.Min(intResonanceRecovered, _objCharacter.RES.MaximumNoEssenceLoss() - intGrade + 1 - _objCharacter.RES.Value);
                 ImprovementManager.CreateImprovement(_objCharacter, "RESBase", Improvement.ImprovementSource.CyberadeptDaemon,
-                    _guiID.ToString("D", GlobalSettings.InvariantCultureInfo),
-                    Improvement.ImprovementType.Attribute, string.Empty, 0, intResonanceRecovered, 0, 1, 1);
+                    InternalId, Improvement.ImprovementType.Attribute, string.Empty, 0, intResonanceRecovered, 0, 1, 1);
                 ImprovementManager.Commit(_objCharacter);
             }
         }
@@ -95,7 +96,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(XmlWriter objWriter)
         {
             if (objWriter == null)
                 return;
@@ -106,7 +107,7 @@ namespace Chummer
             objWriter.WriteElementString("group", _blnGroup.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteElementString("ordeal", _blnOrdeal.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteElementString("schooling", _blnSchooling.ToString(GlobalSettings.InvariantCultureInfo));
-            objWriter.WriteElementString("notes", System.Text.RegularExpressions.Regex.Replace(_strNotes, @"[\u0000-\u0008\u000B\u000C\u000E-\u001F]", ""));
+            objWriter.WriteElementString("notes", _strNotes.CleanOfInvalidUnicodeChars());
             objWriter.WriteElementString("notesColor", ColorTranslator.ToHtml(_colNotes));
             objWriter.WriteEndElement();
         }
@@ -138,20 +139,28 @@ namespace Chummer
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
         /// <param name="objCulture">Culture in which to print</param>
-        public void Print(XmlTextWriter objWriter, CultureInfo objCulture)
+        public async ValueTask Print(XmlWriter objWriter, CultureInfo objCulture)
         {
             if (objWriter == null)
                 return;
-            objWriter.WriteStartElement("initiationgrade");
-            objWriter.WriteElementString("guid", InternalId);
-            objWriter.WriteElementString("grade", Grade.ToString(objCulture));
-            objWriter.WriteElementString("group", Group.ToString(GlobalSettings.InvariantCultureInfo));
-            objWriter.WriteElementString("ordeal", Ordeal.ToString(GlobalSettings.InvariantCultureInfo));
-            objWriter.WriteElementString("schooling", Schooling.ToString(GlobalSettings.InvariantCultureInfo));
-            objWriter.WriteElementString("technomancer", Technomancer.ToString(GlobalSettings.InvariantCultureInfo));
-            if (GlobalSettings.PrintNotes)
-                objWriter.WriteElementString("notes", Notes);
-            objWriter.WriteEndElement();
+            // <initiationgrade>
+            XmlElementWriteHelper objBaseElement = await objWriter.StartElementAsync("initiationgrade");
+            try
+            {
+                await objWriter.WriteElementStringAsync("guid", InternalId);
+                await objWriter.WriteElementStringAsync("grade", Grade.ToString(objCulture));
+                await objWriter.WriteElementStringAsync("group", Group.ToString(GlobalSettings.InvariantCultureInfo));
+                await objWriter.WriteElementStringAsync("ordeal", Ordeal.ToString(GlobalSettings.InvariantCultureInfo));
+                await objWriter.WriteElementStringAsync("schooling", Schooling.ToString(GlobalSettings.InvariantCultureInfo));
+                await objWriter.WriteElementStringAsync("technomancer", Technomancer.ToString(GlobalSettings.InvariantCultureInfo));
+                if (GlobalSettings.PrintNotes)
+                    await objWriter.WriteElementStringAsync("notes", Notes);
+            }
+            finally
+            {
+                // </initiationgrade>
+                await objBaseElement.DisposeAsync();
+            }
         }
 
         #endregion Constructor, Create, Save, and Load Methods
@@ -251,32 +260,40 @@ namespace Chummer
         public string Text(string strLanguage)
         {
             string strSpace = LanguageManager.GetString("String_Space", strLanguage);
-            StringBuilder strReturn = new StringBuilder(LanguageManager.GetString("String_Grade", strLanguage));
-            strReturn.Append(strSpace);
-            strReturn.Append(Grade.ToString(GlobalSettings.CultureInfo));
-            if (Group || Ordeal)
+            using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                          out StringBuilder sbdReturn))
             {
-                strReturn.Append(strSpace + '(');
-                if (Group)
+                sbdReturn.Append(LanguageManager.GetString("String_Grade", strLanguage)).Append(strSpace)
+                         .Append(Grade.ToString(GlobalSettings.CultureInfo));
+                if (Group || Ordeal)
                 {
-                    strReturn.Append(Technomancer ? LanguageManager.GetString("String_Network", strLanguage) : LanguageManager.GetString("String_Group", strLanguage));
-                    if (Ordeal || Schooling)
-                        strReturn.Append(',' + strSpace);
-                }
-                if (Ordeal)
-                {
-                    strReturn.Append(Technomancer ? LanguageManager.GetString("String_Task", strLanguage) : LanguageManager.GetString("String_Ordeal", strLanguage));
-                    if (Schooling)
-                        strReturn.Append(',' + strSpace);
-                }
-                if (Schooling)
-                {
-                    strReturn.Append(LanguageManager.GetString("String_Schooling", strLanguage));
-                }
-                strReturn.Append(')');
-            }
+                    sbdReturn.Append(strSpace).Append('(');
+                    if (Group)
+                    {
+                        sbdReturn.Append(
+                            LanguageManager.GetString(Technomancer ? "String_Network" : "String_Group", strLanguage));
+                        if (Ordeal || Schooling)
+                            sbdReturn.Append(',').Append(strSpace);
+                    }
 
-            return strReturn.ToString();
+                    if (Ordeal)
+                    {
+                        sbdReturn.Append(
+                            LanguageManager.GetString(Technomancer ? "String_Task" : "String_Ordeal", strLanguage));
+                        if (Schooling)
+                            sbdReturn.Append(',').Append(strSpace);
+                    }
+
+                    if (Schooling)
+                    {
+                        sbdReturn.Append(LanguageManager.GetString("String_Schooling", strLanguage));
+                    }
+
+                    sbdReturn.Append(')');
+                }
+
+                return sbdReturn.ToString();
+            }
         }
 
         /// <summary>
@@ -344,7 +361,7 @@ namespace Chummer
             {
                 if (Grade != _objCharacter.InitiateGrade && blnPerformGradeCheck)
                 {
-                    Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_DeleteGrade"),
+                    Program.ShowMessageBox(LanguageManager.GetString("Message_DeleteGrade"),
                         LanguageManager.GetString("MessageTitle_DeleteGrade"), MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     return false;
@@ -357,7 +374,7 @@ namespace Chummer
             {
                 if (Grade != _objCharacter.SubmersionGrade && blnPerformGradeCheck)
                 {
-                    Program.MainForm.ShowMessageBox(LanguageManager.GetString("Message_DeleteGrade"),
+                    Program.ShowMessageBox(LanguageManager.GetString("Message_DeleteGrade"),
                         LanguageManager.GetString("MessageTitle_DeleteGrade"), MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     return false;
@@ -366,7 +383,7 @@ namespace Chummer
                 if (blnConfirmDelete && !CommonFunctions.ConfirmDelete(LanguageManager.GetString("Message_DeleteSubmersionGrade")))
                     return false;
 
-                ImprovementManager.RemoveImprovements(_objCharacter, Improvement.ImprovementSource.CyberadeptDaemon, _guiID.ToString("D", GlobalSettings.InvariantCultureInfo));
+                ImprovementManager.RemoveImprovements(_objCharacter, Improvement.ImprovementSource.CyberadeptDaemon, InternalId);
             }
             else
                 return false;

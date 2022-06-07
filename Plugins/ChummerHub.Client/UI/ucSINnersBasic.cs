@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,20 +73,23 @@ namespace ChummerHub.Client.UI
                                                         myUC.MyCE.MySINnerFile.Id);
                 }
             }));
-            foreach (var cb in gpTags.Controls)
+            foreach (object cb in gpTags.Controls)
             {
                 if (cb is Control cont)
                     cont.Click += OnGroupBoxTagsClick;
-                if (cb is CheckBox cccb)
+                switch (cb)
                 {
-                    cccb.CheckedChanged += OnGroupBoxTagsClick;
-                    cccb.CheckStateChanged += OnGroupBoxTagsClick;
+                    case CheckBox cccb:
+                        cccb.CheckedChanged += OnGroupBoxTagsClick;
+                        cccb.CheckStateChanged += OnGroupBoxTagsClick;
+                        break;
+                    case ComboBox ccb:
+                        ccb.TextChanged += OnGroupBoxTagsClick;
+                        break;
+                    case TextBox ctb:
+                        ctb.TextChanged += OnGroupBoxTagsClick;
+                        break;
                 }
-
-                if (cb is ComboBox ccb)
-                    ccb.TextChanged += OnGroupBoxTagsClick;
-                if (cb is TextBox ctb)
-                    ctb.TextChanged += OnGroupBoxTagsClick;
             }
 
             _inConstructor = false;
@@ -80,14 +101,14 @@ namespace ChummerHub.Client.UI
             {
                 if (myUC?.MyCE?.MySINnerFile?.Id == null || myUC.MyCE.MySINnerFile.Id == Guid.Empty)
                 {
-                    await bUpload.DoThreadSafeAsync(() => bUpload.Text = "SINless Character/Error" );
+                    await bUpload.DoThreadSafeAsync(x => x.Text = "SINless Character/Error" );
                     return false;
                 }
 
-                using (new CursorWait(this, true))
+                using (await CursorWait.NewAsync(this, true))
                 {
-                    var client = StaticUtils.GetClient();
-                    var response = await client.GetSINnerGroupFromSINerByIdAsync(myUC.MyCE.MySINnerFile.Id.Value);
+                    SinnersClient client = StaticUtils.GetClient();
+                    ResultSinnerGetSINnerGroupFromSINerById response = await client.GetSINnerGroupFromSINerByIdAsync(myUC.MyCE.MySINnerFile.Id.Value);
                     
                     SINnerGroup objMySiNnerGroup = response.MySINnerGroup;
                     
@@ -131,7 +152,7 @@ namespace ChummerHub.Client.UI
             catch (Exception ex)
             {
                 Log.Error(ex);
-                await bUpload.DoThreadSafeAsync(() => bUpload.Text = "Unknown Status");
+                await bUpload.DoThreadSafeAsync(x => x.Text = "Unknown Status");
                 return false;
             }
             return true;
@@ -147,10 +168,10 @@ namespace ChummerHub.Client.UI
             if (myUC?.MyCE?.MySINnerFile?.MyGroup != null)
                 lGourpForSinner.Text = myUC.MyCE.MySINnerFile.MyGroup.Groupname;
 
-            var gpControlSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("cbTag")).ToList();
-            var gpControlValueSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("TagValue")).ToList();
+            List<Control> gpControlSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("cbTag")).ToList();
+            List<Control> gpControlValueSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("TagValue")).ToList();
 
-            foreach (var cb in gpControlSeq)
+            foreach (Control cb in gpControlSeq)
             {
                 if (cb is CheckBox cbTag)
                     cbTag.CheckState = CheckState.Unchecked;
@@ -164,36 +185,38 @@ namespace ChummerHub.Client.UI
                         continue;
                     //search for a CheckBox that is named like the tag
                     string checkBoxKey = "cbTag" + tag.TagName;
-                    Control objMatchingCheckBox = gpControlSeq.FirstOrDefault(x => x.Name == checkBoxKey);
+                    Control objMatchingCheckBox = gpControlSeq.Find(x => x.Name == checkBoxKey);
                     if (objMatchingCheckBox == null)
                         continue;
                     if (!(objMatchingCheckBox is CheckBox cbTag))
                         throw new ArgumentNullException("Control " + checkBoxKey + " is NOT a Checkbox!");
 
-                    cbTag.Checked = bool.TryParse(tag.TagValue, out var value) && value;
+                    cbTag.Checked = bool.TryParse(tag.TagValue, out bool value) && value;
                     //search for the value-control (whatever that may be)
-                    Control objMatchingControl = gpControlValueSeq.FirstOrDefault(x => x.Name == "TagValue" + tag.TagName);
+                    Control objMatchingControl = gpControlValueSeq.Find(x => x.Name == "TagValue" + tag.TagName);
                     if (objMatchingControl == null)
                         continue;
 
                     cbTag.Checked = true;
-                    if (objMatchingControl is TextBox tbTagValue)
+                    switch (objMatchingControl)
                     {
-                        tbTagValue.Text = tag.TagValue;
-                    }
-                    else if (objMatchingControl is ComboBox comboTagValue)
-                    {
-                        if (tag.TagValue != null)
+                        case TextBox tbTagValue:
+                            tbTagValue.Text = tag.TagValue;
+                            break;
+                        case ComboBox comboTagValue:
                         {
-                            if (!comboTagValue.Items.Contains(tag.TagValue))
-                                comboTagValue.Items.Add(tag.TagValue);
-                            comboTagValue.SelectedItem = tag.TagValue;
+                            if (tag.TagValue != null)
+                            {
+                                if (!comboTagValue.Items.Contains(tag.TagValue))
+                                    comboTagValue.Items.Add(tag.TagValue);
+                                comboTagValue.SelectedItem = tag.TagValue;
+                            }
+
+                            break;
                         }
-                    }
-                    else if (objMatchingControl is NumericUpDown upDownTagValue)
-                    {
-                        if (decimal.TryParse(tag.TagValue, out var val))
+                        case NumericUpDown upDownTagValue when decimal.TryParse(tag.TagValue, out decimal val):
                             upDownTagValue.Value = val;
+                            break;
                     }
                 }
             }
@@ -222,11 +245,11 @@ namespace ChummerHub.Client.UI
                 return;
             if (myUC == null)
                 return;
-            var gpControlValueSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("TagValue")).ToList();
+            List<Control> gpControlValueSeq = GetAllControls(gpTags).Where(x => x.Name.Contains("TagValue")).ToList();
 
             myUC.MyCE.MySINnerFile.SiNnerMetaData.Tags = myUC.MyCE.MySINnerFile.SiNnerMetaData.Tags.Where(a => a != null).ToList();
 
-            foreach (var cb in GetAllControls(gpTags).Where(x => x.Name.Contains("cbTag")))
+            foreach (Control cb in GetAllControls(gpTags).Where(x => x.Name.Contains("cbTag")))
             {
                 if (!(cb is CheckBox cbTag))
                     continue;
@@ -249,26 +272,24 @@ namespace ChummerHub.Client.UI
                     continue;
                 if (myUC.MyCE.MySINnerFile.SiNnerMetaData.Tags.Contains(tag))
                     myUC.MyCE.MySINnerFile.SiNnerMetaData.Tags.Remove(tag);
-                if (cbTag.Checked == false)
+                if (!cbTag.Checked)
                     continue;
                 if (cbTag.CheckState == CheckState.Checked)
                     tag.TagValue = bool.TrueString;
                 myUC.MyCE.MySINnerFile.SiNnerMetaData.Tags.Add(tag);
                 //search for the value
-                Control objMatchingControl = gpControlValueSeq.FirstOrDefault(x => x.Name == "TagValue" + tag.TagName);
-                if (objMatchingControl == null)
-                    continue;
-                if (objMatchingControl is TextBox tbTagValue)
+                Control objMatchingControl = gpControlValueSeq.Find(x => x.Name == "TagValue" + tag.TagName);
+                switch (objMatchingControl)
                 {
-                    tag.TagValue = tbTagValue.Text;
-                }
-                else if (objMatchingControl is ComboBox comboTagValue)
-                {
-                    tag.TagValue = comboTagValue.SelectedItem?.ToString();
-                }
-                else if (objMatchingControl is NumericUpDown upDownTagValue)
-                {
-                    tag.TagValue = upDownTagValue.Value.ToString(CultureInfo.InvariantCulture);
+                    case TextBox tbTagValue:
+                        tag.TagValue = tbTagValue.Text;
+                        break;
+                    case ComboBox comboTagValue:
+                        tag.TagValue = comboTagValue.SelectedItem?.ToString();
+                        break;
+                    case NumericUpDown upDownTagValue:
+                        tag.TagValue = upDownTagValue.Value.ToString(CultureInfo.InvariantCulture);
+                        break;
                 }
             }
         }
@@ -276,7 +297,7 @@ namespace ChummerHub.Client.UI
 
         private async void bUpload_Click(object sender, EventArgs e)
         {
-            using (new CursorWait(this, true))
+            using (await CursorWait.NewAsync(this, true))
             {
                 try
                 {
@@ -294,7 +315,7 @@ namespace ChummerHub.Client.UI
                 }
                 catch (Exception exception)
                 {
-                    Program.MainForm.ShowMessageBox(exception.Message);
+                    Program.ShowMessageBox(exception.Message);
                 }
             }
             await CheckSINnerStatus();
@@ -306,7 +327,7 @@ namespace ChummerHub.Client.UI
             {
                 async void OnGroupJoinCallback(object o, SINnerGroup group)
                 {
-                    await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodes(PluginHandler.MyPluginHandlerInstance);
+                    await PluginHandler.MainForm.CharacterRoster.RefreshPluginNodesAsync(PluginHandler.MyPluginHandlerInstance);
                 }
 
                 gs.MySINnerGroupSearch.OnGroupJoinCallback += OnGroupJoinCallback;
@@ -318,11 +339,11 @@ namespace ChummerHub.Client.UI
         {
             using (frmSINnerVisibility visfrm = new frmSINnerVisibility())
             {
-                using (new CursorWait(this, true))
+                using (await CursorWait.NewAsync(this, true))
                 {
                     if (myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility.UserRights.Count == 0)
                     {
-                        var client = StaticUtils.GetClient();
+                        SinnersClient client = StaticUtils.GetClient();
                         if (myUC.MyCE.MySINnerFile.Id != null)
                         {
                             ResultSinnerGetSINnerVisibilityById res =
@@ -340,7 +361,7 @@ namespace ChummerHub.Client.UI
                 }
 
                 visfrm.MyVisibility = myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility;
-                var result = visfrm.ShowDialog(this);
+                DialogResult result = visfrm.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
                     myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility = visfrm.MyVisibility;
@@ -348,13 +369,13 @@ namespace ChummerHub.Client.UI
             }
         }
 
-        private void BGenerateNewId_Click(object sender, EventArgs e)
+        private async void BGenerateNewId_Click(object sender, EventArgs e)
         {
-            var oldId = myUC.MyCE.MySINnerFile.Id;
+            Guid? oldId = myUC.MyCE.MySINnerFile.Id;
             myUC.MyCE.MySINnerFile.Id = Guid.NewGuid();
             myUC.MyCE.MySINnerFile.SiNnerMetaData.Id = Guid.NewGuid();
             myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility.Id = Guid.NewGuid();
-            foreach (var user in myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility.UserRights)
+            foreach (SINnerUserRight user in myUC.MyCE.MySINnerFile.SiNnerMetaData.Visibility.UserRights)
             {
                 user.Id = Guid.NewGuid();
             }
@@ -364,7 +385,7 @@ namespace ChummerHub.Client.UI
             {
                 myUC.CharacterObject.FileName =  myUC.CharacterObject.FileName.Replace(oldId.ToString(), myUC.MyCE.MySINnerFile.Id.ToString());
             }
-            myUC.CharacterObject.Save(myUC.MyCE.MySINnerFile.Id + ".chum5", false);
+            await myUC.CharacterObject.SaveAsync(myUC.MyCE.MySINnerFile.Id + ".chum5", false);
             tbID.Text = myUC.MyCE.MySINnerFile.Id.ToString();
         }
 

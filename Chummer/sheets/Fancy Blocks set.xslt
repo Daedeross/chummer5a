@@ -21,7 +21,7 @@
     <xsl:text disable-output-escaping="yes"><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">]]></xsl:text>
     <html>
       <head>
-        <meta http-equiv="x-ua-compatible" content="IE=Edge" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta charset="UTF-8" />
         <title><xsl:value-of select="$TitleName" /></title>
         <style type="text/css">
@@ -1692,7 +1692,7 @@
   </xsl:template>
 
   <xsl:template name="print_submersion">
-    <xsl:if test="submersiongrade &gt; 0">
+    <xsl:if test="submersiongrade &gt; 0 or count(metamagics/metamagic) &gt; 0">
 
       <table class="stats matrix">
         <tr><td><div class="bigheader">[<xsl:value-of select="$lang.Submersion" />]</div></td></tr>
@@ -1972,8 +1972,7 @@
   </xsl:template>
 
   <xsl:template name="print_initiation">
-    <xsl:if test="initiategrade &gt; 0">
-
+    <xsl:if test="initiategrade &gt; 0 or count(metamagics/metamagic) &gt; 0">
       <table class="stats magic">
         <tr><td><div class="bigheader">[<xsl:value-of select="$lang.Initiation" />]</div></td></tr>
         <tr><td>

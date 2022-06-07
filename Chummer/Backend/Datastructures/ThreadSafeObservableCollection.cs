@@ -18,160 +18,552 @@
  */
 
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
+using Chummer.Annotations;
 
 namespace Chummer
 {
-    public class ThreadSafeObservableCollection<T> : ObservableCollection<T>, IDisposable
+    public class ThreadSafeObservableCollection<T> : IList<T>, IList, IReadOnlyList<T>, INotifyCollectionChanged, INotifyPropertyChanged, IProducerConsumerCollection<T>, IHasLockObject, IAsyncReadOnlyCollection<T>
     {
-        private readonly ReaderWriterLockSlim
-            _rwlThis = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-
-        protected ReaderWriterLockSlim LockerObject => _rwlThis;
+        protected readonly EnhancedObservableCollection<T> _lstData;
+        public AsyncFriendlyReaderWriterLock LockObject { get; } = new AsyncFriendlyReaderWriterLock();
 
         public ThreadSafeObservableCollection()
         {
+            _lstData = new EnhancedObservableCollection<T>();
         }
 
-        public ThreadSafeObservableCollection(IEnumerable<T> collection) : base(collection)
+        public ThreadSafeObservableCollection(IEnumerable<T> collection)
         {
+            _lstData = new EnhancedObservableCollection<T>(collection);
         }
 
-        public ThreadSafeObservableCollection(List<T> list) : base(list)
+        public ThreadSafeObservableCollection(List<T> list)
         {
+            _lstData = new EnhancedObservableCollection<T>(list);
         }
 
-        public new int Count
+        /// <inheritdoc cref="ObservableCollection{T}.Count" />
+        public int Count
         {
             get
             {
-                using (new EnterReadLock(_rwlThis))
-                    return base.Count;
+                using (EnterReadLock.Enter(LockObject))
+                    return _lstData.Count;
             }
         }
 
-        public new T this[int index]
+        /// <inheritdoc />
+        public object SyncRoot => LockObject;
+
+        /// <inheritdoc />
+        public bool IsSynchronized => true;
+
+        public bool IsReadOnly => false;
+
+        /// <inheritdoc />
+        public bool IsFixedSize => false;
+
+        public ValueTask<int> CountAsync => GetCountAsync();
+
+        public async ValueTask<int> GetCountAsync(CancellationToken token = default)
+        {
+            using (await EnterReadLock.EnterAsync(LockObject, token))
+                return _lstData.Count;
+        }
+
+        public void Remove(object value)
+        {
+            Remove((T) value);
+        }
+
+        /// <inheritdoc />
+        public bool Remove(T item)
+        {
+            using (LockObject.EnterWriteLock())
+                return _lstData.Remove(item);
+        }
+
+        /// <inheritdoc cref="List{T}.Remove(T)" />
+        public async ValueTask<bool> RemoveAsync(T item)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                return _lstData.Remove(item);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.RemoveAt" />
+        public void RemoveAt(int index)
+        {
+            using (LockObject.EnterWriteLock())
+                _lstData.RemoveAt(index);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.RemoveAt" />
+        public async ValueTask RemoveAtAsync(int index)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                _lstData.RemoveAt(index);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        object IList.this[int index]
+        {
+            get => this[index];
+            set => this[index] = (T)value;
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}" />
+        public T this[int index]
         {
             get
             {
-                using (new EnterReadLock(_rwlThis))
-                    return base[index];
+                using (EnterReadLock.Enter(LockObject))
+                    return _lstData[index];
             }
             set
             {
-                using (new EnterUpgradeableReadLock(_rwlThis))
+                using (EnterReadLock.Enter(LockObject))
                 {
-                    if (base[index].Equals(value))
+                    if (_lstData[index].Equals(value))
                         return;
-                    using (new EnterWriteLock(_rwlThis))
-                        base[index] = value;
+                    using (LockObject.EnterWriteLock())
+                        _lstData[index] = value;
                 }
             }
         }
 
-        public new bool Contains(T item)
+        public virtual int Add(object value)
         {
-            using (new EnterReadLock(_rwlThis))
-                return base.Contains(item);
+            if (!(value is T objCastValue))
+                return -1;
+            using (LockObject.EnterWriteLock())
+            {
+                _lstData.Add(objCastValue);
+                return _lstData.Count - 1;
+            }
         }
 
-        public new void CopyTo(T[] array, int arrayIndex)
+        /// <inheritdoc />
+        public virtual void Add(T item)
         {
-            using (new EnterReadLock(_rwlThis))
-                base.CopyTo(array, arrayIndex);
+            using (LockObject.EnterWriteLock())
+                _lstData.Add(item);
         }
 
-        public new IEnumerator<T> GetEnumerator()
+        public virtual async ValueTask AddAsync(T item)
         {
-            using (new EnterReadLock(_rwlThis))
-                return base.GetEnumerator();
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                _lstData.Add(item);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
         }
 
-        public new int IndexOf(T item)
+        /// <inheritdoc />
+        public virtual bool TryAdd(T item)
         {
-            using (new EnterReadLock(_rwlThis))
-                return base.IndexOf(item);
+            Add(item);
+            return true;
         }
 
-        public override event NotifyCollectionChangedEventHandler CollectionChanged
+        public void Clear()
+        {
+            using (LockObject.EnterWriteLock())
+                _lstData.Clear();
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Clear" />
+        public async Task ClearAsync()
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                _lstData.Clear();
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        public void Insert(int index, object value)
+        {
+            Insert(index, (T) value);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Insert" />
+        public virtual void Insert(int index, T item)
+        {
+            using (LockObject.EnterWriteLock())
+                _lstData.Insert(index, item);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Insert" />
+        public virtual async ValueTask InsertAsync(int index, T item)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                _lstData.Insert(index, item);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Move" />
+        public void Move(int oldIndex, int newIndex)
+        {
+            using (LockObject.EnterWriteLock())
+                _lstData.Move(oldIndex, newIndex);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Move" />
+        public async ValueTask MoveAsync(int oldIndex, int newIndex)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                _lstData.Move(oldIndex, newIndex);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        public bool Contains(object value)
+        {
+            return Contains((T) value);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Contains" />
+        public bool Contains(T item)
+        {
+            using (EnterReadLock.Enter(LockObject))
+                return _lstData.Contains(item);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.Contains" />
+        public async ValueTask<bool> ContainsAsync(T item)
+        {
+            using (await EnterReadLock.EnterAsync(LockObject))
+                return _lstData.Contains(item);
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            using (EnterReadLock.Enter(LockObject))
+            {
+                foreach (T objItem in _lstData)
+                {
+                    array.SetValue(objItem, index);
+                    ++index;
+                }
+            }
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.CopyTo(T[],int)" />
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            using (EnterReadLock.Enter(LockObject))
+                _lstData.CopyTo(array, arrayIndex);
+        }
+
+        public async ValueTask CopyToAsync(T[] array, int index)
+        {
+            using (await EnterReadLock.EnterAsync(LockObject))
+                _lstData.CopyTo(array, index);
+        }
+
+        /// <inheritdoc />
+        public bool TryTake(out T item)
+        {
+            // Immediately enter a write lock to prevent attempted reads until we have either taken the item we want to take or failed to do so
+            using (LockObject.EnterWriteLock())
+            {
+                if (_lstData.Count > 0)
+                {
+                    // FIFO to be compliant with how the default for BlockingCollection<T> is ConcurrentQueue
+                    item = _lstData[0];
+                    _lstData.RemoveAt(0);
+                    return true;
+                }
+            }
+
+            item = default;
+            return false;
+        }
+
+        /// <inheritdoc />
+        public T[] ToArray()
+        {
+            using (EnterReadLock.Enter(LockObject))
+            {
+                T[] aobjReturn = new T[Count];
+                for (int i = 0; i < Count; ++i)
+                {
+                    aobjReturn[i] = _lstData[i];
+                }
+                return aobjReturn;
+            }
+        }
+
+        public async ValueTask<T[]> ToArrayAsync()
+        {
+            using (await EnterReadLock.EnterAsync(LockObject))
+            {
+                T[] aobjReturn = new T[Count];
+                for (int i = 0; i < Count; ++i)
+                {
+                    aobjReturn[i] = _lstData[i];
+                }
+                return aobjReturn;
+            }
+        }
+
+        /// <inheritdoc />
+        public IEnumerator<T> GetEnumerator()
+        {
+            LockingEnumerator<T> objReturn = LockingEnumerator<T>.Get(this);
+            objReturn.SetEnumerator(_lstData.GetEnumerator());
+            return objReturn;
+        }
+
+        public async ValueTask<IEnumerator<T>> GetEnumeratorAsync(CancellationToken token = default)
+        {
+            LockingEnumerator<T> objReturn = await LockingEnumerator<T>.GetAsync(this, token);
+            objReturn.SetEnumerator(_lstData.GetEnumerator());
+            return objReturn;
+        }
+
+        public int IndexOf(object value)
+        {
+            return IndexOf((T)value);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.IndexOf(T)" />
+        public int IndexOf(T item)
+        {
+            using (EnterReadLock.Enter(LockObject))
+                return _lstData.IndexOf(item);
+        }
+
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.IndexOf(T)" />
+        public async ValueTask<int> IndexOfAsync(T item)
+        {
+            using (await EnterReadLock.EnterAsync(LockObject))
+                return _lstData.IndexOf(item);
+        }
+
+        /// <inheritdoc cref="List{T}.Sort()" />
+        public void Sort()
+        {
+            using (LockObject.EnterWriteLock())
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(IComparer{T})" />
+        public void Sort(IComparer<T> comparer)
+        {
+            using (LockObject.EnterWriteLock())
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted, comparer);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(int, int, IComparer{T})" />
+        public void Sort(int index, int count, IComparer<T> comparer)
+        {
+            using (LockObject.EnterWriteLock())
+            {
+                T[] aobjSorted = new T[count];
+                for (int i = 0; i < count; ++i)
+                    aobjSorted[i] = _lstData[index + i];
+                Array.Sort(aobjSorted, comparer);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), index + i);
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(Comparison{T})" />
+        public void Sort(Comparison<T> comparison)
+        {
+            using (LockObject.EnterWriteLock())
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted, comparison);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort()" />
+        public async ValueTask SortAsync()
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(IComparer{T})" />
+        public async ValueTask SortAsync(IComparer<T> comparer)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted, comparer);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(int, int, IComparer{T})" />
+        public async ValueTask SortAsync(int index, int count, IComparer<T> comparer)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                T[] aobjSorted = new T[count];
+                for (int i = 0; i < count; ++i)
+                    aobjSorted[i] = _lstData[index + i];
+                Array.Sort(aobjSorted, comparer);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), index + i);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc cref="List{T}.Sort(Comparison{T})" />
+        public async ValueTask SortAsync(Comparison<T> comparison)
+        {
+            IAsyncDisposable objLocker = await LockObject.EnterWriteLockAsync();
+            try
+            {
+                T[] aobjSorted = new T[_lstData.Count];
+                for (int i = 0; i < _lstData.Count; ++i)
+                    aobjSorted[i] = _lstData[i];
+                Array.Sort(aobjSorted, comparison);
+                for (int i = 0; i < aobjSorted.Length; ++i)
+                    _lstData.Move(_lstData.IndexOf(aobjSorted[i]), i);
+            }
+            finally
+            {
+                await objLocker.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc />
+        public virtual event NotifyCollectionChangedEventHandler CollectionChanged
         {
             add
             {
-                using (new EnterWriteLock(_rwlThis))
-                    base.CollectionChanged += value;
+                using (LockObject.EnterWriteLock())
+                    _lstData.CollectionChanged += value;
             }
             remove
             {
-                using (new EnterWriteLock(_rwlThis))
-                    base.CollectionChanged -= value;
+                using (LockObject.EnterWriteLock())
+                    _lstData.CollectionChanged -= value;
             }
         }
 
-        protected override event PropertyChangedEventHandler PropertyChanged
+        /// <inheritdoc cref="EnhancedObservableCollection{T}.BeforeClearCollectionChanged" />
+        public virtual event NotifyCollectionChangedEventHandler BeforeClearCollectionChanged
         {
             add
             {
-                using (new EnterWriteLock(_rwlThis))
-                    base.PropertyChanged += value;
+                using (LockObject.EnterWriteLock())
+                    _lstData.BeforeClearCollectionChanged += value;
             }
             remove
             {
-                using (new EnterWriteLock(_rwlThis))
-                    base.PropertyChanged -= value;
+                using (LockObject.EnterWriteLock())
+                    _lstData.BeforeClearCollectionChanged -= value;
             }
         }
 
-        protected override void InsertItem(int index, T item)
-        {
-            using (new EnterWriteLock(_rwlThis))
-                base.InsertItem(index, item);
-        }
+        /// <inheritdoc />
+        public virtual event PropertyChangedEventHandler PropertyChanged;
 
-        protected override void MoveItem(int oldIndex, int newIndex)
+        [NotifyPropertyChangedInvocator]
+        public void OnPropertyChanged([CallerMemberName] string strPropertyName = null)
         {
-            using (new EnterWriteLock(_rwlThis))
-                base.MoveItem(oldIndex, newIndex);
-        }
-
-        protected override void ClearItems()
-        {
-            using (new EnterWriteLock(_rwlThis))
-                base.ClearItems();
-        }
-
-        protected override void RemoveItem(int index)
-        {
-            using (new EnterWriteLock(_rwlThis))
-                base.RemoveItem(index);
-        }
-
-        protected override void SetItem(int index, T item)
-        {
-            using (new EnterWriteLock(_rwlThis))
-                base.SetItem(index, item);
-        }
-
-        protected override void OnPropertyChanged(PropertyChangedEventArgs e)
-        {
-            using (new EnterUpgradeableReadLock(_rwlThis))
-                base.OnPropertyChanged(e);
-        }
-
-        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
-        {
-            using (new EnterUpgradeableReadLock(_rwlThis))
-                base.OnCollectionChanged(e);
+            Utils.RunOnMainThread(() =>
+            {
+                using (EnterReadLock.Enter(LockObject))
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(strPropertyName));
+                }
+            });
         }
 
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _rwlThis.Dispose();
+                LockObject.Dispose();
             }
         }
 
@@ -180,6 +572,26 @@ namespace Chummer
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        protected virtual async ValueTask DisposeAsync(bool disposing)
+        {
+            if (disposing)
+            {
+                await LockObject.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsync(true);
+            GC.SuppressFinalize(this);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

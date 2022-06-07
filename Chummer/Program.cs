@@ -20,17 +20,19 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Chummer.Backend;
+using Chummer.Forms;
 using Chummer.Plugins;
 using Chummer.Properties;
 using Microsoft.ApplicationInsights;
@@ -49,16 +51,18 @@ namespace Chummer
     {
         private static Logger Log;
         private const string ChummerGuid = "eb0759c1-3599-495e-8bc5-57c8b3e1b31c";
-        internal static readonly Process MyProcess = Process.GetCurrentProcess();
 
+        private static readonly Lazy<Process> s_objMyProcess = new Lazy<Process>(Process.GetCurrentProcess);
+        public static readonly Process MyProcess = s_objMyProcess.Value;
+
+        public static SynchronizationContext MySynchronizationContext { get; private set; }
+
+        [CLSCompliant(false)]
         public static TelemetryClient ChummerTelemetryClient { get; } = new TelemetryClient();
         private static PluginControl _objPluginLoader;
         public static PluginControl PluginLoader => _objPluginLoader = _objPluginLoader ?? new PluginControl();
 
         internal static readonly IntPtr CommandLineArgsDataTypeId = (IntPtr)7593599;
-
-        private static readonly Lazy<Version> _objCurrentVersion = new Lazy<Version>(() => Assembly.GetExecutingAssembly().GetName().Version);
-        public static Version CurrentVersion => _objCurrentVersion.Value;
 
         /// <summary>
         /// Check this to see if we are currently in the Main Thread.
@@ -77,6 +81,7 @@ namespace Chummer
             SetProcessDPI(GlobalSettings.DpiScalingMethodSetting);
             if (IsMainThread)
                 SetThreadDPI(GlobalSettings.DpiScalingMethodSetting);
+
             using (GlobalChummerMutex = new Mutex(false, @"Global\" + ChummerGuid, out bool blnIsNewInstance))
             {
                 try
@@ -101,7 +106,7 @@ namespace Chummer
 
                                 string strCommandLineArgumentsJoined =
                                     string.Join("<>", Environment.GetCommandLineArgs());
-                                NativeMethods.CopyDataStruct objData = new NativeMethods.CopyDataStruct();
+                                NativeMethods.CopyDataStruct objData = default;
                                 IntPtr ptrCommandLineArguments = IntPtr.Zero;
                                 try
                                 {
@@ -133,7 +138,7 @@ namespace Chummer
 
                     //for some fun try out this command line parameter: chummer://plugin:SINners:Load:5ff55b9d-7d1c-4067-a2f5-774127346f4e
                     PageViewTelemetry pvt = null;
-                    var startTime = DateTimeOffset.UtcNow;
+                    DateTimeOffset startTime = DateTimeOffset.UtcNow;
                     // Set default cultures based on the currently set language
                     CultureInfo.DefaultThreadCurrentCulture = GlobalSettings.CultureInfo;
                     CultureInfo.DefaultThreadCurrentUICulture = GlobalSettings.CultureInfo;
@@ -164,11 +169,14 @@ namespace Chummer
                     Utils.SafeDeleteFile(Path.Combine(Utils.GetStartupPath, "chummerprofile"));
                     // We avoid weird issues with ProfileOptimization pointing JIT to the wrong place by checking for and removing all profile optimization files that
                     // were made in an older version (i.e. an older assembly)
-                    string strProfileOptimizationName = "chummerprofile_" + CurrentVersion + ".profile";
-                    foreach (string strProfileFile in Directory.GetFiles(Utils.GetStartupPath, "*.profile", SearchOption.TopDirectoryOnly))
+                    string strProfileOptimizationName = "chummerprofile_" + Utils.CurrentChummerVersion + ".profile";
+                    foreach (string strProfileFile in Directory.GetFiles(Utils.GetStartupPath, "*.profile"))
+                    {
                         if (!string.Equals(strProfileFile, strProfileOptimizationName,
                                            StringComparison.OrdinalIgnoreCase))
                             Utils.SafeDeleteFile(strProfileFile);
+                    }
+
                     // Mono, non-Windows native stuff, and Win11 don't always play nice with ProfileOptimization, so it's better to just not bother with it when running under them
                     if (!IsMono && Utils.HumanReadableOSVersion.StartsWith("Windows") && !Utils.HumanReadableOSVersion.StartsWith("Windows 11"))
                     {
@@ -199,7 +207,7 @@ namespace Chummer
                     string strInfo =
                         string.Format(GlobalSettings.InvariantCultureInfo,
                             "Application Chummer5a build {0} started at {1} with command line arguments {2}",
-                            Assembly.GetExecutingAssembly().GetName().Version, DateTime.UtcNow,
+                            Utils.CurrentChummerVersion, DateTime.UtcNow,
                             Environment.CommandLine);
                     sw.TaskEnd("infogen");
 
@@ -210,41 +218,53 @@ namespace Chummer
 
                     sw.TaskEnd("languagefreestartup");
 
-                    void HandleCrash(object o, UnhandledExceptionEventArgs e)
+                    void HandleCrash(object o, UnhandledExceptionEventArgs exa)
                     {
-                        try
+                        if (exa.ExceptionObject is Exception ex)
                         {
-                            if (e.ExceptionObject is Exception myException)
+                            try
                             {
-                                myException.Data.Add("IsCrash", bool.TrueString);
-                                ExceptionTelemetry et = new ExceptionTelemetry(myException)
-                                { SeverityLevel = SeverityLevel.Critical };
-                                //we have to enable the uploading of THIS message, so it isn't filtered out in the DropUserdataTelemetryProcessos
-                                foreach (DictionaryEntry d in myException.Data)
+                                if (GlobalSettings.UseLoggingApplicationInsights >= UseAILogging.Crashes
+                                    && ChummerTelemetryClient != null
+                                    && !Utils.IsMilestoneVersion)
                                 {
-                                    if (d.Key != null && d.Value != null)
-                                        et.Properties.Add(d.Key.ToString(), d.Value.ToString());
-                                }
+                                    ExceptionTelemetry et = new ExceptionTelemetry(ex)
+                                    {
+                                        SeverityLevel = SeverityLevel.Critical
+                                    };
+                                    //we have to enable the uploading of THIS message, so it isn't filtered out in the DropUserdataTelemetryProcessos
+                                    foreach (DictionaryEntry d in ex.Data)
+                                    {
+                                        if (d.Key != null && d.Value != null)
+                                            et.Properties.Add(d.Key.ToString(), d.Value.ToString());
+                                    }
 
-                                ChummerTelemetryClient?.TrackException(myException);
-                                ChummerTelemetryClient?.Flush();
+                                    et.Properties.Add("IsCrash", bool.TrueString);
+                                    CustomTelemetryInitializer ti = new CustomTelemetryInitializer();
+                                    ti.Initialize(et);
+
+                                    ChummerTelemetryClient.TrackException(et);
+                                    ChummerTelemetryClient.Flush();
+                                }
                             }
+                            catch (Exception ex1)
+                            {
+                                Log.Error(ex1);
+                            }
+
+                            Utils.BreakIfDebug();
+                            CrashHandler.WebMiniDumpHandler(ex);
                         }
-                        catch (Exception exception)
-                        {
-                            Console.WriteLine(exception);
-                        }
-#if !DEBUG
-                    if (e.ExceptionObject is Exception ex)
-                        CrashHandler.WebMiniDumpHandler(ex);
-#endif
                     }
 
-                    AppDomain.CurrentDomain.UnhandledException += HandleCrash;
+                    if (!Utils.IsUnitTest)
+                        AppDomain.CurrentDomain.UnhandledException += HandleCrash;
 
                     sw.TaskEnd("Startup");
 
                     Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+
+                    CreateSynchronizationContext();
 
                     if (!string.IsNullOrEmpty(LanguageManager.ManagerErrorMessage))
                     {
@@ -316,7 +336,7 @@ namespace Chummer
                             //If you set true as DeveloperMode (see above), you can see the sending telemetry in the debugging output window in IDE.
                             TelemetryConfiguration.Active.TelemetryChannel.DeveloperMode = true;
 #else
-                        TelemetryConfiguration.Active.TelemetryChannel.DeveloperMode = false;
+                            TelemetryConfiguration.Active.TelemetryChannel.DeveloperMode = false;
 #endif
                             TelemetryConfiguration.Active.TelemetryInitializers.Add(new CustomTelemetryInitializer());
                             TelemetryConfiguration.Active.TelemetryProcessorChainBuilder.Use(next =>
@@ -330,11 +350,11 @@ namespace Chummer
 
                             //Log an Event with AssemblyVersion and CultureInfo
                             MetricIdentifier objMetricIdentifier = new MetricIdentifier("Chummer", "Program Start",
-                                "Version", "Culture", dimension3Name: "AISetting", dimension4Name: "OSVersion");
+                                "Version", "Culture", "AISetting", "OSVersion");
                             string strOSVersion = Utils.HumanReadableOSVersion;
                             Metric objMetric = ChummerTelemetryClient.GetMetric(objMetricIdentifier);
                             objMetric.TrackValue(1,
-                                                 Assembly.GetExecutingAssembly().GetName().Version.ToString(),
+                                Utils.CurrentChummerVersion.ToString(),
                                                  CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
                                                  GlobalSettings.UseLoggingApplicationInsights.ToString(),
                                                  strOSVersion);
@@ -343,7 +363,7 @@ namespace Chummer
                             pvt = new PageViewTelemetry("frmChummerMain()")
                             {
                                 Name = "Chummer Startup: " +
-                                       Assembly.GetExecutingAssembly().GetName().Version,
+                                       Utils.CurrentChummerVersion,
                                 Id = Settings.Default.UploadClientId.ToString(),
                                 Timestamp = startTime
                             };
@@ -412,7 +432,11 @@ namespace Chummer
                     // Restore Chummer's language to en-US if we failed to load the default one.
                     if (blnRestoreDefaultLanguage)
                         GlobalSettings.Language = GlobalSettings.DefaultLanguage;
-                    MainForm = new frmChummerMain();
+
+                    OpenCharacters.BeforeClearCollectionChanged += OpenCharactersOnBeforeClearCollectionChanged;
+                    OpenCharacters.CollectionChanged += OpenCharactersOnCollectionChanged;
+
+                    MainForm = new ChummerMainForm();
                     try
                     {
                         PluginLoader.LoadPlugins();
@@ -437,8 +461,8 @@ namespace Chummer
                                     const string strMessage =
                                         "Please enable Plugins to use command-line arguments invoking specific plugin-functions!";
                                     Log.Warn(strMessage);
-                                    MainForm.ShowMessageBox(strMessage, "Plugins not enabled", MessageBoxButtons.OK,
-                                                            MessageBoxIcon.Exclamation);
+                                    ShowMessageBox(strMessage, "Plugins not enabled", MessageBoxButtons.OK,
+                                        MessageBoxIcon.Exclamation);
                                 }
                                 else
                                 {
@@ -450,7 +474,7 @@ namespace Chummer
                                     string strParameter = strWhatPlugin.Substring(intEndPlugin + 1);
                                     strWhatPlugin = strWhatPlugin.Substring(0, intEndPlugin);
                                     IPlugin objActivePlugin =
-                                        PluginLoader.MyActivePlugins.FirstOrDefault(a => a.ToString() == strWhatPlugin);
+                                        PluginLoader.MyActivePlugins.Find(a => a.ToString() == strWhatPlugin);
                                     if (objActivePlugin == null)
                                     {
                                         if (PluginLoader.MyPlugins.All(a => a.ToString() != strWhatPlugin))
@@ -460,8 +484,8 @@ namespace Chummer
                                                 Environment.NewLine
                                                 + "If you want to use command-line arguments, please enable this plugin and restart the program.";
                                             Log.Warn(strMessage);
-                                            MainForm.ShowMessageBox(strMessage, strWhatPlugin + " not enabled",
-                                                                    MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                                            ShowMessageBox(strMessage, strWhatPlugin + " not enabled",
+                                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                                         }
                                     }
                                     else
@@ -482,11 +506,54 @@ namespace Chummer
                         }
                     }
 
+                    // Delete the old executable if it exists (created by the update process).
+                    Utils.SafeClearDirectory(Utils.GetStartupPath, "*.old");
+                    // Purge the temporary directory
+                    Utils.SafeClearDirectory(Utils.GetTempPath());
+
                     if (showMainForm)
                     {
+                        // Attempt to cache all XML files that are used the most.
+                        using (_ = Timekeeper.StartSyncron("cache_load", null, CustomActivity.OperationType.DependencyOperation, Utils.CurrentChummerVersion.ToString(3)))
+                        using (ThreadSafeForm<LoadingBar> frmLoadingBar = CreateAndShowProgressBar(Application.ProductName, Utils.BasicDataFileNames.Count))
+                        {
+                            List<Task> lstCachingTasks = new List<Task>(Utils.MaxParallelBatchSize);
+                            int intCounter = 0;
+                            foreach (string strLoopFile in Utils.BasicDataFileNames)
+                            {
+                                // ReSharper disable once AccessToDisposedClosure
+                                lstCachingTasks.Add(Task.Run(() => CacheCommonFile(strLoopFile, frmLoadingBar.MyForm)));
+                                if (++intCounter != Utils.MaxParallelBatchSize)
+                                    continue;
+                                Utils.RunWithoutThreadLock(() => lstCachingTasks.ToArray());
+                                lstCachingTasks.Clear();
+                                intCounter = 0;
+                            }
+
+                            Utils.RunWithoutThreadLock(() => lstCachingTasks.ToArray());
+
+                            async Task CacheCommonFile(string strFile, LoadingBar frmLoadingBarInner)
+                            {
+                                // Load default language data first for performance reasons
+                                if (!GlobalSettings.Language.Equals(
+                                        GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    await XmlManager.LoadXPathAsync(strFile, null, GlobalSettings.DefaultLanguage);
+                                }
+                                await XmlManager.LoadXPathAsync(strFile);
+                                await frmLoadingBarInner.PerformStepAsync(
+                                    Application.ProductName,
+                                    LoadingBar.ProgressBarTextPatterns.Initializing);
+                            }
+                        }
+
                         MainForm.MyStartupPvt = pvt;
                         Application.Run(MainForm);
                     }
+
+                    OpenCharacters.Clear();
+                    OpenCharacters.BeforeClearCollectionChanged -= OpenCharactersOnBeforeClearCollectionChanged;
+                    OpenCharacters.CollectionChanged -= OpenCharactersOnCollectionChanged;
 
                     PluginLoader?.Dispose();
                     Log.Info(ExceptionHeatMap.GenerateInfo());
@@ -506,17 +573,26 @@ namespace Chummer
             }
         }
 
+        public static void CreateSynchronizationContext()
+        {
+            if (IsMainThread)
+            {
+                using (new DummyForm()) // New Form needs to be created (or Application.Run() called) before Synchronization.Current is set
+                    MySynchronizationContext = SynchronizationContext.Current;
+            }
+        }
+
         private static bool UnblockPath(string strPath)
         {
             bool blnAllUnblocked = true;
 
-            foreach (string strFile in Directory.GetFiles(strPath))
+            foreach (string strFile in Directory.EnumerateFiles(strPath))
             {
                 if (!UnblockFile(strFile))
                 {
                     // Get the last error and display it.
                     int intError = Marshal.GetLastWin32Error();
-                    Win32Exception exception = new Win32Exception(intError, "Error while unblocking " + strFile + ".");
+                    Win32Exception exception = new Win32Exception(intError, "Error while unblocking " + strFile + '.');
                     switch (exception.NativeErrorCode)
                     {
                         case 2://file not found - that means the alternate data-stream is not present.
@@ -535,7 +611,7 @@ namespace Chummer
                 }
             }
 
-            foreach (string strDir in Directory.GetDirectories(strPath))
+            foreach (string strDir in Directory.EnumerateDirectories(strPath))
             {
                 if (!UnblockPath(strDir))
                     blnAllUnblocked = false;
@@ -650,27 +726,591 @@ namespace Chummer
             Utils.BreakOnErrorIfDebug();
         }
 
-        private static frmChummerMain _frmMainForm;
+        private static ChummerMainForm _frmMainForm;
 
         /// <summary>
         /// Main application form.
         /// </summary>
-        public static frmChummerMain MainForm
+        public static ChummerMainForm MainForm
         {
             get => _frmMainForm;
             set
             {
+                if (_frmMainForm == value)
+                    return;
                 _frmMainForm = value;
-                foreach (Action<frmChummerMain> funcToRun in MainFormOnAssignActions)
-                    funcToRun(_frmMainForm);
-                MainFormOnAssignActions.Clear();
+                if (value != null)
+                {
+                    foreach (Action<ChummerMainForm> funcToRun in MainFormOnAssignActions)
+                        funcToRun(value);
+                    MainFormOnAssignActions.Clear();
+                    foreach (Func<ChummerMainForm, Task> funcAsyncToRun in MainFormOnAssignAsyncActions)
+                        Utils.RunWithoutThreadLock(() => funcAsyncToRun(value));
+                    MainFormOnAssignAsyncActions.Clear();
+                }
             }
         }
+
+#if DEBUG
+        private static bool _blnShowDevWarningAboutDebuggingOnlyOnce = true;
+#endif
+
+        /// <summary>
+        /// Shows a dialog box with vertical scrollbars for text that is too long centered on the Chummer main form window, or otherwise queues up such a box to be displayed
+        /// </summary>
+        public static DialogResult ShowScrollableMessageBox(string message, string caption = null, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.None, MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1)
+        {
+            return ShowScrollableMessageBox(null, message, caption, buttons, icon, defaultButton);
+        }
+
+        /// <summary>
+        /// Shows a dialog box with vertical scrollbars for text that is too long centered on the a window containing a WinForms control, or otherwise queues up such a box to be displayed
+        /// </summary>
+        public static DialogResult ShowScrollableMessageBox(Control owner, string message, string caption = null, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.None, MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1)
+        {
+            if (Utils.IsUnitTest)
+            {
+                if (icon == MessageBoxIcon.Error || buttons != MessageBoxButtons.OK)
+                {
+                    Utils.BreakIfDebug();
+                    string strMessage = "We don't want to see MessageBoxes in Unit Tests!" + Environment.NewLine +
+                                        "Caption: " + caption + Environment.NewLine + "Message: " + message;
+                    throw new InvalidOperationException(strMessage);
+                }
+                return DialogResult.OK;
+            }
+            Form frmOwnerForm = owner as Form ?? owner?.FindForm();
+            if (frmOwnerForm.IsNullOrDisposed())
+            {
+                frmOwnerForm = TopMostLoadingBar;
+                if (frmOwnerForm.IsNullOrDisposed())
+                {
+                    frmOwnerForm = MainForm;
+                }
+            }
+
+            if (frmOwnerForm != null)
+            {
+                if (frmOwnerForm.InvokeRequired)
+                {
+#if DEBUG
+                    if (_blnShowDevWarningAboutDebuggingOnlyOnce && Debugger.IsAttached)
+                    {
+                        _blnShowDevWarningAboutDebuggingOnlyOnce = false;
+                        //it works on my installation even in the debugger, so maybe we can ignore that...
+                        //WARNING from the link above (you can edit that out if it's not causing problem):
+                        //
+                        //BUT ALSO KEEP IN MIND: when debugging a multi-threaded GUI app, and you're debugging in a thread
+                        //other than the main/application thread, YOU NEED TO TURN OFF
+                        //the "Enable property evaluation and other implicit function calls" option, or else VS will
+                        //automatically fetch the values of local/global GUI objects FROM THE CURRENT THREAD, which will
+                        //cause your application to crash/fail in strange ways. Go to Tools->Options->Debugging to turn
+                        //that setting off.
+                        Debugger.Break();
+                    }
+#endif
+
+                    try
+                    {
+                        return (DialogResult)frmOwnerForm.Invoke(new PassControlStringStringReturnDialogResultDelegate(ShowScrollableMessageBox),
+                                                                 owner, message, caption, buttons, icon, defaultButton);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //if the main form is disposed, we really don't need to bother anymore...
+                    }
+                    catch (Exception e)
+                    {
+                        string msg = "Could not show a MessageBox " + caption + ':' + Environment.NewLine + message
+                                     + Environment.NewLine + Environment.NewLine + "Exception: " + e;
+                        Log.Fatal(e, msg);
+                    }
+                }
+
+                return ScrollableMessageBox.Show(frmOwnerForm, message, caption, buttons, icon, defaultButton);
+            }
+            MainFormOnAssignActions.Add(x => ShowScrollableMessageBox(owner, message, caption, buttons, icon, defaultButton));
+            return DialogResult.Cancel;
+        }
+
+        /// <summary>
+        /// Shows a dialog box centered on the Chummer main form window, or otherwise queues up such a box to be displayed
+        /// </summary>
+        public static DialogResult ShowMessageBox(string message, string caption = null, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.None, MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1)
+        {
+            return ShowMessageBox(null, message, caption, buttons, icon, defaultButton);
+        }
+
+        /// <summary>
+        /// Shows a dialog box centered on the a window containing a WinForms control, or otherwise queues up such a box to be displayed
+        /// </summary>
+        public static DialogResult ShowMessageBox(Control owner, string message, string caption = null, MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.None, MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1)
+        {
+            if (Utils.IsUnitTest)
+            {
+                if (icon == MessageBoxIcon.Error || buttons != MessageBoxButtons.OK)
+                {
+                    Utils.BreakIfDebug();
+                    string strMessage = "We don't want to see MessageBoxes in Unit Tests!" + Environment.NewLine +
+                                        "Caption: " + caption + Environment.NewLine + "Message: " + message;
+                    throw new InvalidOperationException(strMessage);
+                }
+                return DialogResult.OK;
+            }
+            Form frmOwnerForm = owner as Form ?? owner?.FindForm();
+            if (frmOwnerForm.IsNullOrDisposed())
+            {
+                frmOwnerForm = TopMostLoadingBar;
+                if (frmOwnerForm.IsNullOrDisposed())
+                {
+                    frmOwnerForm = MainForm;
+                }
+            }
+
+            if (frmOwnerForm != null)
+            {
+                if (frmOwnerForm.InvokeRequired)
+                {
+#if DEBUG
+                    if (_blnShowDevWarningAboutDebuggingOnlyOnce && Debugger.IsAttached)
+                    {
+                        _blnShowDevWarningAboutDebuggingOnlyOnce = false;
+                        //it works on my installation even in the debugger, so maybe we can ignore that...
+                        //WARNING from the link above (you can edit that out if it's not causing problem):
+                        //
+                        //BUT ALSO KEEP IN MIND: when debugging a multi-threaded GUI app, and you're debugging in a thread
+                        //other than the main/application thread, YOU NEED TO TURN OFF
+                        //the "Enable property evaluation and other implicit function calls" option, or else VS will
+                        //automatically fetch the values of local/global GUI objects FROM THE CURRENT THREAD, which will
+                        //cause your application to crash/fail in strange ways. Go to Tools->Options->Debugging to turn
+                        //that setting off.
+                        Debugger.Break();
+                    }
+#endif
+
+                    try
+                    {
+                        return (DialogResult)frmOwnerForm.Invoke(new PassControlStringStringReturnDialogResultDelegate(ShowMessageBox),
+                                                                 owner, message, caption, buttons, icon, defaultButton);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //if the main form is disposed, we really don't need to bother anymore...
+                    }
+                    catch (Exception e)
+                    {
+                        string msg = "Could not show a MessageBox " + caption + ':' + Environment.NewLine + message
+                                     + Environment.NewLine + Environment.NewLine + "Exception: " + e;
+                        Log.Fatal(e, msg);
+                    }
+                }
+
+                return CenterableMessageBox.Show(frmOwnerForm, message, caption, buttons, icon, defaultButton);
+            }
+            MainFormOnAssignActions.Add(x => ShowMessageBox(owner, message, caption, buttons, icon, defaultButton));
+            return DialogResult.Cancel;
+        }
+
+        private delegate DialogResult PassControlStringStringReturnDialogResultDelegate(
+            Control owner, string s1, string s2, MessageBoxButtons buttons,
+            MessageBoxIcon icon, MessageBoxDefaultButton defaultButton);
 
         /// <summary>
         /// Queue of Actions to run after MainForm is assigned
         /// </summary>
-        public static List<Action<frmChummerMain>> MainFormOnAssignActions { get; } = new List<Action<frmChummerMain>>();
+        public static List<Action<ChummerMainForm>> MainFormOnAssignActions { get; } = new List<Action<ChummerMainForm>>();
+
+        /// <summary>
+        /// Queue of Async Actions to run after MainForm is assigned
+        /// </summary>
+        public static List<Func<ChummerMainForm, Task>> MainFormOnAssignAsyncActions { get; } = new List<Func<ChummerMainForm, Task>>();
+
+        /// <summary>
+        /// Gets the form to use for creating sub-forms and displaying them as dialogs
+        /// </summary>
+        /// <param name="objCharacter">If this character's file is open, use their open form as the one we want for showing dialogs.</param>
+        /// <returns></returns>
+        public static Form GetFormForDialog(Character objCharacter = null)
+        {
+            if (MainForm == null)
+                return null;
+            if (objCharacter == null)
+                return MainForm;
+            return MainForm.OpenCharacterEditorForms.FirstOrDefault(
+                       x => ReferenceEquals(x.CharacterObject, objCharacter)) as Form
+                   ?? MainForm.OpenCharacterSheetViewers.FirstOrDefault(x => x.CharacterObjects.Contains(objCharacter))
+                       as Form
+                   ?? MainForm.OpenCharacterExportForms.FirstOrDefault(
+                           x => ReferenceEquals(x.CharacterObject, objCharacter))
+                       as Form
+                   ?? MainForm;
+        }
+
+        /// <summary>
+        /// Gets the form to use for creating sub-forms and displaying them as dialogs
+        /// </summary>
+        /// <param name="objCharacter">If this character's file is open, use their open form as the one we want for showing dialogs.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Task<Form> GetFormForDialogAsync(Character objCharacter = null, CancellationToken token = default)
+        {
+            if (MainForm == null)
+                return Task.FromResult<Form>(null);
+            return objCharacter == null ? Task.FromResult<Form>(MainForm) : InnerMethod();
+            async Task<Form> InnerMethod()
+            {
+                return await MainForm.OpenCharacterEditorForms.FirstOrDefaultAsync(
+                           x => ReferenceEquals(x.CharacterObject, objCharacter), token: token) as Form
+                       ?? await MainForm.OpenCharacterSheetViewers.FirstOrDefaultAsync(
+                           x => x.CharacterObjects.Contains(objCharacter), token: token) as Form
+                       ?? await MainForm.OpenCharacterExportForms.FirstOrDefaultAsync(
+                               x => ReferenceEquals(x.CharacterObject, objCharacter), token: token)
+                           as Form
+                       ?? MainForm;
+            }
+        }
+
+        /// <summary>
+        /// List of all currently loaded characters (either in an open form or linked to a character in an open form via contact, spirit, or pet)
+        /// </summary>
+        public static ThreadSafeObservableCollection<Character> OpenCharacters { get; } = new ThreadSafeObservableCollection<Character>();
+
+        private static void OpenCharactersOnBeforeClearCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            foreach (Character objCharacter in e.OldItems)
+            {
+                objCharacter.Dispose();
+            }
+        }
+
+        private static void OpenCharactersOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Remove:
+                {
+                    foreach (Character objCharacter in e.OldItems)
+                    {
+                        objCharacter.Dispose();
+                    }
+                    break;
+                }
+                case NotifyCollectionChangedAction.Replace:
+                {
+                    foreach (Character objCharacter in e.OldItems)
+                    {
+                        if (!e.NewItems.Contains(objCharacter))
+                            objCharacter.Dispose();
+                    }
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load a Character from a file and return it (thread-safe).
+        /// </summary>
+        /// <param name="strFileName">File to load.</param>
+        /// <param name="strNewName">New name for the character.</param>
+        /// <param name="blnClearFileName">Whether or not the name of the save file should be cleared.</param>
+        /// <param name="blnShowErrors">Show error messages if the character failed to load.</param>
+        /// <param name="frmLoadingBar">If not null, show and use this loading bar for the character.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Character LoadCharacter(string strFileName, string strNewName = "", bool blnClearFileName = false, bool blnShowErrors = true, LoadingBar frmLoadingBar = null, CancellationToken token = default)
+        {
+            return LoadCharacterCoreAsync(true, strFileName, strNewName, blnClearFileName, blnShowErrors, frmLoadingBar, token).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Load a Character from a file and return it (thread-safe).
+        /// </summary>
+        /// <param name="strFileName">File to load.</param>
+        /// <param name="strNewName">New name for the character.</param>
+        /// <param name="blnClearFileName">Whether or not the name of the save file should be cleared.</param>
+        /// <param name="blnShowErrors">Show error messages if the character failed to load.</param>
+        /// <param name="frmLoadingBar">If not null, show and use this loading bar for the character.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Task<Character> LoadCharacterAsync(string strFileName, string strNewName = "", bool blnClearFileName = false, bool blnShowErrors = true, LoadingBar frmLoadingBar = null, CancellationToken token = default)
+        {
+            return LoadCharacterCoreAsync(false, strFileName, strNewName, blnClearFileName, blnShowErrors, frmLoadingBar, token);
+        }
+
+        /// <summary>
+        /// Load a Character from a file and return it (thread-safe).
+        /// Uses flag hack method design outlined here to avoid locking:
+        /// https://docs.microsoft.com/en-us/archive/msdn-magazine/2015/july/async-programming-brownfield-async-development
+        /// </summary>
+        /// <param name="blnSync">Flag for whether method should always use synchronous code or not.</param>
+        /// <param name="strFileName">File to load.</param>
+        /// <param name="strNewName">New name for the character.</param>
+        /// <param name="blnClearFileName">Whether or not the name of the save file should be cleared.</param>
+        /// <param name="blnShowErrors">Show error messages if the character failed to load.</param>
+        /// <param name="frmLoadingBar">If not null, show and use this loading bar for the character.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        private static async Task<Character> LoadCharacterCoreAsync(bool blnSync, string strFileName, string strNewName = "", bool blnClearFileName = false, bool blnShowErrors = true, LoadingBar frmLoadingBar = null, CancellationToken token = default)
+        {
+            if (string.IsNullOrEmpty(strFileName))
+                return null;
+            Character objCharacter = null;
+            if (File.Exists(strFileName) && strFileName.EndsWith(".chum5", StringComparison.OrdinalIgnoreCase))
+            {
+                //Timekeeper.Start("loading");
+                bool blnLoadAutosave = false;
+                string strAutosavesPath = Utils.GetAutosavesFolderPath;
+                if (string.IsNullOrEmpty(strNewName) && !blnClearFileName)
+                {
+                    objCharacter = blnSync
+                        ? OpenCharacters.FirstOrDefault(x => x.FileName == strFileName)
+                        : await OpenCharacters.FirstOrDefaultAsync(x => x.FileName == strFileName, token);
+                    if (objCharacter != null)
+                        return objCharacter;
+                }
+                objCharacter = new Character
+                {
+                    FileName = strFileName
+                };
+                if (blnShowErrors) // Only do the autosave prompt if we will show prompts
+                {
+                    if (!strFileName.StartsWith(strAutosavesPath))
+                    {
+                        string strNewAutosaveName = Path.GetFileName(strFileName);
+                        if (!string.IsNullOrEmpty(strNewAutosaveName))
+                        {
+                            strNewAutosaveName = Path.Combine(strAutosavesPath, strNewAutosaveName);
+                            if (File.Exists(strNewAutosaveName) && File.GetLastWriteTimeUtc(strNewAutosaveName) > File.GetLastWriteTimeUtc(strFileName))
+                            {
+                                blnLoadAutosave = true;
+                                objCharacter.FileName = strNewAutosaveName;
+                            }
+                        }
+
+                        if (!blnLoadAutosave && !string.IsNullOrEmpty(strNewName))
+                        {
+                            string strOldAutosaveName = strNewName;
+                            foreach (char invalidChar in Path.GetInvalidFileNameChars())
+                            {
+                                strOldAutosaveName = strOldAutosaveName.Replace(invalidChar, '_');
+                            }
+
+                            if (!string.IsNullOrEmpty(strOldAutosaveName))
+                            {
+                                strOldAutosaveName = Path.Combine(strAutosavesPath, strOldAutosaveName);
+                                if (File.Exists(strOldAutosaveName) && File.GetLastWriteTimeUtc(strOldAutosaveName) > File.GetLastWriteTimeUtc(strFileName))
+                                {
+                                    blnLoadAutosave = true;
+                                    objCharacter.FileName = strOldAutosaveName;
+                                }
+                            }
+                        }
+                    }
+                    if (blnLoadAutosave && ShowMessageBox(
+                        string.Format(GlobalSettings.CultureInfo,
+                                      // ReSharper disable once MethodHasAsyncOverload
+                                      blnSync ? LanguageManager.GetString("Message_AutosaveFound") : await LanguageManager.GetStringAsync("Message_AutosaveFound"),
+                            Path.GetFileName(strFileName),
+                            File.GetLastWriteTimeUtc(objCharacter.FileName).ToLocalTime(),
+                            File.GetLastWriteTimeUtc(strFileName).ToLocalTime()),
+                        // ReSharper disable once MethodHasAsyncOverload
+                        blnSync ? LanguageManager.GetString("MessageTitle_AutosaveFound") : await LanguageManager.GetStringAsync("MessageTitle_AutosaveFound"),
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                    {
+                        blnLoadAutosave = false;
+                        objCharacter.FileName = strFileName;
+                    }
+                }
+
+                if (blnSync)
+                    // ReSharper disable once MethodHasAsyncOverload
+                    OpenCharacters.Add(objCharacter);
+                else
+                    await OpenCharacters.AddAsync(objCharacter);
+                //Timekeeper.Start("load_file");
+                bool blnLoaded = blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? objCharacter.Load(frmLoadingBar, blnShowErrors, token)
+                    : await objCharacter.LoadAsync(frmLoadingBar, blnShowErrors, token);
+                //Timekeeper.Finish("load_file");
+                if (!blnLoaded)
+                {
+                    if (blnSync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        OpenCharacters.Remove(objCharacter);
+                    else
+                        await OpenCharacters.RemoveAsync(objCharacter);
+                    return null;
+                }
+
+                // If a new name is given, set the character's name to match (used in cloning).
+                if (!string.IsNullOrEmpty(strNewName))
+                    objCharacter.Name = strNewName;
+                // Clear the File Name field so that this does not accidentally overwrite the original save file (used in cloning).
+                if (blnClearFileName)
+                    objCharacter.FileName = string.Empty;
+                // Restore original filename if we loaded from an autosave
+                if (blnLoadAutosave)
+                    objCharacter.FileName = strFileName;
+                // Clear out file name if the character's file is in the autosaves folder because we do not want them to be manually saving there.
+                if (objCharacter.FileName.StartsWith(strAutosavesPath))
+                    objCharacter.FileName = string.Empty;
+            }
+            else if (blnShowErrors)
+            {
+                ShowMessageBox(string.Format(GlobalSettings.CultureInfo,
+                        blnSync
+                            // ReSharper disable once MethodHasAsyncOverload
+                            ? LanguageManager.GetString("Message_FileNotFound")
+                            : await LanguageManager.GetStringAsync("Message_FileNotFound"),
+                        strFileName),
+                    blnSync
+                        // ReSharper disable once MethodHasAsyncOverload
+                        ? LanguageManager.GetString("MessageTitle_FileNotFound")
+                        : await LanguageManager.GetStringAsync("MessageTitle_FileNotFound"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            return objCharacter;
+        }
+
+        public static Task<bool> SwitchToOpenCharacter(Character objCharacter, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            if (objCharacter == null || MainForm == null)
+                return Task.FromResult(false);
+            return MainForm.SwitchToOpenCharacter(objCharacter, token);
+        }
+
+        /// <summary>
+        /// Opens the correct window for a single character in the main form, queues the command to open on the main form if it is not assigned (thread-safe).
+        /// </summary>
+        public static Task OpenCharacter(Character objCharacter, bool blnIncludeInMru = true, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            return objCharacter == null ? Task.CompletedTask : OpenCharacterList(objCharacter.Yield(), blnIncludeInMru, token);
+        }
+
+        /// <summary>
+        /// Open the correct windows for a list of characters in the main form, queues the command to open on the main form if it is not assigned (thread-safe).
+        /// </summary>
+        /// <param name="lstCharacters">Characters for which windows should be opened.</param>
+        /// <param name="blnIncludeInMru">Added the opened characters to the Most Recently Used list.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Task OpenCharacterList(IEnumerable<Character> lstCharacters, bool blnIncludeInMru = true, CancellationToken token = default)
+        {
+            if (lstCharacters == null)
+                return Task.CompletedTask;
+            if (MainForm != null)
+                return MainForm.OpenCharacterList(lstCharacters, blnIncludeInMru, token);
+            return Task.Run(() => MainFormOnAssignAsyncActions.Add(
+                                x => x.OpenCharacterList(lstCharacters, blnIncludeInMru, token)), token);
+        }
+
+        public static Task<bool> SwitchToOpenPrintCharacter(Character objCharacter, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            if (objCharacter == null || MainForm == null)
+                return Task.FromResult(false);
+            return MainForm.SwitchToOpenPrintCharacter(objCharacter, token);
+        }
+
+        /// <summary>
+        /// Open a character's print form up without necessarily opening them up fully for editing.
+        /// </summary>
+        public static Task OpenCharacterForPrinting(Character objCharacter, bool blnIncludeInMru = false, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            return objCharacter == null ? Task.CompletedTask : OpenCharacterListForPrinting(objCharacter.Yield(), blnIncludeInMru, token);
+        }
+
+        /// <summary>
+        /// Open print forms for a list of characters (thread-safe).
+        /// </summary>
+        /// <param name="lstCharacters">Characters for which windows should be opened.</param>
+        /// <param name="blnIncludeInMru">Added the opened characters to the Most Recently Used list.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Task OpenCharacterListForPrinting(IEnumerable<Character> lstCharacters, bool blnIncludeInMru = false, CancellationToken token = default)
+        {
+            if (lstCharacters == null)
+                return Task.CompletedTask;
+            if (MainForm != null)
+                return MainForm.OpenCharacterListForPrinting(lstCharacters, blnIncludeInMru, token);
+            return Task.Run(() => MainFormOnAssignAsyncActions.Add(
+                                x => x.OpenCharacterListForPrinting(lstCharacters, blnIncludeInMru, token)), token);
+        }
+
+        public static Task<bool> SwitchToOpenExportCharacter(Character objCharacter, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            if (objCharacter == null || MainForm == null)
+                return Task.FromResult(false);
+            return MainForm.SwitchToOpenExportCharacter(objCharacter, token);
+        }
+
+        /// <summary>
+        /// Open a character for exporting without necessarily opening them up fully for editing.
+        /// </summary>
+        public static Task OpenCharacterForExport(Character objCharacter, bool blnIncludeInMru = false, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            return objCharacter == null ? Task.CompletedTask : OpenCharacterListForExport(objCharacter.Yield(), blnIncludeInMru, token);
+        }
+
+        /// <summary>
+        /// Open export forms for a list of characters (thread-safe).
+        /// </summary>
+        /// <param name="lstCharacters">Characters for which windows should be opened.</param>
+        /// <param name="blnIncludeInMru">Added the opened characters to the Most Recently Used list.</param>
+        /// <param name="token">Cancellation token to listen to.</param>
+        public static Task OpenCharacterListForExport(IEnumerable<Character> lstCharacters, bool blnIncludeInMru = false, CancellationToken token = default)
+        {
+            if (lstCharacters == null)
+                return Task.CompletedTask;
+            if (MainForm != null)
+                return MainForm.OpenCharacterListForExport(lstCharacters, blnIncludeInMru, token);
+            return Task.Run(() => MainFormOnAssignAsyncActions.Add(
+                                x => x.OpenCharacterListForExport(lstCharacters, blnIncludeInMru, token)), token);
+        }
+
+        public static LoadingBar TopMostLoadingBar => s_lstLoadingBars.Count > 0 ? s_lstLoadingBars[0] : null;
+
+        private static readonly ThreadSafeList<LoadingBar> s_lstLoadingBars = new ThreadSafeList<LoadingBar>(3);
+
+        /// <summary>
+        /// Syntactic sugar for creating and displaying a LoadingBar screen with specific text and progress bar size.
+        /// </summary>
+        /// <param name="strFile"></param>
+        /// <param name="intCount"></param>
+        /// <returns></returns>
+        public static ThreadSafeForm<LoadingBar> CreateAndShowProgressBar(string strFile = "", int intCount = 1)
+        {
+            ThreadSafeForm<LoadingBar> frmReturn = ThreadSafeForm<LoadingBar>.Get(() => new LoadingBar { CharacterFile = strFile });
+            if (intCount > 0)
+                frmReturn.MyForm.Reset(intCount);
+            frmReturn.MyForm.DoThreadSafe(x =>
+            {
+                x.Closed += (sender, args) => s_lstLoadingBars.Remove(x);
+                x.Show();
+            });
+            s_lstLoadingBars.Add(frmReturn);
+            return frmReturn;
+        }
+
+        /// <summary>
+        /// Syntactic sugar for creating and displaying a LoadingBar screen with specific text and progress bar size.
+        /// </summary>
+        /// <param name="strFile"></param>
+        /// <param name="intCount"></param>
+        /// <returns></returns>
+        public static async ValueTask<ThreadSafeForm<LoadingBar>> CreateAndShowProgressBarAsync(string strFile = "", int intCount = 1)
+        {
+            ThreadSafeForm<LoadingBar> frmReturn = await ThreadSafeForm<LoadingBar>.GetAsync(() => new LoadingBar { CharacterFile = strFile });
+            if (intCount > 0)
+                await frmReturn.MyForm.ResetAsync(intCount);
+            await frmReturn.MyForm.DoThreadSafeAsync(x =>
+            {
+                x.Closed += (sender, args) => s_lstLoadingBars.Remove(x);
+                x.Show();
+            });
+            await s_lstLoadingBars.AddAsync(frmReturn.MyForm);
+            return frmReturn;
+        }
 
         /// <summary>
         /// Whether the application is running under Mono (true) or .NET (false)
@@ -685,10 +1325,10 @@ namespace Chummer
 
         private static void FixCwd()
         {
-            //If launched by file assiocation, the cwd is file location.
-            //Chummer looks for data in cwd, to be able to move exe (legacy+bootstraper uses this)
+            //If launched by file association, the cwd is file location.
+            //Chummer looks for data in cwd, to be able to move exe (legacy+bootstrapper uses this)
 
-            if (Directory.Exists(Path.Combine(Utils.GetStartupPath, "data"))
+            if (Directory.Exists(Utils.GetDataFolderPath)
                 && Directory.Exists(Path.Combine(Utils.GetStartupPath, "lang")))
             {
                 //both normally used data dirs present (add file loading abstraction to the list)

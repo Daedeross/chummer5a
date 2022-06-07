@@ -18,7 +18,6 @@
  */
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -27,9 +26,9 @@ using System.Text;
 
 namespace Chummer.Backend
 {
-    public sealed class ExceptionHeatMap
+    public sealed class ExceptionHeatMap : IDisposable
     {
-        private readonly ConcurrentDictionary<string, int> _map = new ConcurrentDictionary<string, int>();
+        private readonly Lazy<LockingDictionary<string, int>> _map = new Lazy<LockingDictionary<string,int>>(() => new LockingDictionary<string, int>());
 
         public void OnException(object sender, FirstChanceExceptionEventArgs e)
         {
@@ -46,29 +45,34 @@ namespace Chummer.Backend
             if (frame == null)
                 return;
             string heat = string.Format(GlobalSettings.InvariantCultureInfo, "{0}:{1}", frame.GetFileName(), frame.GetFileLineNumber());
-
-            if (_map.TryGetValue(heat, out int intTmp))
-            {
-                _map[heat] += intTmp + 1;
-            }
-            else
-            {
-                _map.TryAdd(heat, 1);
-            }
+            _map.Value.AddOrUpdate(heat, 1, (a, b) => b + 1);
         }
 
         public string GenerateInfo()
         {
-            StringBuilder builder = new StringBuilder(Environment.NewLine);
-            int length = -1;
-
-            foreach (KeyValuePair<string, int> exception in _map.OrderBy(i => -i.Value))
+            int intLength = -1;
+            using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool, out StringBuilder sbdReturn))
             {
-                length = Math.Max((int)Math.Ceiling(Math.Log10(exception.Value)), length);
-                builder.AppendLine("\t\t" + exception.Value.ToString("D" + length.ToString(GlobalSettings.InvariantCultureInfo), GlobalSettings.InvariantCultureInfo) + " - " + exception.Key);
-            }
+                sbdReturn.AppendLine();
+                foreach (KeyValuePair<string, int> exception in _map.Value.OrderBy(i => -i.Value))
+                {
+                    intLength = Math.Max((int) Math.Ceiling(Math.Log10(exception.Value)), intLength);
+                    sbdReturn.Append("\t\t")
+                             .Append(exception.Value.ToString(
+                                         "D" + intLength.ToString(GlobalSettings.InvariantCultureInfo),
+                                         GlobalSettings.InvariantCultureInfo)).Append(" - ")
+                             .AppendLine(exception.Key);
+                }
 
-            return builder.ToString();
+                return sbdReturn.ToString();
+            }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (_map.IsValueCreated)
+                _map.Value.Dispose();
         }
     }
 }

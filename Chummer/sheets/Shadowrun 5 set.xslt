@@ -57,7 +57,7 @@
     <xsl:text disable-output-escaping="yes"><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">]]></xsl:text>
     <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
       <head>
-        <meta http-equiv="x-ua-compatible" content="IE=Edge" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta charset="UTF-8" />
         <xsl:call-template name="Chummer5CSS" />
 <!-- ** Override default style type definitions ** -->
@@ -1160,7 +1160,7 @@
           </xsl:call-template>
         </xsl:if>
 
-        <xsl:if test="initiategrade > 0">
+        <xsl:if test="initiategrade > 0 or metamagics/metamagic">
           <div class="block" id="InitiationBlock">
             <table class="tablestyle">
               <tr>
@@ -1365,7 +1365,7 @@
           <xsl:with-param name="blockname" select="'StreamBlock'" />
         </xsl:call-template>
 
-        <xsl:if test="submersiongrade > 0">
+        <xsl:if test="submersiongrade > 0 or metamagics/metamagic">
           <div class="block" id="SubmersionBlock">
             <table class="tablestyle">
               <tr>

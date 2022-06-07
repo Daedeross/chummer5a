@@ -20,8 +20,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 
 namespace Chummer
 {
@@ -78,28 +78,33 @@ namespace Chummer
             _lstIndexes = new List<TKey>(capacity);
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.Clear" />
         public void Clear()
         {
             _dicUnorderedData.Clear();
             _lstIndexes.Clear();
         }
 
+        /// <inheritdoc />
         IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
         {
             for (int i = 0; i < Count - 1; ++i)
                 yield return this[i];
         }
 
+        /// <inheritdoc />
         public IDictionaryEnumerator GetEnumerator()
         {
             return new TypedOrderedDictionaryEnumerator(this);
         }
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        /// <inheritdoc />
         public bool Contains(object key)
         {
             switch (key)
@@ -118,36 +123,44 @@ namespace Chummer
             }
         }
 
+        /// <inheritdoc />
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
             return _dicUnorderedData.TryGetValue(item.Key, out TValue objValue) && item.Value.Equals(objValue);
         }
-
+        
         public bool Contains(Tuple<TKey, TValue> item)
         {
-            return _dicUnorderedData.TryGetValue(item.Item1, out TValue objValue) && item.Item2.Equals(objValue);
+            (TKey objKey, TValue objValue) = item;
+            return _dicUnorderedData.TryGetValue(objKey, out TValue objExistingValue) && objValue.Equals(objExistingValue);
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.ContainsKey" />
         public bool ContainsKey(TKey key)
         {
             return _dicUnorderedData.ContainsKey(key);
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.ContainsValue" />
         public bool ContainsValue(TValue value)
         {
             return _dicUnorderedData.ContainsValue(value);
         }
 
+        /// <inheritdoc />
         public void Add(KeyValuePair<TKey, TValue> item)
         {
             Add(item.Key, item.Value);
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.Add" />
         public void Add(Tuple<TKey, TValue> item)
         {
-            Add(item.Item1, item.Item2);
+            (TKey objKey, TValue objValue) = item;
+            Add(objKey, objValue);
         }
 
+        /// <inheritdoc />
         public void Add(object key, object value)
         {
             if (!(key is TKey objKey))
@@ -157,12 +170,14 @@ namespace Chummer
             Add(objKey, objValue);
         }
 
+        /// <inheritdoc />
         public void Add(TKey key, TValue value)
         {
             _dicUnorderedData.Add(key, value);
             _lstIndexes.Add(key);
         }
 
+        /// <inheritdoc />
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             if (arrayIndex + Count >= array.Length)
@@ -170,16 +185,19 @@ namespace Chummer
             for (int i = 0; i < Count; ++i)
                 array[i + arrayIndex] = this[i];
         }
-
+        
         public void CopyTo(Tuple<TKey, TValue>[] array, int arrayIndex)
         {
             if (arrayIndex + Count >= array.Length)
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex));
             for (int i = 0; i < Count; ++i)
+            {
                 array[i + arrayIndex] =
                     new Tuple<TKey, TValue>(_lstIndexes[i], _dicUnorderedData[_lstIndexes[i]]);
+            }
         }
 
+        /// <inheritdoc />
         public void CopyTo(Array array, int index)
         {
             if (index + Count >= array.Length)
@@ -188,16 +206,35 @@ namespace Chummer
                 array.SetValue(this[i], i + index);
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.Count" />
         public int Count => _dicUnorderedData.Count;
 
-        public object SyncRoot { get; } = new object();
+        /// <inheritdoc />
+        public object SyncRoot
+        {
+            get
+            {
+                if (_objSyncRoot == null)
+                {
+                    Interlocked.CompareExchange<object>(ref _objSyncRoot, new object(), null);
+                }
 
+                return _objSyncRoot;
+            }
+        }
+
+        private object _objSyncRoot;
+
+        /// <inheritdoc />
         public bool IsSynchronized => false;
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.Comparer" />
         public IEqualityComparer<TKey> Comparer => _dicUnorderedData.Comparer;
 
+        /// <inheritdoc />
         public ICollection<TKey> Keys => _lstIndexes;
 
+        /// <inheritdoc />
         public ICollection<TValue> Values
         {
             get
@@ -294,6 +331,7 @@ namespace Chummer
             return true;
         }
 
+        /// <inheritdoc cref="Dictionary{TKey, TValue}.TryGetValue" />
         public bool TryGetValue(TKey key, out TValue value)
         {
             return _dicUnorderedData.TryGetValue(key, out value);
@@ -318,7 +356,7 @@ namespace Chummer
                         return this[intKey];
 
                     default:
-                        throw new ArgumentException(nameof(key));
+                        throw new ArgumentException(null, nameof(key));
                 }
             }
             set
@@ -338,7 +376,7 @@ namespace Chummer
                         break;
 
                     default:
-                        throw new ArgumentException(nameof(value));
+                        throw new InvalidOperationException(nameof(value));
                 }
             }
         }
@@ -348,7 +386,7 @@ namespace Chummer
             get => new KeyValuePair<TKey, TValue>(_lstIndexes[index], _dicUnorderedData[_lstIndexes[index]]);
             set
             {
-                if (_dicUnorderedData.ContainsKey(value.Key))
+                if (_dicUnorderedData.TryGetValue(value.Key, out TValue objOldValue))
                 {
                     int intOriginalIndex = _lstIndexes.IndexOf(value.Key);
                     if (index == intOriginalIndex)
@@ -363,7 +401,7 @@ namespace Chummer
                     _lstIndexes.RemoveAt(_lstIndexes.Count - 1);
                     if (objKeyToRemove != null)
                         _dicUnorderedData.Remove(objKeyToRemove);
-                    if (!_dicUnorderedData[value.Key].Equals(value.Value))
+                    if (!objOldValue.Equals(value.Value))
                         _dicUnorderedData[value.Key] = value.Value;
                 }
                 else
@@ -450,7 +488,7 @@ namespace Chummer
         public void Insert(int index, KeyValuePair<TKey, TValue> item)
         {
             if (_dicUnorderedData.ContainsKey(item.Key))
-                throw new ArgumentException(nameof(item));
+                throw new ArgumentException(null, nameof(item));
             _dicUnorderedData.Add(item.Key, item.Value);
             _lstIndexes.Insert(index, item.Key);
         }
@@ -460,14 +498,14 @@ namespace Chummer
             if (item == null)
                 throw new ArgumentNullException(nameof(item));
             if (_dicUnorderedData.ContainsKey(item.Item1))
-                throw new ArgumentException(nameof(item));
+                throw new ArgumentException(null, nameof(item));
             _dicUnorderedData.Add(item.Item1, item.Item2);
             _lstIndexes.Insert(index, item.Item1);
         }
 
         public void RemoveAt(int index)
         {
-            TKey objKeyToRemove = _lstIndexes.ElementAt(index);
+            TKey objKeyToRemove = _lstIndexes[index];
             if (objKeyToRemove.Equals(default))
                 return;
             _dicUnorderedData.Remove(objKeyToRemove);
@@ -543,7 +581,7 @@ namespace Chummer
             _dicUnorderedData.OnDeserialization(sender);
         }
 
-        private class KeyValueToKeyComparer : IComparer<TKey>
+        private sealed class KeyValueToKeyComparer : IComparer<TKey>
         {
             private readonly TypedOrderedDictionary<TKey, TValue> _dicMyDictionary;
             private readonly IComparer<KeyValuePair<TKey, TValue>> _objMyComparer;
@@ -582,7 +620,7 @@ namespace Chummer
             }
         }
 
-        private class TypedOrderedDictionaryEnumerator : IDictionaryEnumerator
+        private sealed class TypedOrderedDictionaryEnumerator : IDictionaryEnumerator
         {
             // A copy of the SimpleDictionary object's key/value pairs.
             private readonly TypedOrderedDictionary<TKey, TValue> _dicMyDictionary;
@@ -630,7 +668,7 @@ namespace Chummer
             // Advance to the next item.
             public bool MoveNext()
             {
-                _intIndex += 1;
+                ++_intIndex;
                 return _intIndex < _dicMyDictionary.Count;
             }
 

@@ -44,7 +44,7 @@
   <modcategories>
     <category blackmarket="Vehicles" >Body</category>
     <category blackmarket="Vehicles" >Cosmetic</category>
-    <category blackmarket="Vehicles" >Electromagnetic</category>
+    <category blackmarket="Software,Vehicles" >Electromagnetic</category>
     <category blackmarket="Vehicles" >Model-Specific</category>
     <category blackmarket="Vehicles" >Powertrain</category>
     <category blackmarket="Vehicles" >Protection</category>
@@ -735,6 +735,9 @@
           <maxrating>7</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Off-Road Suspension</name>
+      </mods>
       <seats>6</seats>
     </vehicle>
     <vehicle>
@@ -2045,7 +2048,7 @@
       <source>R5</source>
       <accel>3</accel>
       <armor>16</armor>
-      <avail>0</avail>
+      <avail>14R</avail>
       <body>18</body>
       <category>Corpsec/Police/Military</category>
       <cost>398000</cost>
@@ -2324,13 +2327,13 @@
         </weaponmount>
         <weaponmount>
           <control>Remote</control>
-          <flexibility>Fixed</flexibility>
+          <flexibility>Flexible</flexibility>
           <size>Standard</size>
           <visibility>Internal</visibility>
         </weaponmount>
         <weaponmount>
           <control>Remote</control>
-          <flexibility>Fixed</flexibility>
+          <flexibility>Flexible</flexibility>
           <size>Standard</size>
           <visibility>Internal</visibility>
         </weaponmount>
@@ -3419,6 +3422,11 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Speakers</name>
+        <name>Strobes</name>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>8b1aff5b-a9a3-4fdc-a10c-de56d88e4b91</id>
@@ -3444,6 +3452,7 @@
       </gears>
       <mods>
         <name cost="0">Submersible (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -3468,6 +3477,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>cf1383e9-5604-46eb-8323-522acaeada2e</id>
@@ -3491,6 +3503,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>cdf8a11b-c74a-4754-89b0-cb1a4bec17cd</id>
@@ -3508,7 +3523,7 @@
       <sensor>3</sensor>
       <speed>2</speed>
       <gears>
-        <gear select="Melee Bite">[Weapon] Melee Autosoft</gear>
+        <gear select="Melee Bite" rating="1">[Weapon] Melee Autosoft</gear>
         <gear>
           <name>Sensor Array</name>
           <rating>3</rating>
@@ -3529,6 +3544,9 @@
           <name>Melee Bite</name>
         </weapon>
       </weapons>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>b5ef225a-9a22-4dfd-bf4e-2832cbe8e064</id>
@@ -3554,6 +3572,7 @@
       </gears>
       <mods>
         <name rating="1">Realistic Features (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -3579,6 +3598,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>8e9830e5-16e4-40e3-9803-4036945b786d</id>
@@ -3603,6 +3625,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>94a53ea0-c8de-4f2f-9098-55180205d8fa</id>
@@ -3626,6 +3651,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>a38e5f21-eb84-4f01-81cc-ee214d88ed96</id>
@@ -3651,6 +3679,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <modslots>0</modslots>
       <weaponmounts>
         <weaponmount>
@@ -3690,6 +3721,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>fcbe7bb4-6137-4939-8d4b-10b011b33ac6</id>
@@ -3714,6 +3748,9 @@
         </gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>d9157390-2003-4238-8738-6a24efc770f0</id>
@@ -3743,6 +3780,9 @@
         <name>Drone Arm</name>
       </mods>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>6b0c07b2-6e3d-4174-a748-859fd46c090c</id>
@@ -3768,6 +3808,9 @@
         <gear>Flashlight</gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -3810,6 +3853,9 @@
         <name>Gecko Grips (Drone)</name>
       </mods>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>89392969-1d03-4322-9aa8-c0160ba3ee76</id>
@@ -3834,6 +3880,9 @@
         </gear>
       </gears>
       <modslots>4</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>68f2fddf-c530-4093-855a-f08e3924b68c</id>
@@ -3858,6 +3907,9 @@
         </gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>28abf230-3bd7-4edb-bcba-f6ae28d62d3a</id>
@@ -3896,6 +3948,9 @@
           <visibility>External</visibility>
         </weaponmount>
       </weaponmounts>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>a836d6d5-56f3-416c-a53f-2249af400580</id>
@@ -3921,6 +3976,7 @@
       </gears>
       <mods>
         <name>Immobile (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <weaponmounts>
@@ -3955,6 +4011,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>84bc59dd-cd8f-4148-b5fa-53c3e0fe384f</id>
@@ -3979,6 +4038,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>67bfc8e7-e8dd-4e3f-9e31-d5aa4990e4f5</id>
@@ -4003,6 +4065,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>7cc3856f-eaaa-47a6-83f5-a5efa36efbcd</id>
@@ -4027,6 +4092,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>4c2952dd-b400-4560-816b-1a857e3f24dd</id>
@@ -4051,6 +4119,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>2227d4bb-9a97-460a-b90c-cf9fd4d98636</id>
@@ -4075,6 +4146,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>6918401c-ae18-45cc-90e2-72a029240eed</id>
@@ -4099,6 +4173,9 @@
         </gear>
       </gears>
       <modslots>3</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>0ff86ef9-e35d-4f8f-bc64-0303f81f11c7</id>
@@ -4126,6 +4203,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>963d0596-c0f5-40d9-8bfe-580cc1150d20</id>
@@ -4150,6 +4230,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>6cef9ce0-b7b0-4d3c-933a-ef1da1580388</id>
@@ -4177,6 +4260,9 @@
         <gear>Ink Pouch</gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4213,12 +4299,15 @@
           <rating>4</rating>
           <maxrating>4</maxrating>
           <gears>
-            <gear rating="6">Geiger Counter</gear>
-            <gear rating="8">Olfactory Sensor</gear>
+            <gear rating="6" consumecapacity="True">Geiger Counter</gear>
+            <gear rating="8" consumecapacity="True">Olfactory Scanner</gear>
           </gears>
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>ec84a3e8-00f7-4558-b21c-62fff76c33c5</id>
@@ -4241,9 +4330,12 @@
           <rating>2</rating>
           <maxrating>3</maxrating>
         </gear>
-        <gear rating="6">Radio Signal Scanner</gear>
+        <gear rating="6" consumecapacity="True">Radio Signal Scanner</gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>2f1519ae-8c34-48cb-a5ba-47eac74fff82</id>
@@ -4268,6 +4360,9 @@
         </gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>744987eb-0503-4d1f-b49e-fb3a543b08e0</id>
@@ -4294,6 +4389,7 @@
       </gears>
       <mods>
         <name>Immobile (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -4322,6 +4418,9 @@
         <name select="Storage Compartment">Special Equipment</name>
       </mods>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>50d4bce4-79f1-48d4-8b38-68969802dec0</id>
@@ -4345,18 +4444,21 @@
           <rating>8</rating>
           <maxrating>8</maxrating>
           <gears>
-            <gear rating="8">Atmosphere Sensor</gear>
-            <gear rating="8">Camera</gear>
-            <gear rating="8">Geiger Counter</gear>
-            <gear rating="8">MAD Scanner</gear>
-            <gear rating="8">Olfactory Sensor</gear>
-            <gear rating="8">Radio Signal Scanner</gear>
-            <gear rating="8">Ultrasound</gear>
-            <gear rating="8">X-Ray</gear>
+            <gear rating="8" consumecapacity="True">Atmosphere Sensor</gear>
+            <gear rating="8" consumecapacity="True">Camera</gear>
+            <gear rating="8" consumecapacity="True">Geiger Counter</gear>
+            <gear rating="8" consumecapacity="True">MAD Scanner</gear>
+            <gear rating="8" consumecapacity="True">Olfactory Scanner</gear>
+            <gear rating="8" consumecapacity="True">Radio Signal Scanner</gear>
+            <gear rating="8" consumecapacity="True">Ultrasound</gear>
+            <gear rating="8" consumecapacity="True">X-Ray</gear>
           </gears>
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>2c2ab919-9432-4e0a-9f30-a8cc9d51f7fb</id>
@@ -4381,6 +4483,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4420,6 +4525,7 @@
       </gears>
       <mods>
         <name>Amphibious (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>1</modslots>
     </vehicle>
@@ -4445,6 +4551,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>dd68326a-254b-44e7-b787-67a539f19e06</id>
@@ -4469,6 +4578,9 @@
         </gear>
       </gears>
       <modslots>2</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>4ca97d26-0d55-4b9e-afcb-4f10b5eea4a6</id>
@@ -4497,6 +4609,9 @@
         <gear costfor="4">Ammo: Taser Dart</gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4535,6 +4650,9 @@
         </gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>9bb6d665-a59c-4146-ad2f-2ce4ef2e52c9</id>
@@ -4559,6 +4677,9 @@
         </gear>
         <gear rating="3">[Weapon] Targeting Autosoft</gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4618,6 +4739,7 @@
       </gears>
       <mods>
         <name>Drone Arm</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>3</modslots>
     </vehicle>
@@ -4645,6 +4767,7 @@
       </gears>
       <mods>
         <name>Tracked Propulsion</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
     </vehicle>
@@ -4673,6 +4796,7 @@
       </gears>
       <mods>
         <name>Tracked Propulsion</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>2</modslots>
     </vehicle>
@@ -4704,6 +4828,7 @@
         <name>Standard Drone Rack (Mini)</name>
         <name>Standard Drone Rack (Mini)</name>
         <name>Retrans Unit</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -4731,6 +4856,7 @@
       <mods>
         <name>Submersible (Drone)</name>
         <name>Searchlight</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
     </vehicle>
@@ -4760,6 +4886,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4794,6 +4923,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4828,6 +4960,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4865,6 +5000,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4899,6 +5037,7 @@
       </gears>
       <mods>
         <name>Drone Arm</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>2</modslots>
     </vehicle>
@@ -4925,6 +5064,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -4961,6 +5103,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -4991,6 +5134,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -5021,6 +5165,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -5050,6 +5195,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
       <weaponmounts>
         <weaponmount>
@@ -5093,6 +5239,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -5124,6 +5271,7 @@
         <name>Synthetic Drone Leg</name>
         <name>Synthetic Drone Leg</name>
         <name rating="1">Realistic Features (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6159,6 +6307,7 @@
       </gears>
       <mods>
         <name>Gecko Tips</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6183,6 +6332,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>4261d97f-2a4f-4ed3-91a4-64a69a549e37</id>
@@ -6206,6 +6358,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>fa4686b8-3886-4bd8-bda4-737050245208</id>
@@ -6231,6 +6386,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>715a8171-8167-4391-8d33-f7d50217efec</id>
@@ -6254,6 +6412,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <hide />
     </vehicle>
     <vehicle>
@@ -6280,6 +6441,7 @@
       </gears>
       <mods>
         <name rating="2">Realistic Features</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6304,6 +6466,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>9604795c-03f2-46db-a86b-3fd16ea35c51</id>
@@ -6329,6 +6494,7 @@
       </gears>
       <mods>
         <name rating="3">Signature Masking</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6354,6 +6520,9 @@
         </gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>c8f7e6c0-85e6-4feb-9ef0-0aeca5fba76b</id>
@@ -6384,6 +6553,7 @@
         <name>Drone Leg</name>
         <name>Drone Leg</name>
         <name rating="1">Realistic Features</name>
+        <name>Rigger Interface</name>
       </mods>
       <weaponmounts>
         <weaponmount>
@@ -6432,6 +6602,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>1264a59a-2fdd-4d41-a674-2082db4f199b</id>
@@ -6458,6 +6631,7 @@
       <mods>
         <name>Drone Arm</name>
         <name>Drone Arm</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6482,6 +6656,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -6515,6 +6692,7 @@
       </gears>
       <mods>
         <addslots>3</addslots>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>7</modslots>
       <weaponmodslots>3</weaponmodslots>
@@ -6541,6 +6719,9 @@
           <maxrating>5</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>b627c28f-e67e-4a34-9808-af81fad2acf9</id>
@@ -6564,6 +6745,9 @@
           <maxrating>5</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>50e6572c-ea59-4756-83e4-7c51f8f614c9</id>
@@ -6587,6 +6771,9 @@
           <maxrating>5</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>0e8d9c3c-83c0-4c1d-96f0-1f2a2e0bf354</id>
@@ -6615,6 +6802,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6639,6 +6827,9 @@
           <maxrating>5</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -6672,6 +6863,7 @@
       </gears>
       <mods>
         <name>Dustoff Armored Valkyrie Module</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6745,6 +6937,9 @@
         </gear>
         <gear rating="3" select="Stoner-Ares M202">[Weapon] Targeting Autosoft</gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -6830,6 +7025,9 @@
           <maxrating>6</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>546f0dc2-0478-4d36-a4cd-0b091ffa0eb2</id>
@@ -6846,6 +7044,9 @@
       <pilot>0</pilot>
       <sensor>0</sensor>
       <speed>0</speed>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <hide />
     </vehicle>
     <vehicle>
@@ -6871,6 +7072,9 @@
         </gear>
         <gear rating="2" select="Ammo Drone">[Model] Maneuvering Autosoft</gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>ffcab1c2-4ae3-43a9-bfb0-eb8af29af3d7</id>
@@ -6894,6 +7098,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>c2fa6792-1ed9-437c-a7d2-b9ff79c44fd2</id>
@@ -6924,6 +7131,7 @@
         <name>Synthetic Drone Arm</name>
         <name>Synthetic Drone Leg</name>
         <name>Synthetic Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6956,6 +7164,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <vehicle>
@@ -6980,6 +7189,9 @@
           <maxrating>4</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>d159489d-0210-45be-8629-f29e6f883e3e</id>
@@ -7003,6 +7215,9 @@
           <maxrating>6</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>a9077795-4ddf-498e-8ea2-a5cfadd69c37</id>
@@ -7026,6 +7241,9 @@
           <maxrating>2</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>0a8a99f7-5cd1-43e5-b5b2-8fb1db3c77ea</id>
@@ -7051,6 +7269,9 @@
         <gear rating="4" select="Armorer">Skill Autosoft</gear>
         <gear select="Armorer">Tool Kit</gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <!-- Region SR5 2050 -->
     <!-- Region Motorräder -->
@@ -7762,6 +7983,9 @@
         </gear>
       </gears>
       <modslots>4</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>7ac00990-31a3-4314-a114-9cd6468fb66d</id>
@@ -7786,6 +8010,9 @@
         </gear>
       </gears>
       <modslots>4</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>11418c52-6c1f-477f-a660-2451fb3ee8fa</id>
@@ -7809,6 +8036,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -7846,6 +8076,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <weaponmounts>
         <weaponmount>
           <control>Remote</control>
@@ -8380,6 +8613,7 @@
         <name>Flash-Pak</name>
         <name>Gecko Grips (Drone)</name>
         <name>Spotlight (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8409,6 +8643,7 @@
       <mods>
         <name>Gecko Grips (Drone)</name>
         <name rating="1">Realistic Features</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8439,6 +8674,7 @@
         <name>Gecko Grips (Drone)</name>
         <name rating="1">Realistic Features</name>
         <name select="Engineering laser">Special Equipment</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8465,6 +8701,9 @@
           <maxrating>2</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <modslots>2</modslots>
       <seats>0</seats>
     </vehicle>
@@ -8492,6 +8731,7 @@
       </gears>
       <mods>
         <name rating="4">Realistic Features</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>2</modslots>
       <seats>0</seats>
@@ -8520,6 +8760,7 @@
       </gears>
       <mods>
         <name>Assembly Time Improvement (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>1</modslots>
       <seats>0</seats>
@@ -8549,6 +8790,9 @@
         <gear>Smartsoft</gear>
       </gears>
       <modslots>1</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <seats>0</seats>
       <weaponmounts>
         <weaponmount>
@@ -8584,6 +8828,7 @@
       <mods>
         <name>Gecko Grips (Drone)</name>
         <name>Spotlight (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8612,6 +8857,7 @@
       </gears>
       <mods>
         <name>Spotlight (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>4</modslots>
       <seats>0</seats>
@@ -8641,6 +8887,9 @@
         <gear rating="5">[Weapon] Targeting Autosoft</gear>
       </gears>
       <modslots>2</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <seats>0</seats>
       <weaponmounts>
         <weaponmount>
@@ -8675,6 +8924,7 @@
       </gears>
       <mods>
         <name>Flash-Pak</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8712,6 +8962,7 @@
       </gears>
       <mods>
         <name>Spotlight (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8742,6 +8993,9 @@
         <gear rating="3">Clearsight Autosoft</gear>
       </gears>
       <modslots>0</modslots>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
       <seats>0</seats>
       <weaponmounts>
         <weaponmount>
@@ -8784,6 +9038,7 @@
       </gears>
       <mods>
         <name rating="3">ECM</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8826,6 +9081,7 @@
         <name>SkyGuide (Drone)</name>
         <name>SunCell</name>
         <name>Spotlight (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>3</modslots>
       <seats>0</seats>
@@ -8856,6 +9112,7 @@
       </gears>
       <mods>
         <name>Gecko Grips (Drone)</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -8914,6 +9171,7 @@
         <name>Drone Arm</name>
         <name>Drone Leg</name>
         <name>Drone Leg</name>
+        <name>Rigger Interface</name>
       </mods>
       <modslots>0</modslots>
       <seats>0</seats>
@@ -9011,7 +9269,7 @@
           <rating>3</rating>
           <maxrating>3</maxrating>
         </gear>
-        <gear rating="2" select="Evasion">Skill Autosoft</gear>
+        <gear rating="2" select="Avibras-Nissan AN 822">[Model] Evasion Autosoft</gear>
         <gear rating="2" select="Electronic Warfare">Skill Autosoft</gear>
         <gear rating="2" select="Avibras-Nissan AN 822">[Model] Maneuvering Autosoft</gear>
       </gears>
@@ -9049,6 +9307,7 @@
       </gears>
       <mods>
         <name>Searchlight</name>
+        <name>Rigger Interface</name>
       </mods>
     </vehicle>
     <!-- End Region -->
@@ -9252,6 +9511,9 @@
           <maxrating>6</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>89251727-a573-4624-96db-697883f3643f</id>
@@ -9275,6 +9537,9 @@
           <maxrating>6</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>9a2a8c39-e618-4feb-b779-bc8f30fa76e6</id>
@@ -9298,6 +9563,9 @@
           <maxrating>6</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>e5108247-0d43-486e-8d6a-2075b02f0681</id>
@@ -9765,6 +10033,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>8e710ab0-637a-43a1-93a2-66120e7dbea5</id>
@@ -9816,6 +10087,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>be13725c-d5cd-4855-96f6-a07de090b58d</id>
@@ -10073,6 +10347,9 @@
           <maxrating>3</maxrating>
         </gear>
       </gears>
+      <mods>
+        <name>Rigger Interface</name>
+      </mods>
     </vehicle>
     <vehicle>
       <id>86ed663b-e9c4-4c53-89b4-3f31e199f9a1</id>
@@ -10081,7 +10358,7 @@
       <source>KK</source>
       <accel>2</accel>
       <armor>5</armor>
-      <avail>-</avail>
+      <avail>0</avail>
       <body>4</body>
       <category>Cars</category>
       <cost>10000</cost>
@@ -10109,7 +10386,7 @@
       <source>KK</source>
       <accel>1</accel>
       <armor>5</armor>
-      <avail>-</avail>
+      <avail>0</avail>
       <body>9</body>
       <category>Cars</category>
       <cost>22000</cost>
@@ -10221,7 +10498,7 @@
       <name>Krime Big Bazoo Redline</name>
       <page>31</page>
       <source>KK</source>
-      <accel>5</accel>
+      <accel>2</accel>
       <armor>6</armor>
       <avail>5</avail>
       <body>9</body>
@@ -10231,7 +10508,7 @@
       <pilot>1</pilot>
       <seats>4</seats>
       <sensor>1</sensor>
-      <speed>3</speed>
+      <speed>5</speed>
       <gears>
         <gear>
           <name>Sensor Array</name>
@@ -10260,7 +10537,7 @@
       <pilot>1</pilot>
       <seats>4</seats>
       <sensor>1</sensor>
-      <speed>3</speed>
+      <speed>5</speed>
       <gears>
         <gear>
           <name>Sensor Array</name>
@@ -10692,6 +10969,30 @@
         </vehicledetails>
       </required>
     </mod>
+    <mod>
+      <id>62C611C4-F081-43AD-8EFD-02FFDFE3014C</id>
+      <name>Speakers</name>
+      <page>128</page>
+      <source>R5</source>
+      <avail>0</avail>
+      <category>Cosmetic</category>
+      <cost>0</cost>
+      <rating>0</rating>
+      <slots>0</slots>
+      <hide />
+    </mod>
+    <mod>
+      <id>C8B47C0A-A13C-448E-B360-EB73C6BC8DCB</id>
+      <name>Strobes</name>
+      <page>128</page>
+      <source>R5</source>
+      <avail>0</avail>
+      <category>Cosmetic</category>
+      <cost>0</cost>
+      <rating>0</rating>
+      <slots>0</slots>
+      <hide />
+    </mod>
     <!-- End Region -->
     <!-- Region Powertrain-->
     <mod>
@@ -10701,7 +11002,7 @@
       <source>R5</source>
       <avail>6</avail>
       <category>Powertrain</category>
-      <cost>FixedValues(Acceleration * 10000,Acceleration * 25000)</cost>
+      <cost>FixedValues(number(Acceleration = 0) * 5000 + Acceleration * 10000,number(Acceleration = 0) * 12500 + Acceleration * 25000)</cost>
       <rating>2</rating>
       <slots>FixedValues(4,8)</slots>
       <bonus>
@@ -10732,7 +11033,7 @@
       <source>R5</source>
       <avail>(12 + 4*number(Body > 12))R</avail>
       <category>Powertrain</category>
-      <cost>Body * 3000 + (Body * 1000)*number(Body > 12)</cost>
+      <cost>number(Body = 0) * 1500 + Body * 3000 + (Body * 1000)*number(Body > 12)</cost>
       <rating>0</rating>
       <slots>5 + 5*number(Body > 12)</slots>
     </mod>
@@ -10743,7 +11044,7 @@
       <source>R5</source>
       <avail>FixedValues(6,8,10)</avail>
       <category>Powertrain</category>
-      <cost>FixedValues(Handling*2000,Handling*5000,Handling*12000)</cost>
+      <cost>FixedValues(number(Handling = 0) * 1000 + Handling*2000,number(Handling = 0) * 2500 + Handling*5000,number(Handling = 0) * 6000 + Handling*12000)</cost>
       <rating>3</rating>
       <slots>FixedValues(4,10,18)</slots>
       <bonus>
@@ -10780,7 +11081,7 @@
       <source>R5</source>
       <avail>10</avail>
       <category>Powertrain</category>
-      <cost>Body * 1000</cost>
+      <cost>number(Body = 0) * 500 + Body * 1000</cost>
       <rating>0</rating>
       <slots>4</slots>
     </mod>
@@ -10828,7 +11129,7 @@
       <source>R5</source>
       <avail>16F</avail>
       <category>Powertrain</category>
-      <cost>Body * 5000</cost>
+      <cost>number(Body = 0) * 2500 + Body * 5000</cost>
       <rating>0</rating>
       <slots>10</slots>
     </mod>
@@ -10850,7 +11151,7 @@
       <source>R5</source>
       <avail>6</avail>
       <category>Powertrain</category>
-      <cost>Body * 200</cost>
+      <cost>number(Body = 0) * 100 + Body * 200</cost>
       <rating>0</rating>
       <slots>4</slots>
     </mod>
@@ -10861,7 +11162,7 @@
       <source>R5</source>
       <avail>12R</avail>
       <category>Powertrain</category>
-      <cost>Body * 2000</cost>
+      <cost>number(Body = 0) * 1000 + Body * 2000</cost>
       <rating>0</rating>
       <slots>8</slots>
     </mod>
@@ -10872,7 +11173,7 @@
       <source>R5</source>
       <avail>12</avail>
       <category>Powertrain</category>
-      <cost>Body * 1000</cost>
+      <cost>number(Body = 0) * 500 + Body * 1000</cost>
       <rating>0</rating>
       <slots>8</slots>
     </mod>
@@ -10883,7 +11184,7 @@
       <source>R5</source>
       <avail>12R</avail>
       <category>Powertrain</category>
-      <cost>Body * 3000</cost>
+      <cost>number(Body = 0) * 1500 + Body * 3000</cost>
       <rating>0</rating>
       <slots>10</slots>
     </mod>
@@ -10894,7 +11195,7 @@
       <source>R5</source>
       <avail>10</avail>
       <category>Powertrain</category>
-      <cost>Body * 1000</cost>
+      <cost>number(Body = 0) * 500 + Body * 1000</cost>
       <rating>0</rating>
       <slots>6</slots>
     </mod>
@@ -10905,7 +11206,7 @@
       <source>R5</source>
       <avail>12</avail>
       <category>Powertrain</category>
-      <cost>Body * 2000</cost>
+      <cost>number(Body = 0) * 1000 + Body * 2000</cost>
       <rating>0</rating>
       <slots>8</slots>
     </mod>
@@ -10916,7 +11217,7 @@
       <source>R5</source>
       <avail>FixedValues(6,8,12)</avail>
       <category>Powertrain</category>
-      <cost>FixedValues(Speed * 2000,Speed * 5000,Speed * 12000)</cost>
+      <cost>FixedValues(number(Speed = 0) * 1000 + Speed * 2000,number(Speed = 0) * 2500 + Speed * 5000,number(Speed = 0) * 6000 + Speed * 12000)</cost>
       <rating>3</rating>
       <slots>FixedValues(5,14,20)</slots>
       <bonus>
@@ -11203,11 +11504,11 @@
       <name>Ram Plate</name>
       <page>161</page>
       <source>R5</source>
-      <avail>0</avail>
+      <avail>6R</avail>
       <category>Weapons</category>
-      <cost>0</cost>
+      <cost>number(Body = 0) * 125 + Body * 250</cost>
       <rating>0</rating>
-      <slots>0</slots>
+      <slots>1</slots>
     </mod>
     <mod>
       <id>d7191615-cc21-40b2-94f2-b562f00f2c30</id>
@@ -11262,7 +11563,7 @@
       <source>R5</source>
       <avail>12F</avail>
       <category>Body</category>
-      <cost>Body * 1000</cost>
+      <cost>number(Body = 0) * 500 + Body * 1000</cost>
       <rating>0</rating>
       <slots>2</slots>
     </mod>
@@ -11309,7 +11610,7 @@
       <source>R5</source>
       <avail>8</avail>
       <category>Body</category>
-      <cost>FixedValues(Body * 500,Body * 2000)</cost>
+      <cost>FixedValues(number(Body = 0) * 250 + Body * 500,number(Body = 0) * 1000 + Body * 2000)</cost>
       <rating>2</rating>
       <slots>2</slots>
     </mod>
@@ -11353,7 +11654,7 @@
       <source>R5</source>
       <avail>(Rating * 3)R</avail>
       <category>Body</category>
-      <cost>Rating * Body * 1000</cost>
+      <cost>Rating * (number(Body = 0) * 500 + Body * 1000)</cost>
       <rating>4</rating>
       <slots>Rating</slots>
     </mod>
@@ -11452,7 +11753,7 @@
       <source>R5</source>
       <avail>6R</avail>
       <category>Electromagnetic</category>
-      <cost>Body * 500</cost>
+      <cost>number(Body = 0) * 250 + Body * 500</cost>
       <rating>0</rating>
       <slots>2</slots>
     </mod>
@@ -11557,7 +11858,7 @@
       <source>R5</source>
       <avail>6</avail>
       <category>Electromagnetic</category>
-      <cost>Body * 500</cost>
+      <cost>number(Body = 0) * 250 + Body * 500</cost>
       <rating>0</rating>
       <slots>2</slots>
     </mod>
@@ -11568,7 +11869,7 @@
       <source>R5</source>
       <avail>8</avail>
       <category>Electromagnetic</category>
-      <cost>Body * 500</cost>
+      <cost>number(Body = 0) * 250 + Body * 500</cost>
       <rating>0</rating>
       <slots>3</slots>
     </mod>
@@ -11650,7 +11951,7 @@
       <source>HT</source>
       <avail>0</avail>
       <category>Cosmetic</category>
-      <cost>Body * 2</cost>
+      <cost>number(Body = 0) + Body * 2</cost>
       <rating>0</rating>
       <slots>0</slots>
     </mod>
@@ -11794,7 +12095,7 @@
       <source>R5</source>
       <avail>4R</avail>
       <category>All</category>
-      <cost>Body * 150</cost>
+      <cost>number(Body = 0) * 75 + Body * 150</cost>
       <rating>0</rating>
       <slots>1</slots>
       <optionaldrone />
@@ -11906,7 +12207,7 @@
       <source>R5</source>
       <avail>FixedValues(2,4,8,12R)</avail>
       <category>All</category>
-      <cost>FixedValues(Body * Body * 100,Body * Body * 500,Body * Body * 1000,Body * Body * 5000)</cost>
+      <cost>FixedValues(number(Body = 0) * 25 + Body * Body * 100,number(Body = 0) * 125 + Body * Body * 500,number(Body = 0) * 250 + Body * Body * 1000,number(Body = 0) * 1250 + Body * Body * 5000)</cost>
       <rating>4</rating>
       <slots>0</slots>
       <optionaldrone />
@@ -11923,7 +12224,7 @@
       <source>R5</source>
       <avail>0</avail>
       <category>All</category>
-      <cost>Body * Body * 100</cost>
+      <cost>number(Body = 0) * 25 + Body * Body * 100</cost>
       <rating>0</rating>
       <slots>1</slots>
       <optionaldrone />
@@ -11940,7 +12241,7 @@
       <source>R5</source>
       <avail>0</avail>
       <category>All</category>
-      <cost>Body * Body * 1000</cost>
+      <cost>number(Body = 0) * 250 + Body * Body * 1000</cost>
       <rating>0</rating>
       <slots>2</slots>
       <optionaldrone />
@@ -11957,7 +12258,7 @@
       <source>R5</source>
       <avail>0</avail>
       <category>All</category>
-      <cost>Body * 100</cost>
+      <cost>number(Body = 0) * 50 + Body * 100</cost>
       <rating>0</rating>
       <slots>1</slots>
       <optionaldrone />
@@ -12186,7 +12487,7 @@
       <source>R5</source>
       <avail>0</avail>
       <category>All</category>
-      <cost>Body * 300</cost>
+      <cost>number(Body = 0) * 150 + Body * 300</cost>
       <rating>0</rating>
       <slots>0</slots>
       <optionaldrone />
@@ -12203,7 +12504,7 @@
       <source>R5</source>
       <avail>0</avail>
       <category>All</category>
-      <cost>Body * 75</cost>
+      <cost>number(Body = 0) * 37.5 + Body * 75</cost>
       <rating>0</rating>
       <slots>0</slots>
       <optionaldrone />
@@ -12421,7 +12722,7 @@
       <source>SS</source>
       <avail>12R</avail>
       <category>All</category>
-      <cost>Body * 2000</cost>
+      <cost>number(Body = 0) * 1000 + Body * 2000</cost>
       <rating>0</rating>
       <slots>0</slots>
     </mod>
@@ -12646,7 +12947,7 @@
       <source>R5</source>
       <avail>Rating * 2</avail>
       <category>Handling</category>
-      <cost>Body * Rating * 200</cost>
+      <cost>Rating * (number(Body = 0) * 100 + Body * 200)</cost>
       <rating>99</rating>
       <ratinglabel>String_UpgradedRating</ratinglabel>
       <slots>(Rating - Handling - 1) * number(Rating - Handling - 1 >= 0)</slots>
@@ -12669,7 +12970,7 @@
       <source>R5</source>
       <avail>Rating * 2</avail>
       <category>Speed</category>
-      <cost>Body * Rating * 400</cost>
+      <cost>Rating * (number(Body = 0) * 200 + Body * 400)</cost>
       <rating>99</rating>
       <ratinglabel>String_UpgradedRating</ratinglabel>
       <slots>(Rating - Speed - 1) * number(Rating - Speed - 1 >= 0)</slots>
@@ -12692,7 +12993,7 @@
       <source>R5</source>
       <avail>Rating * 4</avail>
       <category>Acceleration</category>
-      <cost>Body * Rating * 200</cost>
+      <cost>Rating * (number(Body = 0) * 100 + Body * 200)</cost>
       <rating>99</rating>
       <ratinglabel>String_UpgradedRating</ratinglabel>
       <slots>(Rating - Acceleration - 1) * number(Rating - Acceleration - 1 >= 0)</slots>
@@ -12715,7 +13016,7 @@
       <source>R5</source>
       <avail>FixedValues(1,2,3,4,5,6,7R,8R,9R,10R,11R,12R,RatingF)</avail>
       <category>Armor</category>
-      <cost>Rating * Body * 200</cost>
+      <cost>Rating * (number(Body = 0) * 100 + Body * 200)</cost>
       <rating>99</rating>
       <ratinglabel>String_UpgradedRating</ratinglabel>
       <slots>(Rating - Armor - 3) * number(Rating - Armor - 3 >= 0)</slots>
@@ -12901,7 +13202,7 @@
       <source>2050</source>
       <avail>4</avail>
       <category>Cosmetic</category>
-      <cost>Body * 1000</cost>
+      <cost>number(Body = 0) * 500 + Body * 1000</cost>
       <rating>0</rating>
       <slots>0</slots>
       <required>

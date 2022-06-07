@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using ChummerHub.Models.V1;
 using Newtonsoft.Json;
 using System;
@@ -36,16 +54,15 @@ namespace ChummerHub.Models
         {
             get
             {
-                if (this is SINner meAsSINner)
+                switch (this)
                 {
-                    return meAsSINner.Id.ToString() + ".chum" + meAsSINner.EditionNumber + "z";
+                    case SINner meAsSINner:
+                        return meAsSINner.Id.ToString() + ".chum" + meAsSINner.EditionNumber + "z";
+                    case SINnerGroupSetting meAsSINnerGroupSetting:
+                        return "GroupSetting_" + meAsSINnerGroupSetting.Id.ToString() + ".chumGroupz";
+                    default:
+                        return this.Id + ".unknown";
                 }
-                else if (this is SINnerGroupSetting meAsSINnerGroupSetting)
-                {
-                    return "GroupSetting_" + meAsSINnerGroupSetting.Id.ToString() + ".chumGroupz";
-                }
-                else
-                    return this.Id + ".unknown";
             }
         }
 

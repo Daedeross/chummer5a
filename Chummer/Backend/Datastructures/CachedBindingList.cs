@@ -18,40 +18,58 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace Chummer
 {
     public class CachedBindingList<T> : BindingList<T>
     {
-        public delegate void BeforeRemoveEventHandler(object sender, RemovingOldEventArgs e);
+        public virtual event EventHandler<RemovingOldEventArgs> BeforeRemove;
 
-        public event BeforeRemoveEventHandler BeforeRemove;
+        public CachedBindingList()
+        {
+        }
 
+        public CachedBindingList(IList<T> list) : base(list)
+        {
+        }
+
+        /// <inheritdoc />
         protected override void RemoveItem(int index)
         {
-            BeforeRemove?.Invoke(this, new RemovingOldEventArgs(Items[index], index));
+            if (RaiseListChangedEvents)
+                BeforeRemove?.Invoke(this, new RemovingOldEventArgs(Items[index], index));
 
             base.RemoveItem(index);
         }
 
+        /// <inheritdoc />
         protected override void ClearItems()
         {
-            for (int i = 0; i < Items.Count; ++i)
+            if (RaiseListChangedEvents)
             {
-                BeforeRemove?.Invoke(this, new RemovingOldEventArgs(Items[i], i));
+                for (int i = 0; i < Items.Count; ++i)
+                {
+                    BeforeRemove?.Invoke(this, new RemovingOldEventArgs(Items[i], i));
+                }
             }
 
             base.ClearItems();
         }
 
+        /// <inheritdoc />
         protected override void SetItem(int index, T item)
         {
-            T objOldItem = Items[index];
-            if (!objOldItem.Equals(item))
+            if (RaiseListChangedEvents)
             {
-                BeforeRemove?.Invoke(this, new RemovingOldEventArgs(objOldItem, index));
+                T objOldItem = Items[index];
+                if (!ReferenceEquals(objOldItem, item))
+                {
+                    BeforeRemove?.Invoke(this, new RemovingOldEventArgs(objOldItem, index));
+                }
             }
+
             base.SetItem(index, item);
         }
     }

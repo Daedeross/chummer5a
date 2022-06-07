@@ -246,10 +246,10 @@
     <category blackmarket="Cyberware">Cyber Implant Weapon Accessory</category>
     <category blackmarket="Cyberware">Earware</category>
     <category blackmarket="Cyberware">Eyeware</category>
-    <category blackmarket="Cyberware">Hard Nanoware</category>
+    <category blackmarket="Nanoware">Hard Nanoware</category>
     <category blackmarket="Cyberware">Headware</category>
-    <category blackmarket="Cyberware">Nanocybernetics</category>
-    <category blackmarket="Cyberware">Soft Nanoware</category>
+    <category blackmarket="Nanoware">Nanocybernetics</category>
+    <category blackmarket="Nanoware">Soft Nanoware</category>
     <category blackmarket="Cyberware">Special Biodrone Cyberware</category>
   </categories>
   <cyberwares>
@@ -964,14 +964,14 @@
       <source>SR5</source>
       <page>455</page>
       <bonus>
-        <specificattribute>
-          <name precedence="0">REA</name>
+        <specificattribute precedence="0">
+          <name>REA</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>
       <wirelesspairbonus mode="replace">
-        <specificattribute>
-          <name precedence="1">REA</name>
+        <specificattribute precedence="1">
+          <name>REA</name>
           <val>Rating</val>
           <aug>FixedValues(0,0,1)</aug>
         </specificattribute>
@@ -986,9 +986,9 @@
       <id>60485c4e-042f-44f6-ad89-324003223f73</id>
       <name>Skillwires</name>
       <category>Bodyware</category>
-      <ess>Rating * 0.2</ess>
+      <ess>Rating * 0.1</ess>
       <capacity>0</capacity>
-      <avail>(Rating * 3)</avail>
+      <avail>(Rating * 4)</avail>
       <cost>Rating * 20000</cost>
       <source>SR5</source>
       <page>455</page>
@@ -1038,16 +1038,18 @@
       <source>SR5</source>
       <page>455</page>
       <bonus>
+        <disablequality>3564b678-7721-4a8d-ac79-1600cf92dc14</disablequality>
         <initiativepass precedence="0">Rating</initiativepass>
-        <specificattribute>
-          <name precedence="0">REA</name>
+        <specificattribute precedence="0">
+          <name>REA</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>
       <wirelesspairbonus mode="replace">
+        <disablequality>3564b678-7721-4a8d-ac79-1600cf92dc14</disablequality>
         <initiativepass precedence="1">Rating</initiativepass>
-        <specificattribute>
-          <name precedence="1">REA</name>
+        <specificattribute precedence="1">
+          <name>REA</name>
           <val>Rating</val>
           <aug>FixedValues(0,0,1)</aug>
         </specificattribute>
@@ -1070,6 +1072,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1108,6 +1111,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1148,6 +1152,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1184,6 +1189,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1216,6 +1222,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1262,6 +1269,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1311,6 +1319,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1347,6 +1356,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1384,6 +1394,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1422,6 +1433,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1462,6 +1474,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <bonus>
@@ -1498,6 +1511,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1530,6 +1544,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1576,6 +1591,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1626,6 +1642,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -1662,6 +1679,7 @@
       <source>SR5</source>
       <page>456</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -2950,12 +2968,13 @@
       <page>84</page>
       <!-- TODO: Allow user to deactivate the bonus/penalties -->
       <bonus>
+        <disablequality>3564b678-7721-4a8d-ac79-1600cf92dc14</disablequality>
         <initiative precedence="0">FixedValues(3,6,9)</initiative>
         <initiativepass precedence="0">FixedValues(0,1,1)</initiativepass>
         <skillwire precedence="0">Rating * 2</skillwire>
         <sociallimit>-Rating</sociallimit>
-        <specificattribute>
-          <name precedence="0">REA</name>
+        <specificattribute precedence="0">
+          <name>REA</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>
@@ -3205,6 +3224,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3227,6 +3247,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3248,6 +3269,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3269,6 +3291,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3303,6 +3326,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3336,6 +3360,7 @@
       <source>CF</source>
       <page>86</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <selectside />
@@ -3807,6 +3832,7 @@
       <page>88</page>
       <mountsto>ankle</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3834,6 +3860,7 @@
       <page>88</page>
       <mountsto>wrist</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3861,6 +3888,7 @@
       <page>88</page>
       <mountsto>ankle</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3888,6 +3916,7 @@
       <page>88</page>
       <mountsto>wrist</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3915,6 +3944,7 @@
       <page>88</page>
       <mountsto>elbow</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3957,6 +3987,7 @@
       <page>88</page>
       <mountsto>knee</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -3999,6 +4030,7 @@
       <page>88</page>
       <mountsto>elbow</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4041,6 +4073,7 @@
       <page>88</page>
       <mountsto>knee</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4083,6 +4116,7 @@
       <page>88</page>
       <mountsto>shoulder</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4115,6 +4149,7 @@
       <page>88</page>
       <mountsto>hip</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4147,6 +4182,7 @@
       <page>88</page>
       <mountsto>shoulder</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4179,6 +4215,7 @@
       <page>88</page>
       <mountsto>hip</mountsto>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4537,6 +4574,7 @@
       <source>CF</source>
       <page>88</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4648,6 +4686,7 @@
       <source>CF</source>
       <page>87</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4679,6 +4718,7 @@
       <source>CF</source>
       <page>87</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4711,6 +4751,7 @@
       <page>87</page>
       <blocksmounts>ankle,knee,hip</blocksmounts>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -4749,6 +4790,7 @@
       <page>87</page>
       <blocksmounts>ankle,knee,hip</blocksmounts>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -5512,12 +5554,19 @@
       <bonus>
         <knowledgeskillkarmacost>
           <name />
-          <val>-Rating</val>
+          <val>-1</val>
+          <min>3</min>
         </knowledgeskillkarmacost>
-        <knowledgeskillkarmacostmin>
+        <knowledgeskillkarmacost>
           <name />
-          <val>2</val>
-        </knowledgeskillkarmacostmin>
+          <val>-number(Rating >= 2)</val>
+          <min>4</min>
+        </knowledgeskillkarmacost>
+        <knowledgeskillkarmacost>
+          <name />
+          <val>-number(Rating >= 3)</val>
+          <min>5</min>
+        </knowledgeskillkarmacost>
       </bonus>
       <forcegrade>None</forcegrade>
       <rating>3</rating>
@@ -7114,11 +7163,12 @@
       <source>HS</source>
       <page>182</page>
       <bonus>
+        <disablequality>3564b678-7721-4a8d-ac79-1600cf92dc14</disablequality>
         <initiative precedence="0">FixedValues(3,6,9)</initiative>
         <initiativepass precedence="0">FixedValues(0,1,1)</initiativepass>
         <skillwire>Rating * 2</skillwire>
-        <specificattribute>
-          <name precedence="0">REA</name>
+        <specificattribute precedence="0">
+          <name>REA</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>
@@ -7443,6 +7493,7 @@
       <source>2050</source>
       <page>203</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -7475,6 +7526,7 @@
       <source>2050</source>
       <page>203</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -7507,6 +7559,7 @@
       <source>2050</source>
       <page>203</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -7539,6 +7592,7 @@
       <source>2050</source>
       <page>203</page>
       <allowgear>
+        <gearcategory>Custom</gearcategory>
         <gearcategory>Sensors</gearcategory>
       </allowgear>
       <allowsubsystems>
@@ -7737,12 +7791,12 @@
       <page>203</page>
       <bonus>
         <disablequality>Celerity</disablequality>
-        <specificattribute>
-          <name precedence="0">AGI</name>
+        <specificattribute precedence="0">
+          <name>AGI</name>
           <val>Rating</val>
         </specificattribute>
-        <specificattribute>
-          <name precedence="0">STR</name>
+        <specificattribute precedence="0">
+          <name>STR</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>
@@ -7823,9 +7877,10 @@
       <source>2050</source>
       <page>203</page>
       <bonus>
+        <disablequality>3564b678-7721-4a8d-ac79-1600cf92dc14</disablequality>
         <initiativepass precedence="0">Rating</initiativepass>
-        <specificattribute>
-          <name precedence="0">REA</name>
+        <specificattribute precedence="0">
+          <name>REA</name>
           <val>Rating</val>
         </specificattribute>
       </bonus>

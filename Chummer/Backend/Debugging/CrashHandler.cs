@@ -18,18 +18,17 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Win32;
 using NLog;
 
@@ -39,7 +38,7 @@ namespace Chummer.Backend
     {
         private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
 
-        private sealed class DumpData : ISerializable
+        private sealed class DumpData : ISerializable, IDeserializationCallback
         {
             public DumpData(Exception ex)
             {
@@ -147,10 +146,13 @@ namespace Chummer.Backend
             public readonly Dictionary<string, string> _dicAttributes;
 
             // ReSharper disable once MemberCanBePrivate.Local
-            public readonly int _intProcessId = Process.GetCurrentProcess().Id;
+            public readonly int _intProcessId = Program.MyProcess.Id;
 
             // ReSharper disable once MemberCanBePrivate.Local
             public readonly uint _uintThreadId = NativeMethods.GetCurrentThreadId();
+
+            // ReSharper disable once MemberCanBePrivate.Local
+            public readonly IntPtr _ptrExceptionInfo = Marshal.GetExceptionPointers();
 
             public string SerializeBase64()
             {
@@ -170,20 +172,24 @@ namespace Chummer.Backend
                     strContents = e.ToString();
                 }
 
-                if (!_dicCapturedFiles.TryAdd(strFileName, strContents))
-                    _dicCapturedFiles[strFileName] = strContents;
+                _dicCapturedFiles.AddOrUpdate(strFileName, strContents, (s, s1) => strContents);
             }
 
             public void GetObjectData(SerializationInfo info, StreamingContext context)
             {
-                info.AddValue("procesid", _intProcessId);
-                info.AddValue("threadid", _uintThreadId);
-                foreach (KeyValuePair<string, string> objLoopKeyValuePair in _dicAttributes)
-                    info.AddValue(objLoopKeyValuePair.Key, objLoopKeyValuePair.Value);
-                foreach (KeyValuePair<string, string> objLoopKeyValuePair in _dicPretendFiles)
-                    info.AddValue(objLoopKeyValuePair.Key, objLoopKeyValuePair.Value);
-                foreach (KeyValuePair<string, string> objLoopKeyValuePair in _dicCapturedFiles)
-                    info.AddValue(objLoopKeyValuePair.Key, objLoopKeyValuePair.Value);
+                info.AddValue("_intProcessId", _intProcessId);
+                info.AddValue("_uintThreadId", _uintThreadId);
+                info.AddValue("_ptrExceptionInfo", _ptrExceptionInfo);
+                info.AddValue("_dicAttributes", _dicAttributes);
+                info.AddValue("_dicPretendFiles", _dicPretendFiles);
+                info.AddValue("_dicCapturedFiles", _dicCapturedFiles);
+            }
+
+            /// <inheritdoc />
+            public void OnDeserialization(object sender)
+            {
+                _dicAttributes.OnDeserialization(sender);
+                _dicPretendFiles.OnDeserialization(sender);
             }
         }
 
@@ -191,50 +197,32 @@ namespace Chummer.Backend
         {
             try
             {
-                if (GlobalSettings.UseLoggingApplicationInsights >= UseAILogging.Crashes && Program.ChummerTelemetryClient != null)
-                {
-                    ex.Data.Add("IsCrash", bool.TrueString);
-                    ExceptionTelemetry et = new ExceptionTelemetry(ex)
-                    {
-                        SeverityLevel = SeverityLevel.Critical
-                    };
-                    //we have to enable the uploading of THIS message, so it isn't filtered out in the DropUserdataTelemetryProcessos
-                    foreach (DictionaryEntry d in ex.Data)
-                    {
-                        if ((d.Key != null) && (d.Value != null))
-                            et.Properties.Add(d.Key.ToString(), d.Value.ToString());
-                    }
-                    Program.ChummerTelemetryClient.TrackException(et);
-                    Program.ChummerTelemetryClient.Flush();
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-
-            try
-            {
                 DumpData dump = new DumpData(ex);
-                foreach (string strSettingFile in Directory.EnumerateFiles(Path.Combine(Utils.GetStartupPath, "settings"), "*.xml"))
+                foreach (string strSettingFile in Directory.EnumerateFiles(Utils.GetSettingsFolderPath, "*.xml"))
                 {
                     dump.AddFile(strSettingFile);
                 }
+
                 dump.AddFile(Path.Combine(Utils.GetStartupPath, "chummerlog.txt"));
 
                 byte[] info = new UTF8Encoding(true).GetBytes(dump.SerializeBase64());
                 File.WriteAllBytes(Path.Combine(Utils.GetStartupPath, "json.txt"), info);
 
-                //Process crashHandler = Process.Start("crashhandler", "crash " + Path.Combine(Utils.GetStartupPath, "json.txt") + " --debug");
-                Process crashHandler = Process.Start("crashhandler", "crash " + Path.Combine(Utils.GetStartupPath, "json.txt"));
-
-                crashHandler?.WaitForExit();
+#if DEBUG
+                using (Process crashHandler
+                       = Process.Start(Path.Combine(Utils.GetStartupPath, "CrashHandler.exe"), "crash " + Path.Combine(Utils.GetStartupPath, "json.txt")
+                                                                + " --debug"))
+#else
+                using (Process crashHandler
+                       = Process.Start(Path.Combine(Utils.GetStartupPath, "CrashHandler.exe"), "crash " + Path.Combine(Utils.GetStartupPath, "json.txt")))
+#endif
+                    crashHandler?.WaitForExit();
             }
             catch (Exception nex)
             {
-                Program.MainForm.ShowMessageBox(
+                Program.ShowMessageBox(
                     "Failed to create crash report." + Environment.NewLine +
-                    "Chummer crashed with version: " + Assembly.GetAssembly(typeof(Program))?.GetName().Version + Environment.NewLine +
+                    "Chummer crashed with version: " + Utils.CurrentChummerVersion + Environment.NewLine +
                     "Here is some information to help the developers figure out why:" + Environment.NewLine + nex +
                     Environment.NewLine + "Crash information:" + Environment.NewLine + ex, "Failed to Create Crash Report", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }

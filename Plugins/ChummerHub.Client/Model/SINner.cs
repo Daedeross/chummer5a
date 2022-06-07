@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -17,7 +35,7 @@ namespace ChummerHub.Client.Sinners
             {
                 if (Directory.Exists(ZipFilePath))
                 {
-                    foreach (var file in Directory.EnumerateFiles(ZipFilePath, "*.chum5", SearchOption.TopDirectoryOnly))
+                    foreach (string file in Directory.EnumerateFiles(ZipFilePath, "*.chum5", SearchOption.TopDirectoryOnly))
                     {
                         DateTime lastwrite = File.GetLastWriteTime(file);
                         if (lastwrite >= LastChange || LastChange == default)
@@ -47,12 +65,12 @@ namespace ChummerHub.Client.Sinners
             string strPath = FilePath;
             if (!string.IsNullOrEmpty(strPath))
             {
-                CharacterCache objReturn = new CharacterCache();
+                CharacterCache objReturn;
                 if (blnSync)
                     // ReSharper disable once MethodHasAsyncOverload
-                    objReturn.LoadFromFile(strPath);
+                    objReturn = new CharacterCache(strPath);
                 else
-                    await objReturn.LoadFromFileAsync(strPath);
+                    objReturn = await CharacterCache.CreateFromFileAsync(strPath);
                 return objReturn;
             }
             return null;

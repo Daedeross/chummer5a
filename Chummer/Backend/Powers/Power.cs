@@ -26,6 +26,8 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
@@ -43,7 +45,7 @@ namespace Chummer
     /// </summary>
     [HubClassTag("SourceID", true, "Name", "Extra")]
     [DebuggerDisplay("{DisplayName(GlobalSettings.DefaultLanguage)}")]
-    public class Power : INotifyMultiplePropertyChanged, IHasInternalId, IHasName, IHasXmlNode, IHasNotes, IHasSource
+    public class Power : INotifyMultiplePropertyChanged, IHasInternalId, IHasName, IHasXmlDataNode, IHasNotes, IHasSource
     {
         private Guid _guiID;
         private Guid _guiSourceID = Guid.Empty;
@@ -112,7 +114,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(XmlWriter objWriter)
         {
             if (objWriter == null)
                 return;
@@ -148,11 +150,9 @@ namespace Chummer
                 objEnhancement.Save(objWriter);
             }
             objWriter.WriteEndElement();
-            objWriter.WriteElementString("notes", System.Text.RegularExpressions.Regex.Replace(_strNotes, @"[\u0000-\u0008\u000B\u000C\u000E-\u001F]", ""));
+            objWriter.WriteElementString("notes", _strNotes.CleanOfInvalidUnicodeChars());
             objWriter.WriteElementString("notesColor", ColorTranslator.ToHtml(_colNotes));
             objWriter.WriteEndElement();
-
-            CharacterObject.SourceProcess(_strSource);
         }
 
         public bool Create(XmlNode objNode, int intRating = 1, XmlNode objBonusNodeOverride = null, bool blnCreateImprovements = true)
@@ -160,6 +160,7 @@ namespace Chummer
             objNode.TryGetStringFieldQuickly("name", ref _strName);
             objNode.TryGetField("id", Guid.TryParse, out _guiSourceID);
             _objCachedMyXmlNode = null;
+            _objCachedMyXPathNode = null;
             objNode.TryGetStringFieldQuickly("points", ref _strPointsPerLevel);
             objNode.TryGetStringFieldQuickly("adeptway", ref _strAdeptWayDiscount);
             objNode.TryGetBoolFieldQuickly("levels", ref _blnLevelsEnabled);
@@ -170,7 +171,14 @@ namespace Chummer
             string sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
             objNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
             _colNotes = ColorTranslator.FromHtml(sNotesColor);
+            objNode.TryGetStringFieldQuickly("source", ref _strSource);
+            objNode.TryGetStringFieldQuickly("page", ref _strPage);
 
+            if (string.IsNullOrEmpty(Notes))
+            {
+                Notes = CommonFunctions.GetBookNotes(objNode, Name, CurrentDisplayName, Source, Page,
+                    DisplayPage(GlobalSettings.Language), CharacterObject);
+            }
             if (!objNode.TryGetInt32FieldQuickly("maxlevel", ref _intMaxLevels))
             {
                 objNode.TryGetInt32FieldQuickly("maxlevels", ref _intMaxLevels);
@@ -181,8 +189,6 @@ namespace Chummer
             objNode.TryGetDecFieldQuickly("freepoints", ref _decFreePoints);
             objNode.TryGetDecFieldQuickly("extrapointcost", ref _decExtraPointCost);
             objNode.TryGetStringFieldQuickly("action", ref _strAction);
-            objNode.TryGetStringFieldQuickly("source", ref _strSource);
-            objNode.TryGetStringFieldQuickly("page", ref _strPage);
             Bonus = objNode["bonus"];
             if (objBonusNodeOverride != null)
                 Bonus = objBonusNodeOverride;
@@ -204,7 +210,7 @@ namespace Chummer
                     }
                 }
             }
-            if (blnCreateImprovements && Bonus != null && Bonus.HasChildNodes)
+            if (blnCreateImprovements && Bonus?.HasChildNodes == true)
             {
                 string strOldForce = ImprovementManager.ForcedValue;
                 string strOldSelected = ImprovementManager.SelectedValue;
@@ -233,7 +239,7 @@ namespace Chummer
             get
             {
                 if (_objCachedSourceDetail == default)
-                    _objCachedSourceDetail = new SourceString(Source,
+                    _objCachedSourceDetail = SourceString.GetSourceString(Source,
                         DisplayPage(GlobalSettings.Language), GlobalSettings.Language, GlobalSettings.CultureInfo,
                         CharacterObject);
                 return _objCachedSourceDetail;
@@ -251,19 +257,29 @@ namespace Chummer
                 _guiID = Guid.NewGuid();
             }
             objNode.TryGetStringFieldQuickly("name", ref _strName);
+            _objCachedMyXmlNode = null;
+            _objCachedMyXPathNode = null;
             if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
-                XmlNode node = GetNode(GlobalSettings.Language);
-                if (!(node.TryGetField("id", Guid.TryParse, out _guiSourceID)))
+                if (this.GetNodeXPath().TryGetField("id", Guid.TryParse, out _guiSourceID))
+                {
+                    _objCachedMyXmlNode = null;
+                    _objCachedMyXPathNode = null;
+                }
+                else
                 {
                     string strPowerName = Name;
                     int intPos = strPowerName.IndexOf('(');
                     if (intPos != -1)
                         strPowerName = strPowerName.Substring(0, intPos - 1);
-                    XPathNavigator xmlPower = CharacterObject.LoadDataXPath("powers.xml").SelectSingleNode("/chummer/powers/power[starts-with(./name, " + strPowerName.CleanXPath() + ")]");
+                    XPathNavigator xmlPower = CharacterObject.LoadDataXPath("powers.xml")
+                                                             .SelectSingleNode(
+                                                                 "/chummer/powers/power[starts-with(./name, "
+                                                                 + strPowerName.CleanXPath() + ")]");
                     if (xmlPower.TryGetField("id", Guid.TryParse, out _guiSourceID))
                     {
                         _objCachedMyXmlNode = null;
+                        _objCachedMyXPathNode = null;
                     }
                 }
             }
@@ -303,7 +319,7 @@ namespace Chummer
             Bonus = objNode["bonus"];
             if (objNode["adeptway"] != null)
             {
-                _nodAdeptWayRequirements = (objNode["adeptwayrequires"] ?? GetNode()?["adeptwayrequires"])?.CreateNavigator();
+                _nodAdeptWayRequirements = objNode["adeptwayrequires"]?.CreateNavigator() ?? this.GetNodeXPath()?.SelectSingleNode("adeptwayrequires");
             }
             if (Name != "Improved Reflexes" && Name.StartsWith("Improved Reflexes", StringComparison.Ordinal))
             {
@@ -352,32 +368,49 @@ namespace Chummer
         /// <param name="objWriter">XmlTextWriter to write with.</param>
         /// <param name="objCulture">Culture in which to print.</param>
         /// <param name="strLanguageToPrint">Language in which to print</param>
-        public void Print(XmlTextWriter objWriter, CultureInfo objCulture, string strLanguageToPrint)
+        public async ValueTask Print(XmlWriter objWriter, CultureInfo objCulture, string strLanguageToPrint)
         {
             if (objWriter == null)
                 return;
-            objWriter.WriteStartElement("power");
-            objWriter.WriteElementString("guid", InternalId);
-            objWriter.WriteElementString("sourceid", SourceIDString);
-            objWriter.WriteElementString("name", DisplayNameShort(strLanguageToPrint));
-            objWriter.WriteElementString("fullname", DisplayName(strLanguageToPrint));
-            objWriter.WriteElementString("extra", CharacterObject.TranslateExtra(Extra, strLanguageToPrint));
-            objWriter.WriteElementString("pointsperlevel", PointsPerLevel.ToString(objCulture));
-            objWriter.WriteElementString("adeptway", AdeptWayDiscount.ToString(objCulture));
-            objWriter.WriteElementString("rating", LevelsEnabled ? TotalRating.ToString(objCulture) : "0");
-            objWriter.WriteElementString("totalpoints", PowerPoints.ToString(objCulture));
-            objWriter.WriteElementString("action", DisplayActionMethod(strLanguageToPrint));
-            objWriter.WriteElementString("source", CharacterObject.LanguageBookShort(Source, strLanguageToPrint));
-            objWriter.WriteElementString("page", DisplayPage(strLanguageToPrint));
-            if (GlobalSettings.PrintNotes)
-                objWriter.WriteElementString("notes", Notes);
-            objWriter.WriteStartElement("enhancements");
-            foreach (Enhancement objEnhancement in Enhancements)
+
+            // <power>
+            XmlElementWriteHelper objBaseElement = await objWriter.StartElementAsync("power");
+            try
             {
-                objEnhancement.Print(objWriter, strLanguageToPrint);
+                await objWriter.WriteElementStringAsync("guid", InternalId);
+                await objWriter.WriteElementStringAsync("sourceid", SourceIDString);
+                await objWriter.WriteElementStringAsync("name", await DisplayNameShortAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("fullname", await DisplayNameAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("extra", await CharacterObject.TranslateExtraAsync(Extra, strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("pointsperlevel", PointsPerLevel.ToString(objCulture));
+                await objWriter.WriteElementStringAsync("adeptway", AdeptWayDiscount.ToString(objCulture));
+                await objWriter.WriteElementStringAsync("rating", LevelsEnabled ? TotalRating.ToString(objCulture) : "0");
+                await objWriter.WriteElementStringAsync("totalpoints", PowerPoints.ToString(objCulture));
+                await objWriter.WriteElementStringAsync("action", await DisplayActionMethodAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("source", await CharacterObject.LanguageBookShortAsync(Source, strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("page", await DisplayPageAsync(strLanguageToPrint));
+                if (GlobalSettings.PrintNotes)
+                    await objWriter.WriteElementStringAsync("notes", Notes);
+                // <enhancements>
+                XmlElementWriteHelper objEnhancementsElement = await objWriter.StartElementAsync("enhancements");
+                try
+                {
+                    foreach (Enhancement objEnhancement in Enhancements)
+                    {
+                        await objEnhancement.Print(objWriter, strLanguageToPrint);
+                    }
+                }
+                finally
+                {
+                    // </enhancements>
+                    await objEnhancementsElement.DisposeAsync();
+                }
             }
-            objWriter.WriteEndElement();
-            objWriter.WriteEndElement();
+            finally
+            {
+                // </power>
+                await objBaseElement.DisposeAsync();
+            }
         }
 
         #endregion Constructor, Create, Save, Load, and Print Methods
@@ -493,13 +526,34 @@ namespace Chummer
         /// <summary>
         /// The name of the object as it should be displayed on printouts (translated name only).
         /// </summary>
+        public string CurrentDisplayNameShort => DisplayNameShort(GlobalSettings.Language);
+
+        /// <summary>
+        /// The name of the object as it should be displayed on printouts (translated name only).
+        /// </summary>
         public string DisplayNameShort(string strLanguage)
         {
             string strReturn = Name;
 
             if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
             {
-                strReturn = GetNode(strLanguage)?["translate"]?.InnerText ?? Name;
+                strReturn = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("translate")?.Value ?? Name;
+            }
+
+            return strReturn;
+        }
+
+        /// <summary>
+        /// The name of the object as it should be displayed on printouts (translated name only).
+        /// </summary>
+        public async ValueTask<string> DisplayNameShortAsync(string strLanguage)
+        {
+            string strReturn = Name;
+
+            if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+                strReturn = objNode != null ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("translate"))?.Value ?? Name : Name;
             }
 
             return strReturn;
@@ -521,6 +575,22 @@ namespace Chummer
             {
                 // Attempt to retrieve the CharacterAttribute name.
                 strReturn += LanguageManager.GetString("String_Space", strLanguage) + '(' + CharacterObject.TranslateExtra(Extra, strLanguage) + ')';
+            }
+
+            return strReturn;
+        }
+
+        /// <summary>
+        /// The translated name of the Power (Name + any Extra text).
+        /// </summary>
+        public async ValueTask<string> DisplayNameAsync(string strLanguage)
+        {
+            string strReturn = await DisplayNameShortAsync(strLanguage);
+
+            if (!string.IsNullOrEmpty(Extra))
+            {
+                // Attempt to retrieve the CharacterAttribute name.
+                strReturn += await LanguageManager.GetStringAsync("String_Space", strLanguage) + '(' + await CharacterObject.TranslateExtraAsync(Extra, strLanguage) + ')';
             }
 
             return strReturn;
@@ -643,18 +713,23 @@ namespace Chummer
 
                 decimal decExtraCost = FreePoints;
                 // Rating does not include free levels from improvements, and those free levels can be used to buy the first level of a power so that Qi Foci, so need to check for those first
-                int intReturn = CharacterObject.Improvements.Where(objImprovement => objImprovement.ImproveType == Improvement.ImprovementType.AdeptPowerFreeLevels && objImprovement.ImprovedName == Name && objImprovement.UniqueName == Extra && objImprovement.Enabled).Sum(objImprovement => objImprovement.Rating);
+                int intReturn = ImprovementManager
+                                .GetCachedImprovementListForValueOf(CharacterObject,
+                                                                    Improvement.ImprovementType.AdeptPowerFreeLevels,
+                                                                    Name)
+                                .Where(objImprovement => objImprovement.UniqueName == Extra)
+                                .Sum(objImprovement => objImprovement.Rating);
                 // The power has an extra cost, so free PP from things like Qi Foci have to be charged first.
                 if (Rating + intReturn == 0 && ExtraPointCost > 0)
                 {
                     decExtraCost -= (PointsPerLevel + ExtraPointCost);
                     if (decExtraCost >= 0)
                     {
-                        intReturn += 1;
+                        ++intReturn;
                     }
                     for (decimal i = decExtraCost; i >= 1; --i)
                     {
-                        intReturn += 1;
+                        ++intReturn;
                     }
                 }
                 //Either the first level of the power has been paid for with PP, or the power doesn't have an extra cost.
@@ -662,7 +737,7 @@ namespace Chummer
                 {
                     for (decimal i = decExtraCost; i >= PointsPerLevel; i -= PointsPerLevel)
                     {
-                        intReturn += 1;
+                        ++intReturn;
                     }
                 }
                 return _intCachedFreeLevels = Math.Min(intReturn, MAGAttributeObject?.TotalValue ?? 0);
@@ -729,7 +804,12 @@ namespace Chummer
         {
             get
             {
-                int intRating = CharacterObject.Improvements.Where(objImprovement => objImprovement.ImproveType == Improvement.ImprovementType.AdeptPowerFreePoints && objImprovement.ImprovedName == Name && objImprovement.UniqueName == Extra && objImprovement.Enabled).Sum(objImprovement => objImprovement.Rating);
+                int intRating = ImprovementManager
+                                .GetCachedImprovementListForValueOf(CharacterObject,
+                                                                    Improvement.ImprovementType.AdeptPowerFreePoints,
+                                                                    Name)
+                                .Where(objImprovement => objImprovement.UniqueName == Extra)
+                                .Sum(objImprovement => objImprovement.Rating);
                 return intRating * 0.25m;
             }
         }
@@ -762,7 +842,24 @@ namespace Chummer
         {
             if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Page;
-            string s = GetNode(strLanguage)?["altpage"]?.InnerText ?? Page;
+            string s = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("altpage")?.Value ?? Page;
+            return !string.IsNullOrWhiteSpace(s) ? s : Page;
+        }
+
+        /// <summary>
+        /// Sourcebook Page Number using a given language file.
+        /// Returns Page if not found or the string is empty.
+        /// </summary>
+        /// <param name="strLanguage">Language file keyword to use.</param>
+        /// <returns></returns>
+        public async ValueTask<string> DisplayPageAsync(string strLanguage)
+        {
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                return Page;
+            XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+            string s = objNode != null
+                ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("altpage"))?.Value ?? Page
+                : Page;
             return !string.IsNullOrWhiteSpace(s) ? s : Page;
         }
 
@@ -870,36 +967,57 @@ namespace Chummer
         /// </summary>
         public string DisplayActionMethod(string strLanguage)
         {
-            string strReturn = string.Empty;
-
             switch (Action)
             {
                 case "Auto":
-                    strReturn = LanguageManager.GetString("String_ActionAutomatic", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_ActionAutomatic", strLanguage);
 
                 case "Free":
-                    strReturn = LanguageManager.GetString("String_ActionFree", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_ActionFree", strLanguage);
 
                 case "Simple":
-                    strReturn = LanguageManager.GetString("String_ActionSimple", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_ActionSimple", strLanguage);
 
                 case "Complex":
-                    strReturn = LanguageManager.GetString("String_ActionComplex", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_ActionComplex", strLanguage);
 
                 case "Interrupt":
-                    strReturn = LanguageManager.GetString("String_ActionInterrupt", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_ActionInterrupt", strLanguage);
 
                 case "Special":
-                    strReturn = LanguageManager.GetString("String_SpellDurationSpecial", strLanguage);
-                    break;
+                    return LanguageManager.GetString("String_SpellDurationSpecial", strLanguage);
             }
 
-            return strReturn;
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Translated Action.
+        /// </summary>
+        public Task<string> DisplayActionMethodAsync(string strLanguage)
+        {
+            switch (Action)
+            {
+                case "Auto":
+                    return LanguageManager.GetStringAsync("String_ActionAutomatic", strLanguage);
+
+                case "Free":
+                    return LanguageManager.GetStringAsync("String_ActionFree", strLanguage);
+
+                case "Simple":
+                    return LanguageManager.GetStringAsync("String_ActionSimple", strLanguage);
+
+                case "Complex":
+                    return LanguageManager.GetStringAsync("String_ActionComplex", strLanguage);
+
+                case "Interrupt":
+                    return LanguageManager.GetStringAsync("String_ActionInterrupt", strLanguage);
+
+                case "Special":
+                    return LanguageManager.GetStringAsync("String_SpellDurationSpecial", strLanguage);
+            }
+
+            return Task.FromResult(string.Empty);
         }
 
         public Color PreferredColor =>
@@ -953,9 +1071,9 @@ namespace Chummer
                 }
                 bool blnReturn = false;
                 //If the Adept Way Requirements node is missing OR the Adept Way Requirements node doesn't have magicianswayforbids, check for the magician's way discount.
-                if (_nodAdeptWayRequirements?.SelectSingleNode("magicianswayforbids") == null)
+                if (_nodAdeptWayRequirements?.SelectSingleNodeAndCacheExpression("magicianswayforbids") == null)
                 {
-                    blnReturn = CharacterObject.Improvements.Any(x => x.ImproveType == Improvement.ImprovementType.MagiciansWayDiscount && x.Enabled);
+                    blnReturn = ImprovementManager.GetCachedImprovementListForValueOf(CharacterObject, Improvement.ImprovementType.MagiciansWayDiscount).Count > 0;
                 }
                 if (!blnReturn && _nodAdeptWayRequirements?.HasChildren == true)
                 {
@@ -972,8 +1090,8 @@ namespace Chummer
                 DiscountedAdeptWay = false;
         }
 
-        private static readonly DependencyGraph<string, Power> s_PowerDependencyGraph =
-            new DependencyGraph<string, Power>(
+        private static readonly PropertyDependencyGraph<Power> s_PowerDependencyGraph =
+            new PropertyDependencyGraph<Power>(
                 new DependencyGraphNode<string, Power>(nameof(DisplayPoints),
                     new DependencyGraphNode<string, Power>(nameof(PowerPoints),
                         new DependencyGraphNode<string, Power>(nameof(TotalRating),
@@ -1025,56 +1143,76 @@ namespace Chummer
         [NotifyPropertyChangedInvocator]
         public void OnPropertyChanged([CallerMemberName] string strPropertyName = null)
         {
-            OnMultiplePropertyChanged(strPropertyName);
+            this.OnMultiplePropertyChanged(strPropertyName);
         }
 
-        public void OnMultiplePropertyChanged(params string[] lstPropertyNames)
+        public void OnMultiplePropertyChanged(IReadOnlyCollection<string> lstPropertyNames)
         {
-            ICollection<string> lstNamesOfChangedProperties = null;
-            foreach (string strPropertyName in lstPropertyNames)
+            HashSet<string> setNamesOfChangedProperties = null;
+            try
             {
-                if (lstNamesOfChangedProperties == null)
-                    lstNamesOfChangedProperties = s_PowerDependencyGraph.GetWithAllDependents(this, strPropertyName);
-                else
+                foreach (string strPropertyName in lstPropertyNames)
                 {
-                    foreach (string strLoopChangedProperty in s_PowerDependencyGraph.GetWithAllDependents(this, strPropertyName))
-                        lstNamesOfChangedProperties.Add(strLoopChangedProperty);
+                    if (setNamesOfChangedProperties == null)
+                        setNamesOfChangedProperties
+                            = s_PowerDependencyGraph.GetWithAllDependents(this, strPropertyName, true);
+                    else
+                    {
+                        foreach (string strLoopChangedProperty in s_PowerDependencyGraph.GetWithAllDependentsEnumerable(
+                                     this, strPropertyName))
+                            setNamesOfChangedProperties.Add(strLoopChangedProperty);
+                    }
                 }
-            }
 
-            if (lstNamesOfChangedProperties == null || lstNamesOfChangedProperties.Count == 0)
-                return;
+                if (setNamesOfChangedProperties == null || setNamesOfChangedProperties.Count == 0)
+                    return;
 
-            if (lstNamesOfChangedProperties.Contains(nameof(DisplayPoints)))
-                _strCachedPowerPoints = string.Empty;
-            if (lstNamesOfChangedProperties.Contains(nameof(FreeLevels)))
-                _intCachedFreeLevels = int.MinValue;
-            if (lstNamesOfChangedProperties.Contains(nameof(PowerPoints)))
-                _decCachedPowerPoints = decimal.MinValue;
+                if (setNamesOfChangedProperties.Contains(nameof(DisplayPoints)))
+                    _strCachedPowerPoints = string.Empty;
+                if (setNamesOfChangedProperties.Contains(nameof(FreeLevels)))
+                    _intCachedFreeLevels = int.MinValue;
+                if (setNamesOfChangedProperties.Contains(nameof(PowerPoints)))
+                    _decCachedPowerPoints = decimal.MinValue;
 
-            // If the Bonus contains "Rating", remove the existing Improvements and create new ones.
-            if (lstNamesOfChangedProperties.Contains(nameof(TotalRating)) && Bonus?.InnerXml.Contains("Rating") == true)
-            {
-                // We cannot actually go with setting a rating here because of a load of technical debt involving bonus nodes feeding into `Value` indirectly through a parser
-                // that uses `Rating` instead of using only `Rating` and having the parser work off of whatever is in the `Rating` field
-                // TODO: Solve this bad code
-                ImprovementManager.RemoveImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId);
-                int intTotalRating = TotalRating;
-                if (intTotalRating > 0)
+                // If the Bonus contains "Rating", remove the existing Improvements and create new ones.
+                if (setNamesOfChangedProperties.Contains(nameof(TotalRating))
+                    && Bonus?.InnerXml.Contains("Rating") == true)
                 {
-                    ImprovementManager.ForcedValue = Extra;
-                    ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power, InternalId, Bonus, intTotalRating, DisplayNameShort(GlobalSettings.Language));
+                    // We cannot actually go with setting a rating here because of a load of technical debt involving bonus nodes feeding into `Value` indirectly through a parser
+                    // that uses `Rating` instead of using only `Rating` and having the parser work off of whatever is in the `Rating` field
+                    // TODO: Solve this bad code
+                    ImprovementManager.RemoveImprovements(CharacterObject, Improvement.ImprovementSource.Power,
+                                                          InternalId);
+                    int intTotalRating = TotalRating;
+                    if (intTotalRating > 0)
+                    {
+                        ImprovementManager.ForcedValue = Extra;
+                        ImprovementManager.CreateImprovements(CharacterObject, Improvement.ImprovementSource.Power,
+                                                              InternalId, Bonus, intTotalRating,
+                                                              DisplayNameShort(GlobalSettings.Language));
+                    }
                 }
-            }
 
-            if (lstNamesOfChangedProperties.Contains(nameof(AdeptWayDiscountEnabled)))
-            {
-                RefreshDiscountedAdeptWay(AdeptWayDiscountEnabled);
-            }
+                if (setNamesOfChangedProperties.Contains(nameof(AdeptWayDiscountEnabled)))
+                {
+                    RefreshDiscountedAdeptWay(AdeptWayDiscountEnabled);
+                }
 
-            foreach (string strPropertyToChange in lstNamesOfChangedProperties)
+                Utils.RunOnMainThread(() =>
+                {
+                    if (PropertyChanged != null)
+                    {
+                        foreach (string strPropertyToChange in setNamesOfChangedProperties)
+                        {
+                            PropertyChanged.Invoke(this, new PropertyChangedEventArgs(strPropertyToChange));
+                        }
+                    }
+                });
+            }
+            finally
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(strPropertyToChange));
+                if (setNamesOfChangedProperties != null)
+                    Utils.StringHashSetPool.Return(setNamesOfChangedProperties);
             }
         }
 
@@ -1127,24 +1265,49 @@ namespace Chummer
         private XmlNode _objCachedMyXmlNode;
         private string _strCachedXmlNodeLanguage = string.Empty;
 
-        public XmlNode GetNode()
+        public async Task<XmlNode> GetNodeCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            return GetNode(GlobalSettings.Language);
+            if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage
+                                            && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXmlNode;
+            _objCachedMyXmlNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? CharacterObject.LoadData("powers.xml", strLanguage, token: token)
+                    : await CharacterObject.LoadDataAsync("powers.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/powers/power[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/powers/power[id = "
+                                        + SourceIDString.CleanXPath() + " or id = "
+                                        + SourceIDString.ToUpperInvariant()
+                                                        .CleanXPath()
+                                        + ']');
+            _strCachedXmlNodeLanguage = strLanguage;
+            return _objCachedMyXmlNode;
         }
 
-        public XmlNode GetNode(string strLanguage)
+        private XPathNavigator _objCachedMyXPathNode;
+        private string _strCachedXPathNodeLanguage = string.Empty;
+
+        public async Task<XPathNavigator> GetNodeXPathCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            if (_objCachedMyXmlNode == null || strLanguage != _strCachedXmlNodeLanguage || GlobalSettings.LiveCustomData)
-            {
-                _objCachedMyXmlNode = CharacterObject.LoadData("powers.xml", strLanguage)
-                    .SelectSingleNode(SourceID == Guid.Empty
-                        ? "/chummer/powers/power[name = " + Name.CleanXPath() + ']'
-                        : string.Format(GlobalSettings.InvariantCultureInfo,
-                            "/chummer/powers/power[id = {0} or id = {1}]",
-                            SourceIDString.CleanXPath(), SourceIDString.ToUpperInvariant().CleanXPath()));
-                _strCachedXmlNodeLanguage = strLanguage;
-            }
-            return _objCachedMyXmlNode;
+            if (_objCachedMyXPathNode != null && strLanguage == _strCachedXPathNodeLanguage
+                                              && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXPathNode;
+            _objCachedMyXPathNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? CharacterObject.LoadDataXPath("powers.xml", strLanguage, token: token)
+                    : await CharacterObject.LoadDataXPathAsync("powers.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/powers/power[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/powers/power[id = "
+                                        + SourceIDString.CleanXPath() + " or id = "
+                                        + SourceIDString.ToUpperInvariant()
+                                                        .CleanXPath()
+                                        + ']');
+            _strCachedXPathNodeLanguage = strLanguage;
+            return _objCachedMyXPathNode;
         }
 
         /// <summary>
@@ -1155,14 +1318,25 @@ namespace Chummer
             get
             {
                 string strSpace = LanguageManager.GetString("String_Space");
-                StringBuilder sbdModifier = new StringBuilder(LanguageManager.GetString("String_Rating") + strSpace
-                    + '(' + Rating.ToString(GlobalSettings.CultureInfo) + strSpace + '×' + strSpace + PointsPerLevel.ToString(GlobalSettings.CultureInfo) + ')');
-                foreach (Improvement objImprovement in CharacterObject.Improvements.Where(objImprovement => objImprovement.ImproveType == Improvement.ImprovementType.AdeptPower && objImprovement.ImprovedName == Name && objImprovement.UniqueName == Extra && objImprovement.Enabled))
+                using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool, out StringBuilder sbdModifier))
                 {
-                    sbdModifier.Append(strSpace + '+' + strSpace + CharacterObject.GetObjectName(objImprovement)
-                                       + strSpace + '(' + objImprovement.Rating.ToString(GlobalSettings.CultureInfo) + ')');
+                    sbdModifier.Append(LanguageManager.GetString("String_Rating")).Append(strSpace).Append('(')
+                               .Append(Rating.ToString(GlobalSettings.CultureInfo)).Append(strSpace).Append('×')
+                               .Append(strSpace).Append(PointsPerLevel.ToString(GlobalSettings.CultureInfo))
+                               .Append(')');
+                    foreach (Improvement objImprovement in ImprovementManager
+                                                           .GetCachedImprovementListForValueOf(
+                                                               CharacterObject, Improvement.ImprovementType.AdeptPower,
+                                                               Name).Where(objImprovement =>
+                                                                               objImprovement.UniqueName == Extra))
+                    {
+                        sbdModifier.Append(strSpace).Append('+').Append(strSpace)
+                                   .Append(CharacterObject.GetObjectName(objImprovement)).Append(strSpace).Append('(')
+                                   .Append(objImprovement.Rating.ToString(GlobalSettings.CultureInfo)).Append(')');
+                    }
+
+                    return sbdModifier.ToString();
                 }
-                return sbdModifier.ToString();
             }
         }
 
@@ -1173,6 +1347,13 @@ namespace Chummer
             if (_objCachedSourceDetail.Language != GlobalSettings.Language)
                 _objCachedSourceDetail = default;
             SourceDetail.SetControl(sourceControl);
+        }
+
+        public Task SetSourceDetailAsync(Control sourceControl, CancellationToken token = default)
+        {
+            if (_objCachedSourceDetail.Language != GlobalSettings.Language)
+                _objCachedSourceDetail = default;
+            return SourceDetail.SetControlAsync(sourceControl, token);
         }
     }
 }

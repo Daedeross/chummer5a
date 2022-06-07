@@ -38,19 +38,22 @@ namespace Chummer.Plugins
     public interface IPlugin : IDisposable
     {
         //only very rudimentary initialization should take place here. Make it QUICK.
-        void CustomInitialize(frmChummerMain mainControl);
+        void CustomInitialize(ChummerMainForm mainControl);
 
-        IEnumerable<TabPage> GetTabPages(frmCareer input);
+        IEnumerable<TabPage> GetTabPages(CharacterCareer input);
 
-        IEnumerable<TabPage> GetTabPages(frmCreate input);
+        IEnumerable<TabPage> GetTabPages(CharacterCreate input);
 
         IEnumerable<ToolStripMenuItem> GetMenuItems(ToolStripMenuItem menu);
 
+        [CLSCompliant(false)]
+#pragma warning disable CS3010 // CLS-compliant interfaces must have only CLS-compliant members
         ITelemetry SetTelemetryInitialize(ITelemetry telemetry);
+#pragma warning restore CS3010 // CLS-compliant interfaces must have only CLS-compliant members
 
         bool ProcessCommandLine(string parameter);
 
-        Task<ICollection<TreeNode>> GetCharacterRosterTreeNode(frmCharacterRoster frmCharRoster, bool forceUpdate);
+        Task<ICollection<TreeNode>> GetCharacterRosterTreeNode(CharacterRoster frmCharRoster, bool forceUpdate);
 
         UserControl GetOptionsControl();
 
@@ -96,7 +99,7 @@ namespace Chummer.Plugins
                         {
                             if (subkey == null)
                                 reregisterKey = true;
-                            else if (subkey.GetValue(string.Empty)?.ToString() != startupExe + " " + "%1")
+                            else if (subkey.GetValue(string.Empty)?.ToString() != startupExe + " %1")
                                 reregisterKey = true;
                         }
                     }
@@ -194,7 +197,7 @@ namespace Chummer.Plugins
                             return false;
                         }
 
-                        keyShellCommand.SetValue(string.Empty, myAppPath + " " + "%1");
+                        keyShellCommand.SetValue(string.Empty, myAppPath + " %1");
                         //%1 represents the argument - this tells windows to open this program with an argument / parameter
                     }
                 }
@@ -220,7 +223,7 @@ namespace Chummer.Plugins
                 }
                 Log.Info("Plugins are globally enabled - entering PluginControl.Initialize()");
 
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+                string path = Path.Combine(Utils.GetStartupPath, "plugins");
                 path = Path.GetFullPath(path);
                 if (!Directory.Exists(path))
                 {
@@ -229,17 +232,18 @@ namespace Chummer.Plugins
                 }
                 _objCatalog = new AggregateCatalog();
                 //delete old NeonJungleLC-Plugin
-                string neon = Path.Combine(path, "NeonJungleLC");
-                if (Directory.Exists(neon))
-                    Directory.Delete(neon, true);
-                var plugindirectories = Directory.GetDirectories(path);
-                if (plugindirectories.Length == 0)
-                {
-                    throw new ArgumentException("No Plugin-Subdirectories in " + path + " !");
-                }
+                Utils.SafeDeleteDirectory(Path.Combine(path, "NeonJungleLC"));
 
-                foreach (var plugindir in plugindirectories)
+                bool blnAnyPlugins = false;
+                foreach (string plugindir in Directory.EnumerateDirectories(path))
                 {
+                    blnAnyPlugins = true;
+                    if (plugindir.Contains("SamplePlugin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Log.Warn("Found an old SamplePlugin (not maintaned anymore) and deleteing it to not mess with the plugin catalog composition.");
+                        Utils.SafeDeleteDirectory(plugindir);
+                        continue;
+                    }
                     Log.Trace("Searching in " + plugindir + " for plugin.txt or dlls containing the interface.");
                     //search for a text file that tells me what dll to parse
                     string infofile = Path.Combine(plugindir, "plugin.txt");
@@ -278,20 +282,44 @@ namespace Chummer.Plugins
                         _objCatalog.Catalogs.Add(_objMyDirectoryCatalog);
                     }
                 }
+                if (!blnAnyPlugins)
+                {
+                    throw new ArgumentException("No Plugin-Subdirectories in " + path + " !");
+                }
 
                 _container = new CompositionContainer(_objCatalog);
 
                 //Fill the imports of this object
                 StartWatch();
-                _container.ComposeParts(this);
+                try
+                {
+                    _container.ComposeParts(this);
+                }
+                catch(ReflectionTypeLoadException e)
+                {
+                    if (Program.ChummerTelemetryClient != null)
+                    {
+                        foreach (var except in e.LoaderExceptions)
+                        {
+                            Program.ChummerTelemetryClient.TrackException(except);
+                        }
+                        Program.ChummerTelemetryClient.Flush();
+                        string msg = $"Plugins (at least not all of them) could not be loaded. Logs are uploaded to the ChummerDevs. Maybe ping one of the Devs on Discord and provide your Installation-id: {Properties.Settings.Default.UploadClientId}";
+                        msg += Environment.NewLine + "Exception: " + Environment.NewLine + Environment.NewLine + e.ToString() + Environment.NewLine;
+                        Log.Info(e, msg);
+                    }
+                    else
+                    {
+                        Log.Error(e, "Plugins (at least not all of them) could not be loaded. Please allow logging to upload logs.");
+                    }
+                }
 
-                Log.Info("Plugins found: " + MyPlugins.Count);
                 if (MyPlugins.Count == 0)
                 {
-                    throw new ArgumentException("No plugins found in " + path + ".");
+                    throw new ArgumentException("No plugins found in " + path + '.');
                 }
-                Log.Info("Plugins active: " + MyActivePlugins.Count);
-                foreach (var plugin in MyActivePlugins)
+                Log.Info("Plugins found: " + MyPlugins.Count + Environment.NewLine + "Plugins active: " + MyActivePlugins.Count);
+                foreach (IPlugin plugin in MyActivePlugins)
                 {
                     try
                     {
@@ -319,10 +347,8 @@ namespace Chummer.Plugins
                 msg += e.ToString();
                 Log.Warn(e, msg);
             }
-            catch (Exception e)
+            catch (Exception e) when (!(e is ApplicationException))
             {
-                if (e is ApplicationException)
-                    throw;
                 Log.Fatal(e);
                 throw;
             }
@@ -335,7 +361,7 @@ namespace Chummer.Plugins
         {
             get
             {
-                List<IPlugin> result = new List<IPlugin>();
+                List<IPlugin> result = new List<IPlugin>(MyPlugins.Count);
                 if (!GlobalSettings.PluginsEnabled)
                     return result;
                 foreach (IPlugin plugin in MyPlugins)
@@ -376,7 +402,8 @@ namespace Chummer.Plugins
             try
             {
                 using (_ = Timekeeper.StartSyncron("LoadPlugins", parentActivity,
-                    CustomActivity.OperationType.DependencyOperation, _objMyDirectoryCatalog?.FullPath))
+                                                   CustomActivity.OperationType.DependencyOperation,
+                                                   _objMyDirectoryCatalog?.FullPath))
                     Initialize();
             }
             catch (System.Security.SecurityException e)
@@ -388,26 +415,33 @@ namespace Chummer.Plugins
             }
             catch (ReflectionTypeLoadException e)
             {
-                StringBuilder msg = new StringBuilder("Exception loading plugins: " + Environment.NewLine);
-                foreach (var exp in e.LoaderExceptions)
+                using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                              out StringBuilder sbdMessage))
                 {
-                    msg.AppendLine(exp.Message);
+                    sbdMessage.AppendLine("Exception loading plugins: ");
+                    foreach (Exception exp in e.LoaderExceptions)
+                    {
+                        sbdMessage.AppendLine(exp.Message);
+                    }
+                    sbdMessage.AppendLine();
+                    sbdMessage.Append(e);
+                    Log.Warn(e, sbdMessage.ToString());
                 }
-                msg.AppendLine();
-                msg.Append(e);
-                Log.Warn(e, msg.ToString());
             }
             catch (CompositionException e)
             {
-                StringBuilder msg = new StringBuilder("Exception loading plugins: " + Environment.NewLine);
-                foreach (var exp in e.Errors)
+                using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                              out StringBuilder sbdMessage))
                 {
-                    msg.AppendLine(exp.Exception.ToString());
+                    sbdMessage.AppendLine("Exception loading plugins: ");
+                    foreach (CompositionError exp in e.Errors)
+                    {
+                        sbdMessage.AppendLine(exp.Exception.ToString());
+                    }
+                    sbdMessage.AppendLine();
+                    sbdMessage.Append(e);
+                    Log.Error(e, sbdMessage.ToString());
                 }
-                msg.AppendLine();
-                msg.Append(e);
-
-                Log.Error(e, msg.ToString());
             }
             catch (ApplicationException)
             {
@@ -422,14 +456,14 @@ namespace Chummer.Plugins
             }
         }
 
-        internal void CallPlugins(frmCareer frmCareer, CustomActivity parentActivity)
+        internal void CallPlugins(CharacterCareer frmCareer, CustomActivity parentActivity)
         {
             foreach (IPlugin plugin in MyActivePlugins)
             {
                 using (_ = Timekeeper.StartSyncron("load_plugin_GetTabPage_Career_" + plugin,
                     parentActivity, CustomActivity.OperationType.DependencyOperation, plugin.ToString()))
                 {
-                    var pages = plugin.GetTabPages(frmCareer);
+                    IEnumerable<TabPage> pages = plugin.GetTabPages(frmCareer);
                     if (pages == null)
                         continue;
                     foreach (TabPage page in pages)
@@ -443,13 +477,13 @@ namespace Chummer.Plugins
             }
         }
 
-        internal void CallPlugins(frmCreate frmCreate, CustomActivity parentActivity)
+        internal void CallPlugins(CharacterCreate frmCreate, CustomActivity parentActivity)
         {
-            foreach (var plugin in MyActivePlugins)
+            foreach (IPlugin plugin in MyActivePlugins)
             {
                 using (_ = Timekeeper.StartSyncron("load_plugin_GetTabPage_Create_" + plugin, parentActivity, CustomActivity.OperationType.DependencyOperation, plugin.ToString()))
                 {
-                    var pages = plugin.GetTabPages(frmCreate);
+                    IEnumerable<TabPage> pages = plugin.GetTabPages(frmCreate);
                     if (pages == null)
                         continue;
                     foreach (TabPage page in pages)
@@ -465,12 +499,12 @@ namespace Chummer.Plugins
 
         internal void CallPlugins(ToolStripMenuItem menu, CustomActivity parentActivity)
         {
-            foreach (var plugin in MyActivePlugins)
+            foreach (IPlugin plugin in MyActivePlugins)
             {
                 using (_ = Timekeeper.StartSyncron("load_plugin_GetMenuItems_" + plugin,
                     parentActivity, CustomActivity.OperationType.DependencyOperation, plugin.ToString()))
                 {
-                    var menuitems = plugin.GetMenuItems(menu);
+                    IEnumerable<ToolStripMenuItem> menuitems = plugin.GetMenuItems(menu);
                     if (menuitems == null)
                         continue;
                     foreach (ToolStripMenuItem plugInMenu in menuitems)
@@ -483,7 +517,7 @@ namespace Chummer.Plugins
                 }
             }
         }
-        
+
         private bool _blnDisposed;
 
         protected virtual void Dispose(bool disposing)

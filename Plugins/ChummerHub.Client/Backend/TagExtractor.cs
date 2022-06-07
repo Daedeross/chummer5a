@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,14 +51,14 @@ namespace ChummerHub.Client.Backend
                     }
                     if (classprops.Count > 0)
                     {
-                        foreach (var classprop in classprops)
+                        foreach (HubClassTagAttribute classprop in classprops)
                         {
                             Tag tag = new Tag(obj, classprop);
                             tag.SetTagTypeEnumFromCLRType(obj.GetType());
                             if (!string.IsNullOrEmpty(classprop.ListInstanceNameFromProperty))
                             {
                                 tag.TagName = classprop.ListInstanceNameFromProperty;
-                                PropertyInfo childprop = obj.GetType().GetProperties().FirstOrDefault(x => x.Name == classprop.ListInstanceNameFromProperty);
+                                PropertyInfo childprop = obj.GetType().GetProperties().Find(x => x.Name == classprop.ListInstanceNameFromProperty);
                                 if (childprop == null)
                                     throw new ArgumentOutOfRangeException("Could not find property " + classprop.ListInstanceNameFromProperty + " on instance of type " + obj.GetType() + ".");
                                 tag.TagValue += childprop.GetValue(obj);
@@ -57,7 +75,7 @@ namespace ChummerHub.Client.Backend
 
                 if (obj is IEnumerable islist)
                 {
-                    foreach (var item in islist)
+                    foreach (object item in islist)
                     {
                         List<HubClassTagAttribute> classprops = new List<HubClassTagAttribute>();
                         foreach (object objCustomAttribute in item.GetType().GetCustomAttributes(typeof(HubClassTagAttribute), true))
@@ -65,9 +83,9 @@ namespace ChummerHub.Client.Backend
                             if (objCustomAttribute is HubClassTagAttribute objToAdd)
                                 classprops.Add(objToAdd);
                         }
-                        foreach (var classprop in classprops)
+                        foreach (HubClassTagAttribute classprop in classprops)
                         {
-                            var tag = new Tag(item, classprop)
+                            Tag tag = new Tag(item, classprop)
                             {
                                 TagType = 0,// "list",
                                 //TagName = classprop.ListName
@@ -75,7 +93,7 @@ namespace ChummerHub.Client.Backend
                             if (!string.IsNullOrEmpty(classprop.ListInstanceNameFromProperty))
                             {
                                 tag.TagName = classprop.ListInstanceNameFromProperty;
-                                var childprop = item.GetType().GetProperties().FirstOrDefault(x => x.Name == classprop.ListInstanceNameFromProperty);
+                                PropertyInfo childprop = item.GetType().GetProperties().Find(x => x.Name == classprop.ListInstanceNameFromProperty);
                                 if (childprop == null)
                                     throw new ArgumentOutOfRangeException("Could not find property " + classprop.ListInstanceNameFromProperty + " on instance of type " + item.GetType() + ".");
                                 tag.TagValue += childprop.GetValue(item);
@@ -112,15 +130,19 @@ namespace ChummerHub.Client.Backend
             PropertyInfo[] aPropertyInfos = objPropertyHaver.GetType().GetProperties();
             foreach(string includeprop in objPropertyFilterAttribute.ListExtraProperties)
             {
-                var propfound = aPropertyInfos.FirstOrDefault(x => x.Name == includeprop);
+                PropertyInfo propfound = aPropertyInfos.Find(x => x.Name == includeprop);
                 if(propfound == null)
                 {
-                    throw new ArgumentOutOfRangeException("Could not find property " + includeprop + " on instance of type " + objPropertyHaver.GetType() + ".");
+                    //sometimes we simply don't have a specialication (for example)
+                    if (includeprop == "Specialization")
+                        continue;
+                    throw new ArgumentOutOfRangeException("Could not find property " + includeprop + " on instance of type " + objPropertyHaver.GetType() + " with name "+ objPropertyHaver.ToString()+".");
+
                 }
-                var includeInstance = propfound.GetValue(objPropertyHaver);
+                object includeInstance = propfound.GetValue(objPropertyHaver);
                 if(includeInstance != null && !string.IsNullOrEmpty(includeInstance.ToString()))
                 {
-                    var instanceTag = new Tag(includeInstance, objPropertyFilterAttribute)
+                    Tag instanceTag = new Tag(includeInstance, objPropertyFilterAttribute)
                     {
                         TagName = includeprop,
                         TagValue = includeInstance.ToString()
@@ -141,19 +163,15 @@ namespace ChummerHub.Client.Backend
                     //don't save "null" values
                     yield break;
                 }
-                if(objValue.GetType().IsAssignableFrom(typeof(bool)))
+                if(objValue.GetType().IsAssignableFrom(typeof(bool)) && objValue as bool? == false)
                 {
-                    if(objValue as bool? == false)
-                    { //don't save "false" values
-                        yield break;
-                    }
+                    //don't save "false" values
+                    yield break;
                 }
-                if(objValue.GetType().IsAssignableFrom(typeof(int)))
+                if(objValue.GetType().IsAssignableFrom(typeof(int)) && objValue as int? == 0)
                 {
-                    if(objValue as int? == 0)
-                    {   //don't save "0" values
-                        yield break;
-                    }
+                    //don't save "0" values
+                    yield break;
                 }
             }
             else if (objValue == null)

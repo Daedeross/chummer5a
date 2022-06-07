@@ -18,7 +18,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -33,12 +32,12 @@ namespace Chummer
     /// A Stacked Focus.
     /// </summary>
     [DebuggerDisplay("{Name(GlobalSettings.DefaultLanguage)}")]
-    public class StackedFocus
+    public sealed class StackedFocus : IDisposable
     {
         private Guid _guiID;
         private bool _blnBonded;
         private Guid _guiGearId;
-        private readonly List<Gear> _lstGear = new List<Gear>(2);
+        private readonly ThreadSafeList<Gear> _lstGear = new ThreadSafeList<Gear>(2);
         private readonly Character _objCharacter;
 
         #region Constructor, Create, Save, and Load Methods
@@ -54,7 +53,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(XmlWriter objWriter)
         {
             if (objWriter == null)
                 return;
@@ -264,18 +263,21 @@ namespace Chummer
         /// </summary>
         public string Name(CultureInfo objCulture, string strLanguage)
         {
-            StringBuilder sbdReturn = new StringBuilder();
-            foreach (Gear objGear in Gear)
+            using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                          out StringBuilder sbdReturn))
             {
-                sbdReturn.Append(objGear.DisplayName(objCulture, strLanguage));
-                sbdReturn.Append(", ");
+                foreach (Gear objGear in Gear)
+                {
+                    sbdReturn.Append(objGear.DisplayName(objCulture, strLanguage));
+                    sbdReturn.Append(", ");
+                }
+
+                // Remove the trailing comma.
+                if (sbdReturn.Length > 0)
+                    sbdReturn.Length -= 2;
+
+                return sbdReturn.ToString();
             }
-
-            // Remove the trailing comma.
-            if (sbdReturn.Length > 0)
-                sbdReturn.Length -= 2;
-
-            return sbdReturn.ToString();
         }
 
         public string CurrentDisplayName => Name(GlobalSettings.CultureInfo, GlobalSettings.Language);
@@ -283,7 +285,7 @@ namespace Chummer
         /// <summary>
         /// List of Gear that make up the Stacked Focus.
         /// </summary>
-        public List<Gear> Gear => _lstGear;
+        public ThreadSafeList<Gear> Gear => _lstGear;
 
         #endregion Properties
 
@@ -306,5 +308,11 @@ namespace Chummer
         }
 
         #endregion Methods
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            _lstGear.Dispose();
+        }
     }
 }

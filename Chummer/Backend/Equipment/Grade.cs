@@ -18,9 +18,9 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
 
@@ -30,7 +30,7 @@ namespace Chummer.Backend.Equipment
     /// Grade of Cyberware or Bioware.
     /// </summary>
     [DebuggerDisplay("{DisplayName(GlobalSettings.DefaultLanguage)}")]
-    public class Grade : IHasName, IHasInternalId, IHasXmlNode
+    public class Grade : IHasName, IHasInternalId, IHasXmlDataNode
     {
         private readonly Character _objCharacter;
         private Guid _guiSourceID = Guid.Empty;
@@ -67,12 +67,8 @@ namespace Chummer.Backend.Equipment
             }
             if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
-                XPathNavigator xmlDataNode = _objCharacter.LoadDataXPath(_eSource == Improvement.ImprovementSource.Bioware
-                        ? "bioware.xml"
-                        : _eSource == Improvement.ImprovementSource.Drug
-                            ? "drugcomponents.xml"
-                            : "cyberware.xml")
-                    .SelectSingleNode("/chummer/grades/grade[name = " + Name.CleanXPath() + "]");
+                XPathNavigator xmlDataNode = _objCharacter.LoadDataXPath(GetDataFileNameFromImprovementSource(_eSource))
+                    .SelectSingleNode("/chummer/grades/grade[name = " + Name.CleanXPath() + ']');
                 if (xmlDataNode?.TryGetField("id", Guid.TryParse, out _guiSourceID) != true)
                     _guiSourceID = Guid.NewGuid();
             }
@@ -103,26 +99,44 @@ namespace Chummer.Backend.Equipment
         private XmlNode _objCachedMyXmlNode;
         private string _strCachedXmlNodeLanguage = string.Empty;
 
-        public XmlNode GetNode()
-        {
-            return GetNode(GlobalSettings.Language);
-        }
-
-        public XmlNode GetNode(string strLanguage)
+        public async Task<XmlNode> GetNodeCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
             if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage && !GlobalSettings.LiveCustomData)
                 return _objCachedMyXmlNode;
-            _objCachedMyXmlNode = _objCharacter.LoadData(_eSource == Improvement.ImprovementSource.Bioware
-                    ? "bioware.xml"
-                    : _eSource == Improvement.ImprovementSource.Drug
-                        ? "drugcomponents.xml"
-                        : "cyberware.xml", strLanguage)
+            _objCachedMyXmlNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadData(GetDataFileNameFromImprovementSource(_eSource), strLanguage, token: token)
+                    : await _objCharacter.LoadDataAsync(GetDataFileNameFromImprovementSource(_eSource), strLanguage, token: token))
                 .SelectSingleNode(SourceId == Guid.Empty
-                    ? "/chummer/grades/grade[name = " + Name.CleanXPath() + "]"
-                    : "/chummer/grades/grade[id = " + SourceIDString.CleanXPath() + "]");
+                                      ? "/chummer/grades/grade[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/grades/grade[id = "
+                                        + SourceIDString.CleanXPath() + ']');
 
             _strCachedXmlNodeLanguage = strLanguage;
             return _objCachedMyXmlNode;
+        }
+
+        private XPathNavigator _objCachedMyXPathNode;
+        private string _strCachedXPathNodeLanguage = string.Empty;
+
+        public async Task<XPathNavigator> GetNodeXPathCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
+        {
+            if (_objCachedMyXPathNode != null && strLanguage == _strCachedXPathNodeLanguage
+                                              && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXPathNode;
+            _objCachedMyXPathNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadDataXPath(GetDataFileNameFromImprovementSource(_eSource), strLanguage, token: token)
+                    : await _objCharacter.LoadDataXPathAsync(GetDataFileNameFromImprovementSource(_eSource),
+                                                             strLanguage, token: token))
+                .SelectSingleNode(SourceId == Guid.Empty
+                                      ? "/chummer/grades/grade[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/grades/grade[id = "
+                                        + SourceIDString.CleanXPath() + ']');
+            _strCachedXPathNodeLanguage = strLanguage;
+            return _objCachedMyXPathNode;
         }
 
         #endregion Constructor and Load Methods
@@ -139,14 +153,37 @@ namespace Chummer.Backend.Equipment
         {
             if (objCharacter == null)
                 throw new ArgumentNullException(nameof(objCharacter));
-            List<Grade> lstGrades = objCharacter.GetGradeList(objSource, true);
-            foreach (Grade objGrade in lstGrades)
+            Grade objStandardGrade = null;
+            foreach (Grade objGrade in objCharacter.GetGrades(objSource, true))
             {
                 if (objGrade.Name == strValue)
                     return objGrade;
+                if (objGrade.Name == "Standard")
+                    objStandardGrade = objGrade;
             }
 
-            return lstGrades.FirstOrDefault(x => x.Name == "Standard");
+            return objStandardGrade;
+        }
+
+        /// <summary>
+        /// Gets the name of the data file to use that corresponds to a particular Improvement Source denoting the type of object being used.
+        /// </summary>
+        /// <param name="eSource">Type of object being looked at that has grades. Should be either drug, bioware, or cyberware.</param>
+        /// <returns>A full file name that can be used with LoadData() or LoadXData() methods.</returns>
+        public static string GetDataFileNameFromImprovementSource(Improvement.ImprovementSource eSource)
+        {
+            switch (eSource)
+            {
+                case Improvement.ImprovementSource.Drug:
+                    return "drugcomponents.xml";
+                case Improvement.ImprovementSource.Bioware:
+                    return "bioware.xml";
+                case Improvement.ImprovementSource.Cyberware:
+                    return "cyberware.xml";
+                default:
+                    Utils.BreakIfDebug();
+                    return "cyberware.xml";
+            }
         }
 
         #endregion Helper Methods
@@ -185,7 +222,21 @@ namespace Chummer.Backend.Equipment
             if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Name;
 
-            return GetNode(strLanguage)?["translate"]?.InnerText ?? Name;
+            return this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("translate")?.Value ?? Name;
+        }
+
+        /// <summary>
+        /// The name of the Grade as it should be displayed in lists.
+        /// </summary>
+        public async ValueTask<string> DisplayNameAsync(string strLanguage)
+        {
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                return Name;
+
+            XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+            return objNode != null
+                ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("translate"))?.Value ?? Name
+                : Name;
         }
 
         public string CurrentDisplayName => DisplayName(GlobalSettings.Language);

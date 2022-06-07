@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -23,12 +41,12 @@ namespace ChummerHub.Client.UI
 
         public Character CharacterObject => MySINner.CharacterObject;
 
-        public CharacterExtended SetCharacterFrom(CharacterShared mySINner)
+        public async Task<CharacterExtended> SetCharacterFrom(CharacterShared mySINner)
         {
             InitializeComponent();
             _mySINner = mySINner ?? throw new ArgumentNullException(nameof(mySINner));
             MyCE = new CharacterExtended(mySINner.CharacterObject, PluginHandler.MySINnerLoading);
-            MyCE.ZipFilePath = MyCE.PrepareModel();
+            MyCE.ZipFilePath = await MyCE.PrepareModelAsync();
 
             TabSINnersBasic = new ucSINnersBasic(this)
             {
@@ -48,8 +66,8 @@ namespace ChummerHub.Client.UI
             {
                 try
                 {
-                    mySINner.CharacterObject.DoOnSaveCompleted.Remove(PluginHandler.MyOnSaveUpload);
-                    mySINner.CharacterObject.DoOnSaveCompleted.TryAdd(PluginHandler.MyOnSaveUpload);
+                    if (await mySINner.CharacterObject.DoOnSaveCompletedAsync.RemoveAsync(PluginHandler.MyOnSaveUpload))
+                        await mySINner.CharacterObject.DoOnSaveCompletedAsync.AddAsync(PluginHandler.MyOnSaveUpload);
                 }
                 catch (Exception e)
                 {
@@ -64,7 +82,7 @@ namespace ChummerHub.Client.UI
         {
             try
             {
-                var client = StaticUtils.GetClient();
+                SinnersClient client = StaticUtils.GetClient();
                 if (MyCE.MySINnerFile.Id != null)
                     await client.DeleteAsync(MyCE.MySINnerFile.Id.Value);
             }

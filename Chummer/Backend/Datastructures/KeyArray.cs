@@ -28,7 +28,7 @@ namespace Chummer
     /// Structured array built for working properly as a key to dictionaries. Read-only to make sure keys remain immutable.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public readonly struct KeyArray<T> : IReadOnlyList<T>
+    public readonly struct KeyArray<T> : IReadOnlyList<T>, IEquatable<KeyArray<T>>
     {
         private readonly T[] _aobjItems;
         private readonly int _intHashCode;
@@ -39,21 +39,25 @@ namespace Chummer
             _intHashCode = _aobjItems.GetEnsembleHashCode();
         }
 
+        /// <inheritdoc />
         public IEnumerator<T> GetEnumerator()
         {
             return (IEnumerator<T>)_aobjItems.GetEnumerator();
         }
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        /// <inheritdoc cref="List{T}.Contains" />
         public bool Contains(T item)
         {
             return _aobjItems.Contains(item);
         }
 
+        /// <inheritdoc cref="List{T}.CopyTo(T[], int)" />
         public void CopyTo(T[] array, int arrayIndex)
         {
             if (arrayIndex + Length > array.Length)
@@ -61,16 +65,20 @@ namespace Chummer
             for (int i = 0; i < Length; ++i)
             {
                 array[arrayIndex] = this[i];
-                arrayIndex += 1;
+                ++arrayIndex;
             }
         }
 
+        /// <inheritdoc />
         int IReadOnlyCollection<T>.Count => Length;
 
+        /// <inheritdoc cref="Array.Length" />
         public int Length => _aobjItems.Length;
 
+        /// <inheritdoc />
         public T this[int index] => _aobjItems[index];
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             return _intHashCode;
@@ -80,6 +88,7 @@ namespace Chummer
 
         public static bool operator !=(KeyArray<T> lhs, KeyArray<T> rhs) => !(lhs == rhs);
 
+        /// <inheritdoc />
         public bool Equals(KeyArray<T> rhs)
         {
             if (GetHashCode() != rhs.GetHashCode())
@@ -94,6 +103,7 @@ namespace Chummer
             return true;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             return obj != null && Equals((KeyArray<T>)obj);

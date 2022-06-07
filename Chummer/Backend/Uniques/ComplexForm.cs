@@ -21,10 +21,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
+using System.Xml.XPath;
 using Chummer.Backend.Attributes;
 using Chummer.Backend.Skills;
 using NLog;
@@ -36,7 +38,7 @@ namespace Chummer
     /// </summary>
     [HubClassTag("SourceID", true, "Name", "Extra")]
     [DebuggerDisplay("{DisplayName(GlobalSettings.DefaultLanguage)}")]
-    public class ComplexForm : IHasInternalId, IHasName, IHasXmlNode, IHasNotes, ICanRemove, IHasSource
+    public class ComplexForm : IHasInternalId, IHasName, IHasXmlDataNode, IHasNotes, ICanRemove, IHasSource
     {
         private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
         private Guid _guiID;
@@ -63,7 +65,9 @@ namespace Chummer
             _objCharacter = objCharacter;
         }
 
+        /// <summary>
         /// Create a Complex Form from an XmlNode.
+        /// </summary>
         /// <param name="objXmlComplexFormNode">XmlNode to create the object from.</param>
         /// <param name="strExtra">Value to forcefully select for any ImprovementManager prompts.</param>
         public void Create(XmlNode objXmlComplexFormNode, string strExtra = "")
@@ -86,6 +90,12 @@ namespace Chummer
             string sNotesColor = ColorTranslator.ToHtml(ColorManager.HasNotesColor);
             objXmlComplexFormNode.TryGetStringFieldQuickly("notesColor", ref sNotesColor);
             _colNotes = ColorTranslator.FromHtml(sNotesColor);
+
+            if (string.IsNullOrEmpty(Notes))
+            {
+                Notes = CommonFunctions.GetBookNotes(objXmlComplexFormNode, Name, CurrentDisplayName, Source, Page,
+                    DisplayPage(GlobalSettings.Language), _objCharacter);
+            }
 
             if (objXmlComplexFormNode["bonus"] != null)
             {
@@ -110,7 +120,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(XmlWriter objWriter)
         {
             if (objWriter == null)
                 return;
@@ -124,13 +134,10 @@ namespace Chummer
             objWriter.WriteElementString("extra", _strExtra);
             objWriter.WriteElementString("source", _strSource);
             objWriter.WriteElementString("page", _strPage);
-            objWriter.WriteElementString("notes", System.Text.RegularExpressions.Regex.Replace(_strNotes, @"[\u0000-\u0008\u000B\u000C\u000E-\u001F]", ""));
+            objWriter.WriteElementString("notes", _strNotes.CleanOfInvalidUnicodeChars());
             objWriter.WriteElementString("notesColor", ColorTranslator.ToHtml(_colNotes));
             objWriter.WriteElementString("grade", _intGrade.ToString(GlobalSettings.InvariantCultureInfo));
             objWriter.WriteEndElement();
-
-            if (Grade >= 0)
-                _objCharacter.SourceProcess(_strSource);
         }
 
         /// <summary>
@@ -144,10 +151,11 @@ namespace Chummer
                 _guiID = Guid.NewGuid();
             }
             objNode.TryGetStringFieldQuickly("name", ref _strName);
+            _objCachedMyXmlNode = null;
+            _objCachedMyXPathNode = null;
             if (!objNode.TryGetGuidFieldQuickly("sourceid", ref _guiSourceID))
             {
-                XmlNode node = GetNode(GlobalSettings.Language);
-                node?.TryGetGuidFieldQuickly("id", ref _guiSourceID);
+                this.GetNodeXPath()?.TryGetGuidFieldQuickly("id", ref _guiSourceID);
             }
 
             objNode.TryGetStringFieldQuickly("target", ref _strTarget);
@@ -170,24 +178,32 @@ namespace Chummer
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
         /// <param name="strLanguageToPrint">Language in which to print</param>
-        public void Print(XmlTextWriter objWriter, string strLanguageToPrint)
+        public async ValueTask Print(XmlWriter objWriter, string strLanguageToPrint)
         {
             if (objWriter == null)
                 return;
-            objWriter.WriteStartElement("complexform");
-            objWriter.WriteElementString("guid", InternalId);
-            objWriter.WriteElementString("sourceid", SourceIDString);
-            objWriter.WriteElementString("name", DisplayNameShort(strLanguageToPrint));
-            objWriter.WriteElementString("fullname", DisplayName(strLanguageToPrint));
-            objWriter.WriteElementString("name_english", Name);
-            objWriter.WriteElementString("duration", DisplayDuration(strLanguageToPrint));
-            objWriter.WriteElementString("fv", DisplayFv(strLanguageToPrint));
-            objWriter.WriteElementString("target", DisplayTarget(strLanguageToPrint));
-            objWriter.WriteElementString("source", _objCharacter.LanguageBookShort(Source, strLanguageToPrint));
-            objWriter.WriteElementString("page", DisplayPage(strLanguageToPrint));
-            if (GlobalSettings.PrintNotes)
-                objWriter.WriteElementString("notes", Notes);
-            objWriter.WriteEndElement();
+            // <complexform>
+            XmlElementWriteHelper objBaseElement = await objWriter.StartElementAsync("complexform");
+            try
+            {
+                await objWriter.WriteElementStringAsync("guid", InternalId);
+                await objWriter.WriteElementStringAsync("sourceid", SourceIDString);
+                await objWriter.WriteElementStringAsync("name", await DisplayNameShortAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("fullname", await DisplayNameAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("name_english", Name);
+                await objWriter.WriteElementStringAsync("duration", await DisplayDurationAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("fv", await DisplayFvAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("target", await DisplayTargetAsync(strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("source", await _objCharacter.LanguageBookShortAsync(Source, strLanguageToPrint));
+                await objWriter.WriteElementStringAsync("page", await DisplayPageAsync(strLanguageToPrint));
+                if (GlobalSettings.PrintNotes)
+                    await objWriter.WriteElementStringAsync("notes", Notes);
+            }
+            finally
+            {
+                // </complexform>
+                await objBaseElement.DisposeAsync();
+            }
         }
 
         #endregion Constructor, Create, Save, Load, and Print Methods
@@ -202,9 +218,11 @@ namespace Chummer
             get => _guiSourceID;
             set
             {
-                if (_guiSourceID == value) return;
+                if (_guiSourceID == value)
+                    return;
                 _guiSourceID = value;
                 _objCachedMyXmlNode = null;
+                _objCachedMyXPathNode = null;
             }
         }
 
@@ -226,8 +244,10 @@ namespace Chummer
             get => _strName;
             set
             {
-                if (_strName != value)
-                    _objCachedMyXmlNode = null;
+                if (_strName == value)
+                    return;
+                _objCachedMyXmlNode = null;
+                _objCachedMyXPathNode = null;
                 _strName = value;
             }
         }
@@ -237,7 +257,7 @@ namespace Chummer
             get
             {
                 if (_objCachedSourceDetail == default)
-                    _objCachedSourceDetail = new SourceString(Source,
+                    _objCachedSourceDetail = SourceString.GetSourceString(Source,
                         DisplayPage(GlobalSettings.Language), GlobalSettings.Language, GlobalSettings.CultureInfo,
                         _objCharacter);
                 return _objCachedSourceDetail;
@@ -267,10 +287,26 @@ namespace Chummer
         /// </summary>
         public string DisplayNameShort(string strLanguage)
         {
-            string strReturn = _strName;
+            string strReturn = Name;
             // Get the translated name if applicable.
             if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
-                strReturn = GetNode(strLanguage)?["translate"]?.InnerText ?? _strName;
+                strReturn = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("translate")?.Value ?? Name;
+
+            return strReturn;
+        }
+
+        /// <summary>
+        /// The name of the object as it should be displayed on printouts (translated name only).
+        /// </summary>
+        public async Task<string> DisplayNameShortAsync(string strLanguage)
+        {
+            string strReturn = Name;
+            // Get the translated name if applicable.
+            if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+                strReturn = objNode != null ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("translate"))?.Value ?? Name : Name;
+            }
 
             return strReturn;
         }
@@ -289,10 +325,26 @@ namespace Chummer
             return strReturn;
         }
 
+        public async Task<string> DisplayNameAsync(string strLanguage)
+        {
+            string strReturn = await DisplayNameShortAsync(strLanguage);
+
+            if (!string.IsNullOrEmpty(Extra))
+            {
+                string strExtra = Extra;
+                if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                    strExtra = await _objCharacter.TranslateExtraAsync(Extra, strLanguage);
+                strReturn += await LanguageManager.GetStringAsync("String_Space", strLanguage) + '(' + strExtra + ')';
+            }
+            return strReturn;
+        }
+
         /// <summary>
         /// The name of the object as it should be displayed in lists. Name (Extra).
         /// </summary>
         public string CurrentDisplayName => DisplayName(GlobalSettings.Language);
+
+        public string CurrentDisplayNameShort => DisplayNameShort(GlobalSettings.Language);
 
         /// <summary>
         /// Translated Duration.
@@ -319,6 +371,30 @@ namespace Chummer
         }
 
         /// <summary>
+        /// Translated Duration.
+        /// </summary>
+        public Task<string> DisplayDurationAsync(string strLanguage)
+        {
+            switch (Duration)
+            {
+                case "P":
+                    return LanguageManager.GetStringAsync("String_SpellDurationPermanent", strLanguage);
+
+                case "S":
+                    return LanguageManager.GetStringAsync("String_SpellDurationSustained", strLanguage);
+
+                case "I":
+                    return LanguageManager.GetStringAsync("String_SpellDurationInstant", strLanguage);
+
+                case "Special":
+                    return LanguageManager.GetStringAsync("String_SpellDurationSpecial", strLanguage);
+
+                default:
+                    return LanguageManager.GetStringAsync("String_None", strLanguage);
+            }
+        }
+
+        /// <summary>
         /// Complex Form's Duration.
         /// </summary>
         public string Duration
@@ -332,7 +408,7 @@ namespace Chummer
         /// </summary>
         public string DisplayFv(string strLanguage)
         {
-            string strReturn = Fv.Replace('/', '÷');
+            string strReturn = CalculatedFv.Replace('/', '÷').Replace('*', '×');
             if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
             {
                 strReturn = strReturn.CheapReplace("L", () => LanguageManager.GetString("String_ComplexFormLevel", strLanguage))
@@ -347,65 +423,107 @@ namespace Chummer
         }
 
         /// <summary>
+        /// Translated Fading Value.
+        /// </summary>
+        public async ValueTask<string> DisplayFvAsync(string strLanguage)
+        {
+            string strReturn = CalculatedFv.Replace('/', '÷').Replace('*', '×');
+            if (!strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                strReturn = await strReturn
+                                  .CheapReplaceAsync(
+                                      "L", () => LanguageManager.GetStringAsync("String_ComplexFormLevel", strLanguage))
+                                  .CheapReplaceAsync("Overflow damage",
+                                                     () => LanguageManager.GetStringAsync(
+                                                         "String_SpellOverflowDamage", strLanguage))
+                                  .CheapReplaceAsync("Damage Value",
+                                                     () => LanguageManager.GetStringAsync(
+                                                         "String_SpellDamageValue", strLanguage))
+                                  .CheapReplaceAsync(
+                                      "Toxin DV", () => LanguageManager.GetStringAsync("String_SpellToxinDV", strLanguage))
+                                  .CheapReplaceAsync("Disease DV",
+                                                     () => LanguageManager.GetStringAsync(
+                                                         "String_SpellDiseaseDV", strLanguage))
+                                  .CheapReplaceAsync("Radiation Power",
+                                                     () => LanguageManager.GetStringAsync(
+                                                         "String_SpellRadiationPower", strLanguage))
+                                  .CheapReplaceAsync(
+                                      "Special", () => LanguageManager.GetStringAsync("String_Special", strLanguage));
+            }
+            return strReturn;
+        }
+
+        /// <summary>
         /// Fading Tooltip.
         /// </summary>
         public string FvTooltip
         {
             get
             {
-                StringBuilder sbdTip = new StringBuilder(LanguageManager.GetString("Tip_ComplexFormFadingBase"));
                 int intRES = _objCharacter.RES.TotalValue;
-                string strFv = Fv;
+                string strFv = FvBase;
                 string strSpace = LanguageManager.GetString("String_Space");
-                for (int i = 1; i <= intRES * 2; i++)
+                using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                              out StringBuilder sbdTip))
                 {
-                    // Calculate the Complex Form's Fading for the current Level.
-                    object xprResult = CommonFunctions.EvaluateInvariantXPath(strFv.Replace("L", i.ToString(GlobalSettings.InvariantCultureInfo)).Replace("/", " div "), out bool blnIsSuccess);
-
-                    if (blnIsSuccess && strFv != "Special")
+                    sbdTip.Append(LanguageManager.GetString("Tip_ComplexFormFading"));
+                    for (int i = 1; i <= intRES * 2; i++)
                     {
-                        int intFv = ((double)xprResult).StandardRound();
+                        // Calculate the Complex Form's Fading for the current Level.
+                        object xprResult = CommonFunctions.EvaluateInvariantXPath(
+                            strFv.Replace("L", i.ToString(GlobalSettings.InvariantCultureInfo)).Replace("/", " div "),
+                            out bool blnIsSuccess);
 
-                        // Fading cannot be lower than 2.
-                        if (intFv < 2)
-                            intFv = 2;
-                        sbdTip.Append(Environment.NewLine + LanguageManager.GetString("String_Level") + strSpace + i.ToString(GlobalSettings.CultureInfo)
-                                      + LanguageManager.GetString("String_Colon") + strSpace + intFv.ToString(GlobalSettings.CultureInfo));
+                        if (blnIsSuccess && strFv != "Special")
+                        {
+                            int intFv = ((double) xprResult).StandardRound();
+
+                            // Fading cannot be lower than 2.
+                            if (intFv < 2)
+                                intFv = 2;
+                            sbdTip.AppendLine().Append(LanguageManager.GetString("String_Level")).Append(strSpace)
+                                  .Append(
+                                      i.ToString(GlobalSettings.CultureInfo))
+                                  .Append(LanguageManager.GetString("String_Colon"))
+                                  .Append(strSpace).Append(intFv.ToString(GlobalSettings.CultureInfo));
+                        }
+                        else
+                        {
+                            sbdTip.Clear();
+                            sbdTip.Append(LanguageManager.GetString("Tip_ComplexFormFadingSeeDescription"));
+                            break;
+                        }
                     }
-                    else
+
+                    sbdTip.AppendLine().Append(LanguageManager.GetString("Tip_ComplexFormFadingBase")).Append(strSpace).Append('(').Append(FvBase).Append(')');
+                    foreach (Improvement objLoopImprovement in ImprovementManager.GetCachedImprovementListForValueOf(
+                                 _objCharacter, Improvement.ImprovementType.FadingValue, Name, true))
                     {
-                        sbdTip.Clear();
-                        sbdTip.Append(LanguageManager.GetString("Tip_ComplexFormFadingSeeDescription"));
-                        break;
+                        sbdTip.Append(strSpace).Append('+').Append(strSpace).Append(_objCharacter.GetObjectName(objLoopImprovement)).Append(strSpace)
+                              .Append('(').Append(objLoopImprovement.Value.ToString("0;-0;0")).Append(')');
                     }
+                    return sbdTip.ToString();
                 }
-
-                List<Improvement> lstFadingImprovements = _objCharacter.Improvements.Where(o => o.ImproveType == Improvement.ImprovementType.FadingValue && o.Enabled).ToList();
-                if (lstFadingImprovements.Count > 0)
-                {
-                    sbdTip.Append(Environment.NewLine + LanguageManager.GetString("Label_Bonus"));
-                    foreach (Improvement objLoopImprovement in lstFadingImprovements)
-                    {
-                        sbdTip.Append(Environment.NewLine + _objCharacter.GetObjectName(objLoopImprovement) + strSpace + '(' + objLoopImprovement.Value.ToString("0;-0;0") + ')');
-                    }
-                }
-
-                return sbdTip.ToString();
             }
         }
 
         /// <summary>
         /// The Complex Form's FV.
         /// </summary>
-        public string Fv
+        public string CalculatedFv
         {
             get
             {
-                string strReturn = _strFv;
-                bool force = strReturn.StartsWith('L');
-                if (_objCharacter.Improvements.Any(o => o.ImproveType == Improvement.ImprovementType.FadingValue && o.Enabled))
+                string strReturn = FvBase;
+                List<Improvement> lstImprovements
+                    = ImprovementManager.GetCachedImprovementListForValueOf(
+                        _objCharacter, Improvement.ImprovementType.FadingValue, Name, true);
+                if (lstImprovements.Count > 0)
                 {
-                    string strFv = strReturn.TrimStartOnce('L');
+                    bool force = strReturn.StartsWith('L');
+                    string strFv = strReturn;
+                    if (force)
+                        strFv = strFv.TrimStartOnce("L", true);
                     //Navigator can't do math on a single value, so inject a mathable value.
                     if (string.IsNullOrEmpty(strFv))
                     {
@@ -428,26 +546,39 @@ namespace Chummer
                         }
                     }
 
-                    StringBuilder sbdFv = new StringBuilder(strFv);
-                    foreach (Improvement objImprovement in _objCharacter.Improvements.Where(i => i.ImproveType == Improvement.ImprovementType.FadingValue && i.Enabled))
+                    using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                                  out StringBuilder sbdFv))
                     {
-                        sbdFv.AppendFormat(GlobalSettings.InvariantCultureInfo, "{0:+0;-0;+0}", objImprovement.Value);
-                    }
-                    object xprResult = CommonFunctions.EvaluateInvariantXPath(sbdFv.ToString(), out bool blnIsSuccess);
-                    if (blnIsSuccess)
-                    {
-                        if (force)
+                        sbdFv.Append(strFv);
+                        foreach (Improvement objImprovement in lstImprovements)
                         {
-                            strReturn = string.Format(GlobalSettings.CultureInfo, "L{0:+0;-0;}", xprResult);
+                            sbdFv.AppendFormat(GlobalSettings.InvariantCultureInfo, "{0:+0;-0;+0}",
+                                               objImprovement.Value);
                         }
-                        else if (xprResult.ToString() != "0")
+
+                        object xprResult
+                            = CommonFunctions.EvaluateInvariantXPath(sbdFv.ToString(), out bool blnIsSuccess);
+
+                        if (blnIsSuccess)
                         {
-                            strReturn += xprResult;
+                            if (force)
+                            {
+                                strReturn = string.Format(GlobalSettings.CultureInfo, "L{0:+0;-0;}", xprResult);
+                            }
+                            else if (xprResult.ToString() != "0")
+                            {
+                                strReturn += xprResult;
+                            }
                         }
                     }
                 }
                 return strReturn;
             }
+        }
+
+        public string FvBase
+        {
+            get => _strFv;
             set => _strFv = value;
         }
 
@@ -488,6 +619,42 @@ namespace Chummer
         }
 
         /// <summary>
+        /// Translated Duration.
+        /// </summary>
+        public Task<string> DisplayTargetAsync(string strLanguage)
+        {
+            switch (Target)
+            {
+                case "Persona":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetPersona", strLanguage);
+
+                case "Device":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetDevice", strLanguage);
+
+                case "File":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetFile", strLanguage);
+
+                case "Self":
+                    return LanguageManager.GetStringAsync("String_SpellRangeSelf", strLanguage);
+
+                case "Sprite":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetSprite", strLanguage);
+
+                case "Host":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetHost", strLanguage);
+
+                case "IC":
+                    return LanguageManager.GetStringAsync("String_ComplexFormTargetIC", strLanguage);
+
+                case "Special":
+                    return LanguageManager.GetStringAsync("String_Special", strLanguage);
+
+                default:
+                    return LanguageManager.GetStringAsync("String_None", strLanguage);
+            }
+        }
+
+        /// <summary>
         /// The Complex Form's Target.
         /// </summary>
         public string Target
@@ -524,7 +691,24 @@ namespace Chummer
         {
             if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
                 return Page;
-            string s = GetNode(strLanguage)?["altpage"]?.InnerText ?? Page;
+            string s = this.GetNodeXPath(strLanguage)?.SelectSingleNodeAndCacheExpression("altpage")?.Value ?? Page;
+            return !string.IsNullOrWhiteSpace(s) ? s : Page;
+        }
+
+        /// <summary>
+        /// Sourcebook Page Number using a given language file.
+        /// Returns Page if not found or the string is empty.
+        /// </summary>
+        /// <param name="strLanguage">Language file keyword to use.</param>
+        /// <returns></returns>
+        public async ValueTask<string> DisplayPageAsync(string strLanguage)
+        {
+            if (strLanguage.Equals(GlobalSettings.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+                return Page;
+            XPathNavigator objNode = await this.GetNodeXPathAsync(strLanguage);
+            string s = objNode != null
+                ? (await objNode.SelectSingleNodeAndCacheExpressionAsync("altpage"))?.Value ?? Page
+                : Page;
             return !string.IsNullOrWhiteSpace(s) ? s : Page;
         }
 
@@ -578,57 +762,88 @@ namespace Chummer
             get
             {
                 string strSpace = LanguageManager.GetString("String_Space");
-                StringBuilder sbdReturn = new StringBuilder();
-                string strFormat = strSpace + "{0}" + strSpace + "({1})";
-                CharacterAttrib objResonanceAttrib = _objCharacter.GetAttribute("RES");
-                if (objResonanceAttrib != null)
+                using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                              out StringBuilder sbdReturn))
                 {
-                    sbdReturn.AppendFormat(GlobalSettings.CultureInfo, strFormat,
-                        objResonanceAttrib.DisplayNameFormatted, objResonanceAttrib.DisplayValue);
-                }
-                if (Skill != null)
-                {
-                    if (sbdReturn.Length > 0)
-                        sbdReturn.Append(strSpace + '+' + strSpace);
-                    sbdReturn.Append(Skill.FormattedDicePool(Skill.PoolOtherAttribute("RES") -
-                                                            (objResonanceAttrib?.TotalValue ?? 0), CurrentDisplayName));
-                }
+                    string strFormat = strSpace + "{0}" + strSpace + "({1})";
+                    CharacterAttrib objResonanceAttrib = _objCharacter.GetAttribute("RES");
+                    if (objResonanceAttrib != null)
+                    {
+                        sbdReturn.AppendFormat(GlobalSettings.CultureInfo, strFormat,
+                                               objResonanceAttrib.DisplayNameFormatted,
+                                               objResonanceAttrib.DisplayValue);
+                    }
 
-                // Include any Improvements to the Spell Category.
-                foreach (Improvement objImprovement in _objCharacter.Improvements
-                    .Where(objImprovement => objImprovement.ImproveType == Improvement.ImprovementType.ActionDicePool && objImprovement.Enabled
-                    && objImprovement.ImprovedName == "Threading"))
-                {
-                    if (sbdReturn.Length > 0)
-                        sbdReturn.Append(strSpace + '+' + strSpace);
-                    sbdReturn.AppendFormat(GlobalSettings.CultureInfo, strFormat, _objCharacter.GetObjectName(objImprovement), objImprovement.Value);
-                }
+                    if (Skill != null)
+                    {
+                        if (sbdReturn.Length > 0)
+                            sbdReturn.Append(strSpace).Append('+').Append(strSpace);
+                        sbdReturn.Append(Skill.FormattedDicePool(Skill.PoolOtherAttribute("RES") -
+                                                                 (objResonanceAttrib?.TotalValue ?? 0),
+                                                                 CurrentDisplayName));
+                    }
 
-                return sbdReturn.ToString();
+                    // Include any Improvements to the Spell Category.
+                    foreach (Improvement objImprovement in ImprovementManager.GetCachedImprovementListForValueOf(
+                                 _objCharacter, Improvement.ImprovementType.ActionDicePool, "Threading"))
+                    {
+                        if (sbdReturn.Length > 0)
+                            sbdReturn.Append(strSpace).Append('+').Append(strSpace);
+                        sbdReturn.AppendFormat(GlobalSettings.CultureInfo, strFormat,
+                                               _objCharacter.GetObjectName(objImprovement), objImprovement.Value);
+                    }
+
+                    return sbdReturn.ToString();
+                }
             }
         }
 
         private XmlNode _objCachedMyXmlNode;
         private string _strCachedXmlNodeLanguage = string.Empty;
 
-        public XmlNode GetNode()
+        public async Task<XmlNode> GetNodeCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            return GetNode(GlobalSettings.Language);
+            if (_objCachedMyXmlNode != null && strLanguage == _strCachedXmlNodeLanguage
+                                            && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXmlNode;
+            _objCachedMyXmlNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadData("complexforms.xml", strLanguage, token: token)
+                    : await _objCharacter.LoadDataAsync("complexforms.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/complexforms/complexform[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/complexforms/complexform[id = "
+                                        + SourceIDString.CleanXPath()
+                                        + " or id = " + SourceIDString
+                                                        .ToUpperInvariant().CleanXPath()
+                                        + ']');
+            _strCachedXmlNodeLanguage = strLanguage;
+            return _objCachedMyXmlNode;
         }
 
-        public XmlNode GetNode(string strLanguage)
+        private XPathNavigator _objCachedMyXPathNode;
+        private string _strCachedXPathNodeLanguage = string.Empty;
+
+        public async Task<XPathNavigator> GetNodeXPathCoreAsync(bool blnSync, string strLanguage, CancellationToken token = default)
         {
-            if (_objCachedMyXmlNode == null || strLanguage != _strCachedXmlNodeLanguage || GlobalSettings.LiveCustomData)
-            {
-                _objCachedMyXmlNode = _objCharacter.LoadData("complexforms.xml", strLanguage)
-                    .SelectSingleNode(SourceID == Guid.Empty
-                        ? "/chummer/complexforms/complexform[name = " + Name.CleanXPath() + ']'
-                        : string.Format(GlobalSettings.InvariantCultureInfo,
-                            "/chummer/complexforms/complexform[id = {0} or id = {1}]",
-                            SourceIDString.CleanXPath(), SourceIDString.ToUpperInvariant().CleanXPath()));
-                _strCachedXmlNodeLanguage = strLanguage;
-            }
-            return _objCachedMyXmlNode;
+            if (_objCachedMyXPathNode != null && strLanguage == _strCachedXPathNodeLanguage
+                                              && !GlobalSettings.LiveCustomData)
+                return _objCachedMyXPathNode;
+            _objCachedMyXPathNode = (blnSync
+                    // ReSharper disable once MethodHasAsyncOverload
+                    ? _objCharacter.LoadDataXPath("complexforms.xml", strLanguage, token: token)
+                    : await _objCharacter.LoadDataXPathAsync("complexforms.xml", strLanguage, token: token))
+                .SelectSingleNode(SourceID == Guid.Empty
+                                      ? "/chummer/complexforms/complexform[name = "
+                                        + Name.CleanXPath() + ']'
+                                      : "/chummer/complexforms/complexform[id = "
+                                        + SourceIDString.CleanXPath()
+                                        + " or id = " + SourceIDString
+                                                        .ToUpperInvariant().CleanXPath()
+                                        + ']');
+            _strCachedXPathNodeLanguage = strLanguage;
+            return _objCachedMyXPathNode;
         }
 
         #endregion Properties
@@ -685,6 +900,13 @@ namespace Chummer
             if (_objCachedSourceDetail.Language != GlobalSettings.Language)
                 _objCachedSourceDetail = default;
             SourceDetail.SetControl(sourceControl);
+        }
+
+        public Task SetSourceDetailAsync(Control sourceControl, CancellationToken token = default)
+        {
+            if (_objCachedSourceDetail.Language != GlobalSettings.Language)
+                _objCachedSourceDetail = default;
+            return SourceDetail.SetControlAsync(sourceControl, token);
         }
     }
 }

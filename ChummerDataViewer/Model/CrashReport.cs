@@ -1,3 +1,21 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -5,17 +23,17 @@ using System.Text;
 
 namespace ChummerDataViewer.Model
 {
-    public class CrashReport
+    public sealed class CrashReport
     {
         public EventHandler ProgressChanged { get; set; }
 
         private readonly Database.DatabasePrivateApi _database;
-        private readonly string _key;
-        private readonly string _downloadedZip;
-        private readonly string _folderlocation;
+        private readonly string _strKey;
+        private readonly string _strDownloadedZip;
+        private readonly string _strFolderlocation;
 
-        public bool IsDownloadStarted => _downloadedZip != null;
-        public bool IsUnpackStarted => _folderlocation != null;
+        public bool IsDownloadStarted => !string.IsNullOrEmpty(_strDownloadedZip);
+        public bool IsUnpackStarted => !string.IsNullOrEmpty(_strFolderlocation);
 
         public Guid Guid { get; }
 
@@ -37,13 +55,13 @@ namespace ChummerDataViewer.Model
             }
         }
 
-        internal CrashReport(Database.DatabasePrivateApi database, Guid guid, long unixTimeStamp, string buildType, string errorFrindly, string key,
-            string webFileLocation, Version version, string downloadedZip = null, string folderlocation = null, string stackTrace = null, string userstory = null)
+        internal CrashReport(Database.DatabasePrivateApi database, Guid guid, long unixTimeStamp, string buildType, string errorFrindly, string strKey,
+            string webFileLocation, Version version, string strDownloadedZip = null, string strFolderlocation = null, string stackTrace = null, string userstory = null)
         {
             _database = database;
-            _key = key;
-            _downloadedZip = downloadedZip;
-            _folderlocation = folderlocation;
+            _strKey = strKey;
+            _strDownloadedZip = strDownloadedZip;
+            _strFolderlocation = strFolderlocation;
             Guid = guid;
             BuildType = buildType;
             ErrorFrindly = errorFrindly;
@@ -56,11 +74,11 @@ namespace ChummerDataViewer.Model
             //Addseconds complains, 1 second = 10000 ns ticks so do that instead
             Timestamp = unixStart.AddTicks(unixTimeStamp * 10000);
 
-            if (folderlocation != null)
+            if (strFolderlocation != null)
             {
                 Progress = CrashReportProcessingProgress.Unpacked;
             }
-            else if (downloadedZip != null)
+            else if (strDownloadedZip != null)
             {
                 Progress = CrashReportProcessingProgress.Downloaded;
             }
@@ -86,7 +104,7 @@ namespace ChummerDataViewer.Model
 
                 string file = PersistentState.Database.GetKey("crashdumps_zip_folder") + Path.DirectorySeparatorChar + Guid + ".zip";
                 _worker = worker;
-                _worker.Enqueue(Guid, uriLocation, _key, file);
+                _worker.Enqueue(Guid, uriLocation, _strKey, file);
 
                 _worker.StatusChanged += WorkerOnStatusChanged;
             }
@@ -96,7 +114,7 @@ namespace ChummerDataViewer.Model
 
         private void WorkerOnStatusChanged(INotifyThreadStatus sender, StatusChangedEventArgs args)
         {
-            if (args.AttachedData?.guid != Guid ?? false)
+            if (args.AttachedData.guid != Guid)
                 return;
 
             _worker.StatusChanged -= WorkerOnStatusChanged;
@@ -115,19 +133,20 @@ namespace ChummerDataViewer.Model
                     using (Stream s = userstoryEntry.Open())
                     {
                         byte[] buffer = new byte[userstoryEntry.Length];
-                        s.Read(buffer, 0, buffer.Length);
-                        userstory = Encoding.UTF8.GetString(buffer);
+                        int intByteCount = s.Read(buffer, 0, buffer.Length);
+                        userstory = intByteCount > 0 ? Encoding.UTF8.GetString(buffer) : string.Empty;
                     }
                 }
 
                 ZipArchiveEntry exceptionEntry = archive.GetEntry("exception.txt");
                 if (exceptionEntry != null)
                 {
-                    Stream s = exceptionEntry.Open();
-                    byte[] buffer = new byte[exceptionEntry.Length];
-                    s.Read(buffer, 0, buffer.Length);
-                    exception = Encoding.UTF8.GetString(buffer);
-                    s.Close();
+                    using (Stream s = exceptionEntry.Open())
+                    {
+                        byte[] buffer = new byte[exceptionEntry.Length];
+                        int intByteCount = s.Read(buffer, 0, buffer.Length);
+                        exception = intByteCount > 0 ? Encoding.UTF8.GetString(buffer) : string.Empty;
+                    }
                 }
             }
             Userstory = userstory;

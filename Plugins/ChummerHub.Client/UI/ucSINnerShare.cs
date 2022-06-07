@@ -1,10 +1,27 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Chummer;
-using Chummer.Plugins;
 using ChummerHub.Client.Backend;
 using ChummerHub.Client.Sinners;
 using ChummerHub.Client.Properties;
@@ -16,7 +33,7 @@ namespace ChummerHub.Client.UI
     public partial class ucSINnerShare : UserControl
     {
         private static Logger Log { get; } = LogManager.GetCurrentClassLogger();
-        public frmSINnerShare MyFrmSINnerShare;
+        public frmSINnerShare MyFrmSINnerShare { get; set; }
 
         public CharacterCache MyCharacterCache { get; set; }
         public SINnerSearchGroup MySINnerSearchGroup { get; set; }
@@ -69,11 +86,11 @@ namespace ChummerHub.Client.UI
             try
             {
                 string hash = string.Empty;
-                using (var op_shareChummer = Timekeeper.StartSyncron("Share Group", null,
-                    CustomActivity.OperationType.DependencyOperation, MySINnerSearchGroup?.Groupname))
+                using (CustomActivity op_shareChummer = await Timekeeper.StartSyncronAsync("Share Group", null,
+                           CustomActivity.OperationType.DependencyOperation, MySINnerSearchGroup?.Groupname))
                 {
                     MyUserState myState = new MyUserState(this);
-                    var client = StaticUtils.GetClient();
+                    SinnersClient client = StaticUtils.GetClient();
 
                     if (string.IsNullOrEmpty(MySINnerSearchGroup?.Id?.ToString()))
                     {
@@ -88,26 +105,24 @@ namespace ChummerHub.Client.UI
                     }
 
                     //check if char is already online and updated
-                    using (_ = Timekeeper.StartSyncron(
-                        "check if online", op_shareChummer,
-                        CustomActivity.OperationType.DependencyOperation, MySINnerSearchGroup?.Groupname))
+                    using (_ = await Timekeeper.StartSyncronAsync(
+                               "check if online", op_shareChummer,
+                               CustomActivity.OperationType.DependencyOperation, MySINnerSearchGroup?.Groupname))
                     {
                         ResultGroupGetGroupById checkresult = await client.GetGroupByIdAsync(MySINnerSearchGroup?.Id).ConfigureAwait(false);
+                        if (checkresult == null)
+                            throw new ArgumentException("Could not parse result from SINners Webservice!");
+                        if (!checkresult.CallSuccess)
                         {
-                            if (checkresult == null)
-                                throw new ArgumentException("Could not parse result from SINners Webservice!");
-                            if (checkresult.CallSuccess != true)
-                            {
-                                if (checkresult.MyException != null)
-                                    throw new ArgumentException(
-                                        "Error from SINners Webservice: " + checkresult.ErrorText,
-                                        checkresult.MyException.ToString());
-                                throw new ArgumentException("Error from SINners Webservice: " +
-                                                            checkresult.ErrorText);
-                            }
-
-                            hash = checkresult.MyGroup.MyHash;
+                            if (checkresult.MyException != null)
+                                throw new ArgumentException(
+                                    "Error from SINners Webservice: " + checkresult.ErrorText,
+                                    checkresult.MyException.ToString());
+                            throw new ArgumentException("Error from SINners Webservice: " +
+                                                        checkresult.ErrorText);
                         }
+
+                        hash = checkresult.MyGroup.MyHash;
                     }
 
 
@@ -142,12 +157,12 @@ namespace ChummerHub.Client.UI
             string hash = string.Empty;
             try
             {
-                using (var op_shareChummer = Timekeeper.StartSyncron("Share Chummer", null,
-                    CustomActivity.OperationType.DependencyOperation, MyCharacterCache.FilePath))
+                using (CustomActivity op_shareChummer = await Timekeeper.StartSyncronAsync("Share Chummer", null,
+                           CustomActivity.OperationType.DependencyOperation, MyCharacterCache.FilePath))
                 {
                     MyUserState myState = new MyUserState(this);
                     CharacterExtended ce = null;
-                    var client = StaticUtils.GetClient();
+                    SinnersClient client = StaticUtils.GetClient();
                     string sinnerid = string.Empty;
                     Guid SINid = Guid.Empty;
 
@@ -155,17 +170,17 @@ namespace ChummerHub.Client.UI
                     {
                         async Task<CharacterExtended> GetCharacterExtended(CustomActivity parentActivity)
                         {
-                            using (_ = Timekeeper.StartSyncron("Loading Chummerfile", parentActivity,
-                                CustomActivity.OperationType.DependencyOperation, MyCharacterCache.FilePath))
+                            using (_ = await Timekeeper.StartSyncronAsync("Loading Chummerfile", parentActivity,
+                                                                          CustomActivity.OperationType.DependencyOperation, MyCharacterCache.FilePath))
                             {
-                                Character c = PluginHandler.MainForm.OpenCharacters.FirstOrDefault(a => a.FileName == MyCharacterCache.FilePath);
+                                Character c = Program.OpenCharacters.FirstOrDefault(a => a.FileName == MyCharacterCache.FilePath);
                                 bool blnSuccess = true;
                                 if (c == null)
                                 {
                                     c = new Character { FileName = MyCharacterCache.FilePath };
-                                    using (frmLoading frmLoadingForm = new frmLoading { CharacterFile = MyCharacterCache.FilePath })
+                                    using (LoadingBar frmLoadingForm = new LoadingBar { CharacterFile = MyCharacterCache.FilePath })
                                     {
-                                        frmLoadingForm.Reset(36);
+                                        await frmLoadingForm.ResetAsync(36);
                                         frmLoadingForm.Show();
                                         myState.StatusText = "Loading chummer file...";
                                         myState.CurrentProgress += 10;
@@ -215,14 +230,14 @@ namespace ChummerHub.Client.UI
                         {
                             //check if char is already online and updated
                             ResultSinnerGetSINById checkresult;
-                            using (_ = Timekeeper.StartSyncron(
-                                "check if online", op_shareChummer,
-                                CustomActivity.OperationType.DependencyOperation, MyCharacterCache?.FilePath))
+                            using (_ = await Timekeeper.StartSyncronAsync(
+                                       "check if online", op_shareChummer,
+                                       CustomActivity.OperationType.DependencyOperation, MyCharacterCache?.FilePath))
                             {
                                 checkresult = await client.GetSINByIdAsync(SINid);
                                 if (checkresult == null)
                                     throw new ArgumentException("Could not parse result from SINners Webservice!");
-                                if (checkresult.CallSuccess != true)
+                                if (!checkresult.CallSuccess)
                                 {
                                     if (checkresult.MyException != null)
                                         throw new ArgumentException(
@@ -236,7 +251,7 @@ namespace ChummerHub.Client.UI
                             }
 
 
-                            var lastWriteTimeUtc = MyCharacterCache != null ? File.GetLastWriteTimeUtc(MyCharacterCache.FilePath) : DateTime.MinValue;
+                            DateTime lastWriteTimeUtc = MyCharacterCache != null ? File.GetLastWriteTimeUtc(MyCharacterCache.FilePath) : DateTime.MinValue;
                             if (checkresult.MySINner.LastChange < lastWriteTimeUtc)
                             {
                                 if (ce == null)
@@ -249,9 +264,9 @@ namespace ChummerHub.Client.UI
 
                                 if (ce != null)
                                 {
-                                    using (var op_uploadChummer = Timekeeper.StartSyncron(
-                                        "Uploading Chummer", op_shareChummer,
-                                        CustomActivity.OperationType.DependencyOperation, MyCharacterCache?.FilePath))
+                                    using (CustomActivity op_uploadChummer = await Timekeeper.StartSyncronAsync(
+                                               "Uploading Chummer", op_shareChummer,
+                                               CustomActivity.OperationType.DependencyOperation, MyCharacterCache?.FilePath))
                                     {
                                         myState.StatusText = "Checking SINner availability (and if necessary upload it).";
                                         myState.CurrentProgress = 35;
@@ -260,22 +275,21 @@ namespace ChummerHub.Client.UI
                                         await ce.Upload(myState, op_uploadChummer);
                                         if (ce.MySINnerFile.Id != null)
                                             SINid = ce.MySINnerFile.Id.Value;
-                                        var result = await client.GetSINByIdAsync(SINid);
+                                        ResultSinnerGetSINById result = await client.GetSINByIdAsync(SINid);
+                                        if (result == null)
+                                            throw new ArgumentException(
+                                                "Could not parse result from SINners Webservice!");
+                                        if (!result.CallSuccess)
                                         {
-                                            if (result == null)
-                                                throw new ArgumentException("Could not parse result from SINners Webservice!");
-                                            if (result.CallSuccess != true)
-                                            {
-                                                if (result.MyException != null)
-                                                    throw new ArgumentException(
-                                                        "Error from SINners Webservice: " + result.ErrorText,
-                                                        result.MyException.ToString());
+                                            if (result.MyException != null)
                                                 throw new ArgumentException(
-                                                    "Error from SINners Webservice: " + result.ErrorText);
-                                            }
-
-                                            hash = result.MySINner.MyHash;
+                                                    "Error from SINners Webservice: " + result.ErrorText,
+                                                    result.MyException.ToString());
+                                            throw new ArgumentException(
+                                                "Error from SINners Webservice: " + result.ErrorText);
                                         }
+
+                                        hash = result.MySINner.MyHash;
                                     }
                                 }
                             }
@@ -323,16 +337,16 @@ namespace ChummerHub.Client.UI
 
             if (e is MyUserState us)
             {
-                tbStatus.DoThreadSafe(() =>
+                tbStatus.DoThreadSafe(x =>
                 {
-                    if (!tbStatus.Text.Contains(us.StatusText))
-                        tbStatus.Text += us.StatusText + Environment.NewLine;
+                    if (!x.Text.Contains(us.StatusText))
+                        x.Text += us.StatusText + Environment.NewLine;
                 });
-                tbLink.DoThreadSafe(() =>
+                tbLink.DoThreadSafe(x =>
                 {
                     if (!string.IsNullOrEmpty(us.LinkText) && (us.LinkText != tbLink.Text))
                     {
-                        tbLink.Text = us.LinkText;
+                        x.Text = us.LinkText;
                     }
                 });
             }
@@ -340,15 +354,15 @@ namespace ChummerHub.Client.UI
         private void ShareChummer_RunWorkerCompleted(MyUserState us)
         {
             pgbStatus.DoThreadSafe(() => { pgbStatus.Value = 100; });
-            tbLink.DoThreadSafe(() =>
+            tbLink.DoThreadSafe(x =>
             {
-                tbLink.Text = us.LinkText;
+                x.Text = us.LinkText;
             });
-            tbStatus.DoThreadSafe(() =>
+            tbStatus.DoThreadSafe(x =>
             {
-                tbStatus.Text += "Link copied to clipboard." + Environment.NewLine;
+                x.Text += "Link copied to clipboard." + Environment.NewLine;
                 Clipboard.SetText(us.LinkText);
-                tbStatus.Text += "Process was completed" + Environment.NewLine;
+                x.Text += "Process was completed" + Environment.NewLine;
             });
         }
 

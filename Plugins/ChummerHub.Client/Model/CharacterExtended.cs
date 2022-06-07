@@ -1,5 +1,22 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -55,7 +72,7 @@ namespace ChummerHub.Client.Sinners
         {
             if (mySINnerLoading == null)
                 return;
-            var backup = MySINnerFile;
+            SINner backup = MySINnerFile;
             MySINnerFile = mySINnerLoading;
             if (MySINnerFile?.SiNnerMetaData == null)
                 return;
@@ -71,8 +88,8 @@ namespace ChummerHub.Client.Sinners
             SaveSINnerIds(); //Save it!
         }
 
-        private static readonly ConcurrentDictionary<string, SINner> s_dicCachedPluginFileSINners =
-            new ConcurrentDictionary<string, SINner>();
+        private static readonly LockingDictionary<string, SINner> s_dicCachedPluginFileSINners =
+            new LockingDictionary<string, SINner>();
 
         public static void SaveFromPluginFile(string strPluginFileElement, Character character, SINner mySINnerLoading = null)
         {
@@ -120,10 +137,10 @@ namespace ChummerHub.Client.Sinners
 
 
         // ReSharper disable once InconsistentNaming
-        private static ConcurrentDictionary<string, Guid> _SINnerIds;
+        private static LockingDictionary<string, Guid> _SINnerIds;
 
         // ReSharper disable once InconsistentNaming
-        public static ConcurrentDictionary<string, Guid> MySINnerIds
+        public static LockingDictionary<string, Guid> MySINnerIds
         {
             get
             {
@@ -131,8 +148,8 @@ namespace ChummerHub.Client.Sinners
                     return _SINnerIds;
                 string save = Settings.Default.SINnerIds;
                 _SINnerIds = !string.IsNullOrEmpty(save)
-                    ? JsonConvert.DeserializeObject<ConcurrentDictionary<string, Guid>>(save)
-                    : new ConcurrentDictionary<string, Guid>();
+                    ? JsonConvert.DeserializeObject<LockingDictionary<string, Guid>>(save)
+                    : new LockingDictionary<string, Guid>();
                 return _SINnerIds;
             }
             set
@@ -155,19 +172,19 @@ namespace ChummerHub.Client.Sinners
 
         internal IList<Tag> PopulateTags()
         {
-            var tag = new Tag ()
+            Tag tag = new Tag ()
             {
                 MyRuntimeObject = MyCharacter,
                 SiNnerId = MySINnerFile.Id,
                 TagName = "Reflection",
                 Tags = new List<Tag>(TagExtractor.ExtractTagsFromAttributes(MyCharacter))
             };
-            foreach (var f in MySINnerFile.SiNnerMetaData.Tags.Where(x => x?.TagName == "Reflection").ToList())
+            foreach (Tag f in MySINnerFile.SiNnerMetaData.Tags.Where(x => x?.TagName == "Reflection").ToList())
             {
                 MySINnerFile.SiNnerMetaData.Tags.Remove(f);
             }
             MySINnerFile.SiNnerMetaData.Tags.Add(tag);
-            foreach(var childtag in MySINnerFile.SiNnerMetaData.Tags.Where(a => a != null).ToList())
+            foreach(Tag childtag in MySINnerFile.SiNnerMetaData.Tags.Where(a => a != null).ToList())
             {
                 childtag.SetSinnerIdRecursive(MySINnerFile.Id);
             }
@@ -176,20 +193,22 @@ namespace ChummerHub.Client.Sinners
 
         public async Task<bool> Upload(ucSINnerShare.MyUserState myState = null, CustomActivity parentActivity = null)
         {
-            using (var op_uploadChummer = Timekeeper.StartSyncron(
-                "Uploading Chummer", parentActivity,
-                CustomActivity.OperationType.DependencyOperation, MyCharacter.FileName))
+            if (MyCharacter == null)
+                return true;
+            using (CustomActivity op_uploadChummer = await Timekeeper.StartSyncronAsync(
+                       "Uploading Chummer", parentActivity,
+                       CustomActivity.OperationType.DependencyOperation, MyCharacter.FileName))
             {
                 try
                 {
-                    using (new CursorWait(PluginHandler.MainForm, true))
+                    using (await CursorWait.NewAsync(PluginHandler.MainForm, true))
                     {
                         try
                         {
                             ResultSinnerGetSINById found = null;
-                            using (_ = Timekeeper.StartSyncron(
-                                "Checking if already online Chummer", op_uploadChummer,
-                                CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                            using (_ = await Timekeeper.StartSyncronAsync(
+                                       "Checking if already online Chummer", op_uploadChummer,
+                                       CustomActivity.OperationType.DependencyOperation, MyCharacter.FileName))
                             {
                                 if (myState != null)
                                 {
@@ -211,7 +230,7 @@ namespace ChummerHub.Client.Sinners
                                     return true;
                                 }
 
-                                var client = StaticUtils.GetClient();
+                                SinnersClient client = StaticUtils.GetClient();
                                 try
                                 {
 
@@ -235,9 +254,9 @@ namespace ChummerHub.Client.Sinners
                             if (myState != null)
 //2 Step
                                 myState.CurrentProgress += myState.ProgressSteps;
-                            using (_ = Timekeeper.StartSyncron(
-                                "Setting Visibility for Chummer", op_uploadChummer,
-                                CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                            using (_ = await Timekeeper.StartSyncronAsync(
+                                       "Setting Visibility for Chummer", op_uploadChummer,
+                                       CustomActivity.OperationType.DependencyOperation, MyCharacter.FileName))
                             {
                                 if (found?.CallSuccess == true)
                                 {
@@ -272,16 +291,16 @@ namespace ChummerHub.Client.Sinners
                             //found?.Dispose();
                         }
 
-                        using (_ = Timekeeper.StartSyncron(
-                            "Populating Reflection Tags", op_uploadChummer,
-                            CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                        using (_ = await Timekeeper.StartSyncronAsync(
+                                   "Populating Reflection Tags", op_uploadChummer,
+                                   CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
                         {
                             MySINnerFile.SiNnerMetaData.Tags = PopulateTags();
                         }
 
-                        using (_ = Timekeeper.StartSyncron(
-                            "Preparing Model", op_uploadChummer,
-                            CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                        using (_ = await Timekeeper.StartSyncronAsync(
+                                   "Preparing Model", op_uploadChummer,
+                                   CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
                         {
                             await PrepareModelAsync();
                         }
@@ -297,9 +316,9 @@ namespace ChummerHub.Client.Sinners
                         ResultSinnerPostSIN res;
                         try
                         {
-                            using (_ = Timekeeper.StartSyncron(
-                                "Posting SINner", op_uploadChummer,
-                                CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                            using (_ = await Timekeeper.StartSyncronAsync(
+                                       "Posting SINner", op_uploadChummer,
+                                       CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
                             {
                                 res = null;
                                 try
@@ -334,32 +353,30 @@ namespace ChummerHub.Client.Sinners
 
                             if (res?.CallSuccess == true)
                             {
-                                using (_ = Timekeeper.StartSyncron(
-                                    "Uploading File", op_uploadChummer,
-                                    CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
+                                using (_ = await Timekeeper.StartSyncronAsync(
+                                           "Uploading File", op_uploadChummer,
+                                           CustomActivity.OperationType.DependencyOperation, MyCharacter?.FileName))
                                 {
-                                    var uploadres = await Utils.UploadChummerFileAsync(this);
+                                    ResultSINnerPut uploadres = await Utils.UploadChummerFileAsync(this);
+                                    if (uploadres.CallSuccess)
                                     {
-                                        if (uploadres.CallSuccess)
-                                        {
-                                            if (myState != null)
-                                            {
-//5 Step
-                                                myState.CurrentProgress += myState.ProgressSteps;
-                                                myState.StatusText = "Chummer uploaded...";
-                                                myState.myWorker?.ReportProgress(myState.CurrentProgress, myState);
-                                            }
-
-                                            return true;
-                                        }
-
                                         if (myState != null)
                                         {
 //5 Step
                                             myState.CurrentProgress += myState.ProgressSteps;
-                                            myState.StatusText = "Chummer upload failed: " + uploadres.ErrorText;
+                                            myState.StatusText = "Chummer uploaded...";
                                             myState.myWorker?.ReportProgress(myState.CurrentProgress, myState);
                                         }
+
+                                        return true;
+                                    }
+
+                                    if (myState != null)
+                                    {
+//5 Step
+                                        myState.CurrentProgress += myState.ProgressSteps;
+                                        myState.StatusText = "Chummer upload failed: " + uploadres.ErrorText;
+                                        myState.myWorker?.ReportProgress(myState.CurrentProgress, myState);
                                     }
 
                                     return false;
@@ -403,15 +420,16 @@ namespace ChummerHub.Client.Sinners
                     Tag = null
                 };
                 // get all tags in the list with parent is null
-                foreach (var branch in tags.Where(t => t != null && t.MyParentTag == null))
+                foreach (Tag branch in tags.Where(t => t != null && t.MyParentTag == null))
                 {
-                    var child = new TreeNode
+                    string strText = branch.TagName;
+                    if (!string.IsNullOrEmpty(branch.TagValue))
+                        strText += ": " + branch.TagValue;
+                    TreeNode child = new TreeNode
                     {
-                        Text = branch.TagName,
+                        Text = strText,
                         Tag = branch.Id,
                     };
-                    if (!string.IsNullOrEmpty(branch.TagValue))
-                        child.Text += ": " + branch.TagValue;
                     if (!string.IsNullOrEmpty(branch.TagComment))
                         child.ToolTipText = branch.TagComment;
                     PopulateTree(ref child, branch.Tags.ToArray(), filtertags);
@@ -422,20 +440,20 @@ namespace ChummerHub.Client.Sinners
             }
             else
             {
-                foreach (var tag in tags)
+                foreach (Tag tag in tags)
                 {
-                    if (filtertags != null && (filtertags.All(x => x.TagName != tag.TagName) && tag.Tags.Count <= 0))
+                    if (filtertags != null && filtertags.All(x => x.TagName != tag.TagName) && tag.Tags.Count == 0)
                         continue;
-                    var child = new TreeNode
+                    string strText = string.IsNullOrEmpty(tag.TagComment)
+                        ? tag.TagName
+                        : '(' + tag.TagComment + ") " + tag.TagName;
+                    if (!string.IsNullOrEmpty(tag.TagValue))
+                        strText += ": " + tag.TagValue;
+                    TreeNode child = new TreeNode
                     {
-                        Text = string.Empty,
+                        Text = strText,
                         Tag = tag.Id
                     };
-                    if(!string.IsNullOrEmpty(tag.TagComment))
-                        child.Text = "(" + tag.TagComment + ") ";
-                    child.Text += tag.TagName;
-                    if (!string.IsNullOrEmpty(tag.TagValue))
-                        child.Text += ": " + tag.TagValue;
                     PopulateTree(ref child, tag.Tags?.ToArray(), filtertags);
                     root.Nodes.Add(child);
                 }
@@ -457,22 +475,36 @@ namespace ChummerHub.Client.Sinners
             string zipPath = Path.Combine(Settings.Default.TempDownloadPath, "SINner", MySINnerFile.Id + ".chum5z");
             if (PluginHandler.MySINnerLoading != null)
             {
-                if (MySINnerIds.ContainsKey(MyCharacter.FileName))
+                if (blnSync)
+                {
+                    // ReSharper disable once MethodHasAsyncOverload
+                    if (MySINnerIds.ContainsKey(MyCharacter.FileName))
+                    {
+                        MySINnerIds.TryRemove(MyCharacter.FileName, out Guid _);
+                    }
+                }
+                else if (await MySINnerIds.ContainsKeyAsync(MyCharacter.FileName))
+                {
                     MySINnerIds.TryRemove(MyCharacter.FileName, out Guid _);
+                }
             }
-            object sinidob = null;
-            if (MyCharacterCache?.MyPluginDataDic?.TryGetValue("SINnerId", out sinidob) == true)
+
+            if (MyCharacterCache?.MyPluginDataDic.TryGetValue("SINnerId", out object sinidob) == true)
             {
                 MySINnerFile.Id = (Guid)sinidob;
             }
-            else if (MySINnerIds.TryGetValue(MyCharacter.FileName, out var singuid))
+            else if (MySINnerIds.TryGetValue(MyCharacter.FileName, out Guid singuid))
                 MySINnerFile.Id = singuid;
             else
             {
                 if (PluginHandler.MySINnerLoading?.Id != null)
                 {
                     MySINnerFile = PluginHandler.MySINnerLoading;
-                    MySINnerIds.TryAdd(MyCharacter.FileName, PluginHandler.MySINnerLoading.Id.Value);
+                    if (blnSync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        MySINnerIds.TryAdd(MyCharacter.FileName, PluginHandler.MySINnerLoading.Id.Value);
+                    else
+                        await MySINnerIds.TryAddAsync(MyCharacter.FileName, PluginHandler.MySINnerLoading.Id.Value);
                     if (File.Exists(zipPath))
                         return zipPath;
                 }
@@ -484,7 +516,7 @@ namespace ChummerHub.Client.Sinners
                         if (string.IsNullOrEmpty(MySINnerFile.Alias))
                             MySINnerFile.Alias = MyCharacter.Name;
                     }
-                    var client = StaticUtils.GetClient();
+                    SinnersClient client = StaticUtils.GetClient();
                     try
                     {
                         ResultSinnerGetOwnedSINByAlias res;
@@ -492,10 +524,10 @@ namespace ChummerHub.Client.Sinners
                         {
                             if (blnSync)
                             {
-                                var objSearchTask = client.SinnerGetOwnedSINByAliasAsync(MySINnerFile.Alias);
+                                Task<ResultSinnerGetOwnedSINByAlias> objSearchTask = client.SinnerGetOwnedSINByAliasAsync(MySINnerFile.Alias);
                                 if (objSearchTask.Status == TaskStatus.Created)
                                     objSearchTask.RunSynchronously();
-                                res = objSearchTask.Result;
+                                res = objSearchTask.GetAwaiter().GetResult();
                             }
                             else
                                 res =  await client.SinnerGetOwnedSINByAliasAsync(MySINnerFile.Alias);
@@ -540,24 +572,28 @@ namespace ChummerHub.Client.Sinners
                                 "\tand use this new version from now on," + Environment.NewLine;
                             message += "but only on this client (NOT recommended)."
                                        + Environment.NewLine + Environment.NewLine;
-                            var result = PluginHandler.MainForm.ShowMessageBox(message, "SIN already found online", MessageBoxButtons.YesNoCancel,
+                            DialogResult result = Program.ShowMessageBox(message, "SIN already found online", MessageBoxButtons.YesNoCancel,
                                 MessageBoxIcon.Asterisk);
-                            if (result == DialogResult.Cancel)
-                                throw new ArgumentException("User aborted perparation for upload!");
-                            if (result == DialogResult.No)
+                            switch (result)
                             {
-                                MySINnerFile.Id = Guid.NewGuid();
-                            }
-                            else
-                            {
-                                var list = res.MySINners;
-                                foreach (var sin in list)
+                                case DialogResult.Cancel:
+                                    throw new ArgumentException("User aborted perparation for upload!");
+                                case DialogResult.No:
+                                    MySINnerFile.Id = Guid.NewGuid();
+                                    break;
+                                default:
                                 {
-                                    if (sin.Id != null)
+                                    ICollection<SINner> list = res.MySINners;
+                                    foreach (SINner sin in list)
                                     {
-                                        MySINnerFile.Id = sin.Id;
-                                        break;
+                                        if (sin.Id != null)
+                                        {
+                                            MySINnerFile.Id = sin.Id;
+                                            break;
+                                        }
                                     }
+
+                                    break;
                                 }
                             }
                         }
@@ -568,10 +604,27 @@ namespace ChummerHub.Client.Sinners
                     }
                 }
 
-                while (MySINnerIds.ContainsKey(MyCharacter.FileName))
-                    MySINnerIds.TryRemove(MyCharacter.FileName, out Guid _);
+                if (blnSync)
+                {
+                    // ReSharper disable once MethodHasAsyncOverload
+                    while (MySINnerIds.ContainsKey(MyCharacter.FileName))
+                        MySINnerIds.TryRemove(MyCharacter.FileName, out Guid _);
+                }
+                else
+                {
+                    while (await MySINnerIds.ContainsKeyAsync(MyCharacter.FileName))
+                        await MySINnerIds.TryRemoveAsync(MyCharacter.FileName);
+                }
+
                 if (MySINnerFile.Id != null)
-                    MySINnerIds.TryAdd(MyCharacter.FileName, MySINnerFile.Id.Value);
+                {
+                    if (blnSync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        MySINnerIds.TryAdd(MyCharacter.FileName, MySINnerFile.Id.Value);
+                    else
+                        await MySINnerIds.TryAddAsync(MyCharacter.FileName, MySINnerFile.Id.Value);
+                }
+
                 SaveSINnerIds(); //Save it!
             }
 
@@ -593,18 +646,20 @@ namespace ChummerHub.Client.Sinners
                         UserRights = ucSINnersOptions.SINnerVisibility.UserRights
                     };
             }
-            if (!String.IsNullOrEmpty(Settings.Default.UserEmail))
+            if (!string.IsNullOrEmpty(Settings.Default.UserEmail) && MySINnerFile.SiNnerMetaData.Visibility.UserRights.Any(a =>
+                    string.Equals(a.EMail, "delete.this.and.add@your.mail", StringComparison.OrdinalIgnoreCase)))
             {
-                if (MySINnerFile.SiNnerMetaData.Visibility.UserRights.Any(a => a.EMail.ToLowerInvariant() == "delete.this.and.add@your.mail"))
-                {
-                    var found = MySINnerFile.SiNnerMetaData.Visibility.UserRights.Where(a => a.EMail.ToLowerInvariant() == "delete.this.and.add@your.mail").ToList();
-                    foreach (var one in found)
-                        MySINnerFile.SiNnerMetaData.Visibility.UserRights.Remove(one);
-                }
+                List<SINnerUserRight> found = MySINnerFile.SiNnerMetaData.Visibility.UserRights.Where(a =>
+                                                              string.Equals(
+                                                                  a.EMail, "delete.this.and.add@your.mail",
+                                                                  StringComparison.OrdinalIgnoreCase))
+                                                          .ToList();
+                foreach (SINnerUserRight one in found)
+                    MySINnerFile.SiNnerMetaData.Visibility.UserRights.Remove(one);
             }
-            if (!MySINnerFile.SiNnerMetaData.Visibility.UserRights.Any())
+            if (MySINnerFile.SiNnerMetaData.Visibility.UserRights.Count == 0)
             {
-                MySINnerFile.SiNnerMetaData.Visibility.UserRights.Add(new SINnerUserRight()
+                MySINnerFile.SiNnerMetaData.Visibility.UserRights.Add(new SINnerUserRight
                 {
                     Id = Guid.NewGuid(),
                     CanEdit = true,
@@ -619,7 +674,7 @@ namespace ChummerHub.Client.Sinners
                 MySINnerFile.SiNnerMetaData.Visibility.Id = Guid.NewGuid();
             }
 
-            foreach (var visnow in ucSINnersOptions.SINnerVisibility.UserRights)
+            foreach (SINnerUserRight visnow in ucSINnersOptions.SINnerVisibility.UserRights)
             {
                 if (MySINnerFile.SiNnerMetaData.Visibility.UserRights.All(a =>
                     a.EMail?.Equals(visnow.EMail, StringComparison.OrdinalIgnoreCase) != true))
@@ -628,7 +683,7 @@ namespace ChummerHub.Client.Sinners
                 }
             }
 
-            foreach (var ur in MySINnerFile.SiNnerMetaData.Visibility.UserRights)
+            foreach (SINnerUserRight ur in MySINnerFile.SiNnerMetaData.Visibility.UserRights)
             {
                 if (ucSINnersOptions.SINnerVisibility.UserRights.Any(a => a.Id == ur.Id))
                 {
@@ -642,36 +697,52 @@ namespace ChummerHub.Client.Sinners
                     Id = Guid.Empty
                 };
 
-            var tempDir = Path.Combine(Path.GetTempPath(), "SINner", MySINnerFile.Id.Value.ToString());
+            string tempDir = Path.Combine(Path.GetTempPath(), "SINner", MySINnerFile.Id.Value.ToString());
             if (!Directory.Exists(tempDir))
                 Directory.CreateDirectory(tempDir);
-            foreach (var file in Directory.GetFiles(tempDir))
+            foreach (string file in Directory.GetFiles(tempDir))
             {
                 FileInfo fi = new FileInfo(file);
                 if (fi.LastWriteTimeUtc < MyCharacter.FileLastWriteTime)
                     File.Delete(file);
             }
-
-            var summary = new CharacterCache(MyCharacter.FileName);
+            
             if (string.IsNullOrEmpty(MyCharacter.FileName))
                 return null;
-            var tempfile = Path.Combine(tempDir, MyCharacter.FileName);
+            string tempfile = Path.Combine(tempDir, MyCharacter.FileName);
             if (File.Exists(tempfile))
                 File.Delete(tempfile);
 
-            bool readCallback = MyCharacter.DoOnSaveCompleted.Remove(PluginHandler.MyOnSaveUpload);
+            bool readCallback = blnSync
+                // ReSharper disable once MethodHasAsyncOverload
+                ? MyCharacter.DoOnSaveCompletedAsync.Remove(PluginHandler.MyOnSaveUpload)
+                : await MyCharacter.DoOnSaveCompletedAsync.RemoveAsync(PluginHandler.MyOnSaveUpload);
 
             if (!File.Exists(MyCharacter.FileName))
             {
                 string path2 = MyCharacter.FileName.Substring(0, MyCharacter.FileName.LastIndexOf('\\'));
                 CreateDirectoryRecursively(path2);
-                MyCharacter.Save(MyCharacter.FileName, false, false);
+                if (blnSync)
+                    // ReSharper disable once MethodHasAsyncOverload
+                    MyCharacter.Save(MyCharacter.FileName, false, false);
+                else
+                    await MyCharacter.SaveAsync(MyCharacter.FileName, false, false);
             }
 
-            MyCharacter.Save(tempfile, false, false);
+            if (blnSync)
+                // ReSharper disable once MethodHasAsyncOverload
+                MyCharacter.Save(tempfile, false, false);
+            else
+                await MyCharacter.SaveAsync(tempfile, false, false);
             MySINnerFile.LastChange = MyCharacter.FileLastWriteTime;
             if (readCallback)
-                MyCharacter.DoOnSaveCompleted.TryAdd(PluginHandler.MyOnSaveUpload);
+            {
+                if (blnSync)
+                    // ReSharper disable once MethodHasAsyncOverload
+                    MyCharacter.DoOnSaveCompletedAsync.Add(PluginHandler.MyOnSaveUpload);
+                else
+                    await MyCharacter.DoOnSaveCompletedAsync.AddAsync(PluginHandler.MyOnSaveUpload);
+            }
 
             if (File.Exists(zipPath))
             {
@@ -698,22 +769,26 @@ namespace ChummerHub.Client.Sinners
         {
             string[] pathParts = path.Split('\\');
 
+            string strPrevious = string.Empty;
             for (int i = 0; i < pathParts.Length; i++)
             {
+                string strCurrent = pathParts[i];
                 if (i > 0)
-                    pathParts[i] = Path.Combine(pathParts[i - 1], pathParts[i]);
+                    strCurrent = Path.Combine(strPrevious, strCurrent);
 
-                if (!Directory.Exists(pathParts[i]))
+                if (!Directory.Exists(strCurrent))
                 {
                     try
                     {
-                        Directory.CreateDirectory(pathParts[i]);
+                        Directory.CreateDirectory(strCurrent);
                     }
                     catch (UnauthorizedAccessException e)
                     {
-                        throw new UnauthorizedAccessException("Path: " + pathParts[i], e);
+                        throw new UnauthorizedAccessException("Path: " + strCurrent, e);
                     }
                 }
+
+                strPrevious = strCurrent;
             }
         }
 
@@ -722,7 +797,7 @@ namespace ChummerHub.Client.Sinners
         {
             try
             {
-                using (new CursorWait(PluginHandler.MainForm, true))
+                using (await CursorWait.NewAsync(PluginHandler.MainForm, true))
                 {
                     if (myState != null)
                     {
@@ -760,9 +835,9 @@ namespace ChummerHub.Client.Sinners
                                 myState.myWorker?.ReportProgress(myState.CurrentProgress, myState);
                             }
 
-                            var uploadresult = await Utils.UploadChummerFileAsync(this);
+                            ResultSINnerPut uploadresult = await Utils.UploadChummerFileAsync(this);
 
-                            if (uploadresult.CallSuccess != true)
+                            if (!uploadresult.CallSuccess)
                             {
                                 if (myState != null)
                                 {
@@ -809,7 +884,7 @@ namespace ChummerHub.Client.Sinners
             catch(Exception e)
             {
                 Log.Error(e);
-                Program.MainForm.ShowMessageBox(e.ToString());
+                Program.ShowMessageBox(e.ToString());
             }
             return true;
         }
@@ -820,6 +895,7 @@ namespace ChummerHub.Client.Sinners
             // if the character is open in any forms or is linked to a character that is open.
             // So this will only dispose characters who are only temporarily opened purely to interact with this class
             MyCharacter?.Dispose();
+            MyCharacterCache?.Dispose();
         }
     }
 }

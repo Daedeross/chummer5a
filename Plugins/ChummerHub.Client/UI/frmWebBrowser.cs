@@ -1,4 +1,23 @@
+/*  This file is part of Chummer5a.
+ *
+ *  Chummer5a is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Chummer5a is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Chummer5a.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  You can obtain the full source code for Chummer5a at
+ *  https://github.com/chummer5a/chummer5a
+ */
 using System;
+using System.Net;
 using System.Windows.Forms;
 using Chummer;
 using ChummerHub.Client.Backend;
@@ -63,35 +82,32 @@ namespace ChummerHub.Client.UI
                 try
                 {
                     //we are logged in!
-                    var client = GetCookieContainer();
+                    SinnersClient client = GetCookieContainer();
                     if (client == null)
                     {
                         Log.Error("Cloud not create an instance of SINnersclient!");
                         login = false;
                         return;
                     }
-                    var body = await client.GetUserByAuthorizationAsync().ConfigureAwait(false);
+                    ResultAccountGetUserByAuthorization body = await client.GetUserByAuthorizationAsync().ConfigureAwait(false);
+                    if (body?.CallSuccess == true)
                     {
-
-                        if (body?.CallSuccess == true)
+                        login = true;
+                        Program.MainForm.Invoke(new Action(() =>
                         {
-                            login = true;
-                            Program.MainForm.Invoke(new Action(() =>
-                            {
-                                SINnerVisibility tempvis = Backend.Utils.DefaultSINnerVisibility
-                                                           ?? new SINnerVisibility
-                                                           {
-                                                               IsGroupVisible = true,
-                                                               IsPublic = true
-                                                           };
-                                tempvis.AddVisibilityForEmail(body.MyApplicationUser?.Email);
-                                Close();
-                            }));
-                        }
-                        else
-                        {
-                            login = false;
-                        }
+                            SINnerVisibility tempvis = Backend.Utils.DefaultSINnerVisibility
+                                                       ?? new SINnerVisibility
+                                                       {
+                                                           IsGroupVisible = true,
+                                                           IsPublic = true
+                                                       };
+                            tempvis.AddVisibilityForEmail(body.MyApplicationUser?.Email);
+                            Close();
+                        }));
+                    }
+                    else
+                    {
+                        login = false;
                     }
                 }
                 catch(ApiException ae)
@@ -111,11 +127,11 @@ namespace ChummerHub.Client.UI
         {
             try
             {
-                using (new CursorWait(this, true))
+                using (CursorWait.New(this, true))
                 {
                     Settings.Default.CookieData = null;
                     Settings.Default.Save();
-                    var cookies =
+                    CookieCollection cookies =
                         StaticUtils.AuthorizationCookieContainer?.GetCookies(new Uri(Settings.Default
                             .SINnerUrl));
                     return StaticUtils.GetClient(true);
@@ -130,7 +146,7 @@ namespace ChummerHub.Client.UI
 
         private void FrmWebBrowser_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (login == false)
+            if (!login)
                 GetCookieContainer();
         }
     }

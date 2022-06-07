@@ -35,11 +35,27 @@ namespace Codaxy.WkHtmlToPdf
         public PdfConvertException(string msg) : base(msg)
         {
         }
+
+        public PdfConvertException()
+        {
+        }
+
+        public PdfConvertException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 
     public class PdfConvertTimeoutException : PdfConvertException
     {
         public PdfConvertTimeoutException() : base("HTML to PDF conversion process has not finished in the given period.")
+        {
+        }
+
+        public PdfConvertTimeoutException(string msg) : base(msg)
+        {
+        }
+
+        public PdfConvertTimeoutException(string message, Exception innerException) : base(message, innerException)
         {
         }
     }
@@ -74,7 +90,7 @@ namespace Codaxy.WkHtmlToPdf
 
     public class PdfConvertEnvironment
     {
-        public string TempFolderPath { get; set; } = Path.GetTempPath();
+        public string TempFolderPath { get; set; } = Utils.GetTempPath();
         public string WkHtmlToPdfPath { get; set; }
         public int Timeout { get; set; } = 60000;
         public bool Debug { get; set; }
@@ -93,7 +109,7 @@ namespace Codaxy.WkHtmlToPdf
 
             if (customPath != null)
             {
-                filePath = Path.Combine(customPath, @"wkhtmltopdf.exe");
+                filePath = Path.Combine(customPath, "wkhtmltopdf.exe");
 
                 if (File.Exists(filePath))
                     return filePath;
@@ -154,71 +170,79 @@ namespace Codaxy.WkHtmlToPdf
             if (!File.Exists(environment.WkHtmlToPdfPath))
                 throw new PdfConvertException($"File '{environment.WkHtmlToPdfPath}' not found. Check if wkhtmltopdf application is installed.");
 
-            StringBuilder paramsBuilder = new StringBuilder();
-            paramsBuilder.Append("--page-size A4 ");
-            paramsBuilder.Append("--disable-smart-shrinking ");
-
-            if (!string.IsNullOrEmpty(document.HeaderUrl))
+            string strParams;
+            using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                          out StringBuilder sbdParams))
             {
-                paramsBuilder.AppendFormat("--header-html {0} ", document.HeaderUrl);
-                paramsBuilder.Append("--margin-top 25 ");
-                paramsBuilder.Append("--header-spacing 5 ");
+                sbdParams.Append("--page-size A4 ");
+                sbdParams.Append("--disable-smart-shrinking ");
+
+                if (!string.IsNullOrEmpty(document.HeaderUrl))
+                {
+                    sbdParams.Append("--header-html ").Append(document.HeaderUrl).Append(" --margin-top 25 ")
+                             .Append("--margin-top 25 ").Append("--header-spacing 5 ");
+                }
+
+                if (!string.IsNullOrEmpty(document.FooterUrl))
+                {
+                    sbdParams.Append("--footer-html ").Append(document.FooterUrl).Append(" --margin-bottom 25 ")
+                             .Append("--footer-spacing 5 ");
+                }
+
+                if (!string.IsNullOrEmpty(document.HeaderLeft))
+                    sbdParams.Append("--header-left \"").Append(document.HeaderLeft).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.HeaderCenter))
+                    sbdParams.Append("--header-center \"").Append(document.HeaderCenter).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.HeaderRight))
+                    sbdParams.Append("--header-right \"").Append(document.HeaderRight).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.FooterLeft))
+                    sbdParams.Append("--footer-left \"").Append(document.FooterLeft).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.FooterCenter))
+                    sbdParams.Append("--footer-center \"").Append(document.FooterCenter).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.FooterRight))
+                    sbdParams.Append("--footer-right \"").Append(document.FooterRight).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.HeaderFontSize))
+                    sbdParams.Append("--header-font-size \"").Append(document.HeaderFontSize).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.FooterFontSize))
+                    sbdParams.Append("--footer-font-size \"").Append(document.FooterFontSize).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.HeaderFontName))
+                    sbdParams.Append("--header-font-name \"").Append(document.HeaderFontName).Append("\" ");
+
+                if (!string.IsNullOrEmpty(document.FooterFontName))
+                    sbdParams.Append("--footer-font-name \"").Append(document.FooterFontName).Append("\" ");
+
+                if (document.ExtraParams != null)
+                {
+                    foreach (KeyValuePair<string, string> extraParam in document.ExtraParams)
+                        sbdParams.Append("--").Append(extraParam.Key).Append(' ').Append(extraParam.Value)
+                                 .Append(' ');
+                }
+
+                if (document.Cookies != null)
+                {
+                    foreach (KeyValuePair<string, string> cookie in document.Cookies)
+                        sbdParams.Append("--cookie ").Append(cookie.Key).Append(' ').Append(cookie.Value)
+                                 .Append(' ');
+                }
+
+                sbdParams.Append('\"').Append(document.Url).Append("\" \"").Append(outputPdfFilePath).Append('\"');
+                strParams = sbdParams.ToString();
             }
-            if (!string.IsNullOrEmpty(document.FooterUrl))
-            {
-                paramsBuilder.AppendFormat("--footer-html {0} ", document.FooterUrl);
-                paramsBuilder.Append("--margin-bottom 25 ");
-                paramsBuilder.Append("--footer-spacing 5 ");
-            }
-            if (!string.IsNullOrEmpty(document.HeaderLeft))
-                paramsBuilder.AppendFormat("--header-left \"{0}\" ", document.HeaderLeft);
-
-            if (!string.IsNullOrEmpty(document.HeaderCenter))
-                paramsBuilder.AppendFormat("--header-center \"{0}\" ", document.HeaderCenter);
-
-            if (!string.IsNullOrEmpty(document.HeaderRight))
-                paramsBuilder.AppendFormat("--header-right \"{0}\" ", document.HeaderRight);
-
-            if (!string.IsNullOrEmpty(document.FooterLeft))
-                paramsBuilder.AppendFormat("--footer-left \"{0}\" ", document.FooterLeft);
-
-            if (!string.IsNullOrEmpty(document.FooterCenter))
-                paramsBuilder.AppendFormat("--footer-center \"{0}\" ", document.FooterCenter);
-
-            if (!string.IsNullOrEmpty(document.FooterRight))
-                paramsBuilder.AppendFormat("--footer-right \"{0}\" ", document.FooterRight);
-
-            if (!string.IsNullOrEmpty(document.HeaderFontSize))
-                paramsBuilder.AppendFormat("--header-font-size \"{0}\" ", document.HeaderFontSize);
-
-            if (!string.IsNullOrEmpty(document.FooterFontSize))
-                paramsBuilder.AppendFormat("--footer-font-size \"{0}\" ", document.FooterFontSize);
-
-            if (!string.IsNullOrEmpty(document.HeaderFontName))
-                paramsBuilder.AppendFormat("--header-font-name \"{0}\" ", document.HeaderFontName);
-
-            if (!string.IsNullOrEmpty(document.FooterFontName))
-                paramsBuilder.AppendFormat("--footer-font-name \"{0}\" ", document.FooterFontName);
-
-            if (document.ExtraParams != null)
-                foreach (var extraParam in document.ExtraParams)
-                    paramsBuilder.AppendFormat("--{0} {1} ", extraParam.Key, extraParam.Value);
-
-            if (document.Cookies != null)
-                foreach (var cookie in document.Cookies)
-                    paramsBuilder.AppendFormat("--cookie {0} {1} ", cookie.Key, cookie.Value);
-
-            paramsBuilder.AppendFormat("\"{0}\" \"{1}\"", document.Url, outputPdfFilePath);
 
             try
             {
-                StringBuilder output = new StringBuilder();
-                StringBuilder error = new StringBuilder();
-
                 using (Process process = new Process { EnableRaisingEvents = true })
                 {
                     process.StartInfo.FileName = environment.WkHtmlToPdfPath;
-                    process.StartInfo.Arguments = paramsBuilder.ToString();
+                    process.StartInfo.Arguments = strParams;
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
@@ -226,11 +250,16 @@ namespace Codaxy.WkHtmlToPdf
 
                     using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
                     using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
+                    using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                                  out StringBuilder output))
+                    using (new FetchSafelyFromPool<StringBuilder>(Utils.StringBuilderPool,
+                                                                  out StringBuilder error))
                     {
                         void OutputHandler(object sender, DataReceivedEventArgs e)
                         {
                             if (e.Data == null)
                             {
+                                // ReSharper disable once AccessToDisposedClosure
                                 outputWaitHandle.Set();
                             }
                             else
@@ -243,6 +272,7 @@ namespace Codaxy.WkHtmlToPdf
                         {
                             if (e.Data == null)
                             {
+                                // ReSharper disable once AccessToDisposedClosure
                                 errorWaitHandle.Set();
                             }
                             else
@@ -254,86 +284,90 @@ namespace Codaxy.WkHtmlToPdf
                         process.OutputDataReceived += OutputHandler;
                         process.ErrorDataReceived += ErrorHandler;
 
+                        Task<int> tskAsyncProcess = null;
                         try
                         {
-                            CancellationTokenSource objCancellationTokenSource = null;
-                            Task<int> tskAsyncProcess = null;
-                            if (blnSync)
-                                process.Start();
-                            else
+                            using (CancellationTokenSource objCancellationTokenSource
+                                   = new CancellationTokenSource(environment.Timeout))
                             {
-                                objCancellationTokenSource = new CancellationTokenSource(environment.Timeout);
-                                tskAsyncProcess = process.StartAsync(objCancellationTokenSource.Token);
-                            }
-
-                            process.BeginOutputReadLine();
-                            process.BeginErrorReadLine();
-
-                            if (document.Html != null)
-                            {
-                                using (var stream = process.StandardInput)
+                                CancellationToken objToken = objCancellationTokenSource.Token;
+                                if (blnSync)
+                                    process.Start();
+                                else
                                 {
-                                    byte[] buffer = Encoding.UTF8.GetBytes(document.Html);
-                                    if (blnSync)
+#pragma warning disable AsyncFixer04 // Fire-and-forget async call inside a using block
+                                    tskAsyncProcess = process.StartAsync(objToken);
+#pragma warning restore AsyncFixer04 // Fire-and-forget async call inside a using block
+                                }
+
+                                process.BeginOutputReadLine();
+                                process.BeginErrorReadLine();
+
+                                if (document.Html != null)
+                                {
+                                    using (StreamWriter stream = process.StandardInput)
                                     {
-                                        // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-                                        stream.BaseStream.Write(buffer, 0, buffer.Length);
-                                        // ReSharper disable once MethodHasAsyncOverload
-                                        stream.WriteLine();
+                                        byte[] buffer = Encoding.UTF8.GetBytes(document.Html);
+                                        if (blnSync)
+                                        {
+                                            // ReSharper disable once MethodHasAsyncOverloadWithCancellation
+                                            stream.BaseStream.Write(buffer, 0, buffer.Length);
+                                            // ReSharper disable once MethodHasAsyncOverload
+                                            stream.WriteLine();
+                                        }
+                                        else
+                                        {
+                                            try
+                                            {
+                                                await stream.BaseStream.WriteAsync(buffer, 0, buffer.Length, objToken);
+                                                await stream.WriteLineAsync();
+                                            }
+                                            catch (OperationCanceledException)
+                                            {
+                                                // Swallow this
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (blnSync)
+                                {
+                                    if (process.WaitForExit(environment.Timeout) &&
+                                        outputWaitHandle.WaitOne(environment.Timeout) &&
+                                        errorWaitHandle.WaitOne(environment.Timeout))
+                                    {
+                                        if (process.ExitCode != 0 && !File.Exists(outputPdfFilePath))
+                                        {
+                                            throw new PdfConvertException(
+                                                $"Html to PDF conversion of '{document.Url}' failed. Wkhtmltopdf output: \r\n{error}");
+                                        }
                                     }
                                     else
                                     {
-                                        try
-                                        {
-                                            await stream.BaseStream.WriteAsync(
-                                                buffer, 0, buffer.Length, objCancellationTokenSource.Token);
-                                            await stream.WriteLineAsync();
-                                        }
-                                        catch (TaskCanceledException)
-                                        {
-                                            // Swallow this
-                                        }
-                                    }
-                                }
-                            }
+                                        if (!process.HasExited)
+                                            process.Kill();
 
-                            if (blnSync)
-                            {
-                                if (process.WaitForExit(environment.Timeout) &&
-                                    outputWaitHandle.WaitOne(environment.Timeout) &&
-                                    errorWaitHandle.WaitOne(environment.Timeout))
-                                {
-                                    if (process.ExitCode != 0 && !File.Exists(outputPdfFilePath))
-                                    {
-                                        throw new PdfConvertException(
-                                            $"Html to PDF conversion of '{document.Url}' failed. Wkhtmltopdf output: \r\n{error}");
+                                        throw new PdfConvertTimeoutException();
                                     }
                                 }
                                 else
                                 {
-                                    if (!process.HasExited)
-                                        process.Kill();
-
-                                    throw new PdfConvertTimeoutException();
-                                }
-                            }
-                            else
-                            {
-                                await tskAsyncProcess;
-                                if (tskAsyncProcess.IsCompleted && objCancellationTokenSource?.IsCancellationRequested != true)
-                                {
-                                    if (tskAsyncProcess.Result != 0 && !File.Exists(outputPdfFilePath))
+                                    int intTaskResult = await tskAsyncProcess;
+                                    if (tskAsyncProcess.IsCompleted && !objToken.IsCancellationRequested)
                                     {
-                                        throw new PdfConvertException(
-                                            $"Html to PDF conversion of '{document.Url}' failed. Wkhtmltopdf output: \r\n{error}");
+                                        if (intTaskResult != 0 && !File.Exists(outputPdfFilePath))
+                                        {
+                                            throw new PdfConvertException(
+                                                $"Html to PDF conversion of '{document.Url}' failed. Wkhtmltopdf output: \r\n{error}");
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    if (!process.HasExited)
-                                        process.Kill();
+                                    else
+                                    {
+                                        if (!process.HasExited)
+                                            process.Kill();
 
-                                    throw new PdfConvertTimeoutException();
+                                        throw new PdfConvertTimeoutException();
+                                    }
                                 }
                             }
                         }
@@ -341,13 +375,14 @@ namespace Codaxy.WkHtmlToPdf
                         {
                             process.OutputDataReceived -= OutputHandler;
                             process.ErrorDataReceived -= ErrorHandler;
+                            tskAsyncProcess?.Dispose();
                         }
                     }
                 }
 
                 if (woutput.OutputStream != null)
                 {
-                    using (Stream fs = new FileStream(outputPdfFilePath, FileMode.Open))
+                    using (FileStream fs = new FileStream(outputPdfFilePath, FileMode.Open))
                     {
                         byte[] buffer = ArrayPool<byte>.Shared.Rent(32 * 1024);
                         int read;
@@ -378,7 +413,13 @@ namespace Codaxy.WkHtmlToPdf
             finally
             {
                 if (delete)
-                    Utils.SafeDeleteFile(outputPdfFilePath, true);
+                {
+                    if (blnSync)
+                        // ReSharper disable once MethodHasAsyncOverload
+                        Utils.SafeDeleteFile(outputPdfFilePath, true);
+                    else
+                        await Utils.SafeDeleteFileAsync(outputPdfFilePath, true);
+                }
             }
         }
 
@@ -420,7 +461,7 @@ namespace Codaxy.WkHtmlToPdf
     //    {
     //        FileInfo fi = new FileInfo(filename);
     //        response.ContentType = "application/force-download";
-    //        response.AddHeader("Content-Disposition", "attachment; filename=\"" + fi.Name + "\"");
+    //        response.AddHeader("Content-Disposition", "attachment; filename=\"" + fi.Name + '\"');
     //    }
     //}
 }
